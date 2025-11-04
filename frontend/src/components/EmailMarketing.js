@@ -488,13 +488,13 @@ const CreateCampaignWizard = ({ onBack }) => {
 
   const handleAISubject = async () => {
     try {
-      const response = await api.post('/api/email/ai/improve-subject', {
+      const res = await api.post('/api/email/ai/improve-subject', {
         subject: campaignData.subject || 'Amazing offer',
         tone: 'professional',
       });
       
-      if (response.data.alternatives && response.data.alternatives.length > 0) {
-        const selected = response.data.alternatives[0];
+      if (res.data.alternatives && res.data.alternatives.length > 0) {
+        const selected = res.data.alternatives[0];
         updateCampaignData('subject', selected);
       }
     } catch (error) {
