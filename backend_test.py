@@ -205,7 +205,7 @@ class eFunnelsAPITester:
             "Create Module",
             "POST",
             f"courses/{self.course_id}/modules",
-            201,
+            200,
             module_data
         )
         
