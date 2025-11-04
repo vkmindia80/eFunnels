@@ -45,3 +45,14 @@ email_logs_collection.create_index('contact_id')
 email_logs_collection.create_index('user_id')
 email_logs_collection.create_index('status')
 funnels_collection.create_index('user_id')
+funnel_pages_collection = db['funnel_pages']
+funnel_pages_collection.create_index('funnel_id')
+funnel_pages_collection.create_index('user_id')
+funnel_templates_collection = db['funnel_templates']
+funnel_visits_collection = db['funnel_visits']
+funnel_visits_collection.create_index('funnel_id')
+funnel_visits_collection.create_index('page_id')
+funnel_visits_collection.create_index('session_id')
+funnel_conversions_collection = db['funnel_conversions']
+funnel_conversions_collection.create_index('funnel_id')
+funnel_conversions_collection.create_index('contact_id')
