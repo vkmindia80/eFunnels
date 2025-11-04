@@ -4,6 +4,8 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail, Email, To, Content
+import boto3
+from botocore.exceptions import ClientError
 from typing import Optional, List
 from datetime import datetime
 import logging
