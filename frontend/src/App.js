@@ -1348,6 +1348,9 @@ const Dashboard = ({ user, onLogout }) => {
       case 'workflows':
         return <WorkflowAutomation />;
       
+      case 'courses':
+        return <Courses user={user} />;
+      
       default:
         return (
           <div className="bg-white rounded-xl shadow-md p-12 text-center">
