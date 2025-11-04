@@ -50,7 +50,7 @@
 
 ## 🎯 YOUR NEXT STEPS - THREE OPTIONS
 
-### **Option 1: Start Phase 4 - Sales Funnel Builder** 🚀 (RECOMMENDED)
+### **Option 1: Start Phase 5 - Forms & Surveys** 🚀 (RECOMMENDED)
 
 **Why this is recommended:**
 - Natural progression in building a complete systeme.io alternative
