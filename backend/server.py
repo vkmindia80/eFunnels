@@ -724,6 +724,553 @@ async def get_contact_stats(current_user: dict = Depends(get_current_user)):
         "recent": recent_contacts
     }
 
+
+# ==================== EMAIL MARKETING ROUTES ====================
+
+# Initialize email service
+email_service = EmailService()
+ai_generator = AIEmailGenerator()
+
+# ==================== EMAIL TEMPLATES ====================
+
+@app.get("/api/email/templates")
+async def get_email_templates(current_user: dict = Depends(get_current_user)):
+    """Get all email templates"""
+    templates = list(email_templates_collection.find({
+        "$or": [
+            {"user_id": current_user['id']},
+            {"is_public": True}
+        ]
+    }))
+    
+    for template in templates:
+        template.pop('_id', None)
+    
+    return templates
+
+@app.post("/api/email/templates")
+async def create_email_template(
+    template: EmailTemplateCreate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Create a new email template"""
+    template_dict = template.model_dump()
+    template_dict['id'] = str(uuid.uuid4())
+    template_dict['user_id'] = current_user['id']
+    template_dict['is_public'] = False
+    template_dict['usage_count'] = 0
+    template_dict['created_at'] = datetime.utcnow()
+    template_dict['updated_at'] = datetime.utcnow()
+    
+    email_templates_collection.insert_one(template_dict)
+    template_dict.pop('_id')
+    
+    return template_dict
+
+@app.get("/api/email/templates/{template_id}")
+async def get_email_template(
+    template_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get a specific email template"""
+    template = email_templates_collection.find_one({
+        "id": template_id,
+        "$or": [
+            {"user_id": current_user['id']},
+            {"is_public": True}
+        ]
+    })
+    
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+    
+    template.pop('_id', None)
+    return template
+
+@app.put("/api/email/templates/{template_id}")
+async def update_email_template(
+    template_id: str,
+    template_update: EmailTemplateUpdate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Update an email template"""
+    existing = email_templates_collection.find_one({
+        "id": template_id,
+        "user_id": current_user['id']
+    })
+    
+    if not existing:
+        raise HTTPException(status_code=404, detail="Template not found")
+    
+    update_data = template_update.model_dump(exclude_unset=True)
+    update_data['updated_at'] = datetime.utcnow()
+    
+    email_templates_collection.update_one(
+        {"id": template_id},
+        {"$set": update_data}
+    )
+    
+    updated = email_templates_collection.find_one({"id": template_id})
+    updated.pop('_id', None)
+    return updated
+
+@app.delete("/api/email/templates/{template_id}")
+async def delete_email_template(
+    template_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Delete an email template"""
+    result = email_templates_collection.delete_one({
+        "id": template_id,
+        "user_id": current_user['id']
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Template not found")
+    
+    return {"message": "Template deleted successfully"}
+
+# ==================== EMAIL CAMPAIGNS ====================
+
+@app.get("/api/email/campaigns")
+async def get_email_campaigns(
+    current_user: dict = Depends(get_current_user),
+    status: str = Query(None),
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100)
+):
+    """Get all email campaigns with pagination"""
+    query = {"user_id": current_user['id']}
+    
+    if status:
+        query["status"] = status
+    
+    total = email_campaigns_collection.count_documents(query)
+    skip = (page - 1) * limit
+    
+    campaigns = list(email_campaigns_collection.find(query)
+                    .skip(skip)
+                    .limit(limit)
+                    .sort("created_at", -1))
+    
+    for campaign in campaigns:
+        campaign.pop('_id', None)
+    
+    return {
+        "campaigns": campaigns,
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "pages": (total + limit - 1) // limit
+    }
+
+@app.post("/api/email/campaigns")
+async def create_email_campaign(
+    campaign: EmailCampaignCreate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Create a new email campaign"""
+    campaign_dict = campaign.model_dump()
+    campaign_dict['id'] = str(uuid.uuid4())
+    campaign_dict['user_id'] = current_user['id']
+    campaign_dict['status'] = 'draft'
+    campaign_dict['created_at'] = datetime.utcnow()
+    campaign_dict['updated_at'] = datetime.utcnow()
+    campaign_dict['total_recipients'] = 0
+    campaign_dict['total_sent'] = 0
+    campaign_dict['total_delivered'] = 0
+    campaign_dict['total_opened'] = 0
+    campaign_dict['total_clicked'] = 0
+    campaign_dict['total_bounced'] = 0
+    campaign_dict['total_unsubscribed'] = 0
+    campaign_dict['total_failed'] = 0
+    
+    email_campaigns_collection.insert_one(campaign_dict)
+    campaign_dict.pop('_id')
+    
+    return campaign_dict
+
+@app.get("/api/email/campaigns/{campaign_id}")
+async def get_email_campaign(
+    campaign_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get a specific email campaign"""
+    campaign = email_campaigns_collection.find_one({
+        "id": campaign_id,
+        "user_id": current_user['id']
+    })
+    
+    if not campaign:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+    
+    campaign.pop('_id', None)
+    
+    # Get campaign logs
+    logs = list(email_logs_collection.find({"campaign_id": campaign_id})
+               .sort("created_at", -1)
+               .limit(100))
+    
+    for log in logs:
+        log.pop('_id', None)
+    
+    campaign['logs'] = logs
+    return campaign
+
+@app.put("/api/email/campaigns/{campaign_id}")
+async def update_email_campaign(
+    campaign_id: str,
+    campaign_update: EmailCampaignUpdate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Update an email campaign"""
+    existing = email_campaigns_collection.find_one({
+        "id": campaign_id,
+        "user_id": current_user['id']
+    })
+    
+    if not existing:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+    
+    # Don't allow editing sent campaigns
+    if existing['status'] in ['sending', 'sent'] and campaign_update.content:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot edit content of sent campaigns"
+        )
+    
+    update_data = campaign_update.model_dump(exclude_unset=True)
+    update_data['updated_at'] = datetime.utcnow()
+    
+    email_campaigns_collection.update_one(
+        {"id": campaign_id},
+        {"$set": update_data}
+    )
+    
+    updated = email_campaigns_collection.find_one({"id": campaign_id})
+    updated.pop('_id', None)
+    return updated
+
+@app.delete("/api/email/campaigns/{campaign_id}")
+async def delete_email_campaign(
+    campaign_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Delete an email campaign"""
+    campaign = email_campaigns_collection.find_one({
+        "id": campaign_id,
+        "user_id": current_user['id']
+    })
+    
+    if not campaign:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+    
+    # Don't allow deleting sent campaigns
+    if campaign['status'] in ['sending', 'sent']:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot delete sent campaigns"
+        )
+    
+    email_campaigns_collection.delete_one({"id": campaign_id})
+    email_logs_collection.delete_many({"campaign_id": campaign_id})
+    
+    return {"message": "Campaign deleted successfully"}
+
+# ==================== SEND CAMPAIGNS ====================
+
+async def send_campaign_emails(campaign_id: str, user_id: str):
+    """Background task to send campaign emails"""
+    try:
+        campaign = email_campaigns_collection.find_one({"id": campaign_id})
+        if not campaign:
+            return
+        
+        # Update status to sending
+        email_campaigns_collection.update_one(
+            {"id": campaign_id},
+            {"$set": {"status": "sending", "sent_at": datetime.utcnow()}}
+        )
+        
+        # Get recipients
+        recipients = []
+        if campaign['recipient_type'] == 'all':
+            recipients = list(contacts_collection.find({"user_id": user_id}))
+        elif campaign['recipient_type'] == 'contacts':
+            recipients = list(contacts_collection.find({
+                "user_id": user_id,
+                "id": {"$in": campaign['recipient_list']}
+            }))
+        elif campaign['recipient_type'] == 'segments':
+            recipients = list(contacts_collection.find({
+                "user_id": user_id,
+                "segments": {"$in": campaign['recipient_list']}
+            }))
+        
+        # Convert email blocks to HTML
+        html_content = convert_blocks_to_html(campaign['content'].get('blocks', []))
+        
+        total_recipients = len(recipients)
+        sent_count = 0
+        failed_count = 0
+        
+        # Send emails
+        for contact in recipients:
+            try:
+                # Send email
+                result = email_service.send_email(
+                    to_email=contact['email'],
+                    subject=campaign['subject'],
+                    html_content=html_content,
+                    from_name=campaign['from_name'],
+                    from_email=campaign['from_email'],
+                    reply_to=campaign.get('reply_to')
+                )
+                
+                # Log the email
+                log_data = {
+                    'id': str(uuid.uuid4()),
+                    'campaign_id': campaign_id,
+                    'contact_id': contact['id'],
+                    'user_id': user_id,
+                    'recipient_email': contact['email'],
+                    'subject': campaign['subject'],
+                    'status': 'sent' if result['success'] else 'failed',
+                    'provider': result['provider'],
+                    'provider_message_id': result.get('message_id'),
+                    'error_message': result.get('error'),
+                    'sent_at': datetime.utcnow() if result['success'] else None,
+                    'created_at': datetime.utcnow(),
+                    'updated_at': datetime.utcnow()
+                }
+                
+                email_logs_collection.insert_one(log_data)
+                
+                if result['success']:
+                    sent_count += 1
+                else:
+                    failed_count += 1
+                
+                # Small delay to avoid rate limiting
+                await asyncio.sleep(0.1)
+                
+            except Exception as e:
+                failed_count += 1
+                print(f"Error sending to {contact['email']}: {str(e)}")
+        
+        # Update campaign stats
+        email_campaigns_collection.update_one(
+            {"id": campaign_id},
+            {"$set": {
+                "status": "sent",
+                "total_recipients": total_recipients,
+                "total_sent": sent_count,
+                "total_failed": failed_count
+            }}
+        )
+        
+    except Exception as e:
+        print(f"Campaign sending error: {str(e)}")
+        email_campaigns_collection.update_one(
+            {"id": campaign_id},
+            {"$set": {"status": "failed"}}
+        )
+
+@app.post("/api/email/campaigns/{campaign_id}/send")
+async def send_email_campaign(
+    campaign_id: str,
+    send_request: SendCampaignRequest,
+    background_tasks: BackgroundTasks,
+    current_user: dict = Depends(get_current_user)
+):
+    """Send an email campaign"""
+    campaign = email_campaigns_collection.find_one({
+        "id": campaign_id,
+        "user_id": current_user['id']
+    })
+    
+    if not campaign:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+    
+    if campaign['status'] in ['sending', 'sent']:
+        raise HTTPException(status_code=400, detail="Campaign already sent")
+    
+    # Schedule or send immediately
+    if send_request.send_now:
+        # Add to background tasks
+        background_tasks.add_task(send_campaign_emails, campaign_id, current_user['id'])
+        return {"message": "Campaign is being sent", "status": "sending"}
+    else:
+        # Schedule for later
+        email_campaigns_collection.update_one(
+            {"id": campaign_id},
+            {"$set": {
+                "status": "scheduled",
+                "scheduled_at": send_request.schedule_at
+            }}
+        )
+        return {"message": "Campaign scheduled", "status": "scheduled"}
+
+@app.post("/api/email/campaigns/{campaign_id}/test")
+async def send_test_email(
+    campaign_id: str,
+    test_request: TestEmailRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """Send test emails"""
+    campaign = email_campaigns_collection.find_one({
+        "id": campaign_id,
+        "user_id": current_user['id']
+    })
+    
+    if not campaign:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+    
+    # Convert email blocks to HTML
+    html_content = convert_blocks_to_html(campaign['content'].get('blocks', []))
+    
+    results = []
+    for test_email in test_request.test_emails:
+        result = email_service.send_email(
+            to_email=test_email,
+            subject=f"[TEST] {campaign['subject']}",
+            html_content=html_content,
+            from_name=campaign['from_name'],
+            from_email=campaign['from_email']
+        )
+        results.append({
+            'email': test_email,
+            'success': result['success'],
+            'error': result.get('error')
+        })
+    
+    return {"results": results}
+
+# ==================== EMAIL PROVIDER SETTINGS ====================
+
+@app.get("/api/email/settings")
+async def get_email_settings(current_user: dict = Depends(get_current_user)):
+    """Get current email provider settings"""
+    return {
+        "provider": os.getenv('EMAIL_PROVIDER', 'mock'),
+        "from_email": os.getenv('EMAIL_FROM', 'noreply@efunnels.com'),
+        "sendgrid_configured": bool(os.getenv('SENDGRID_API_KEY')),
+        "smtp_configured": all([
+            os.getenv('SMTP_HOST'),
+            os.getenv('SMTP_USERNAME'),
+            os.getenv('SMTP_PASSWORD')
+        ])
+    }
+
+@app.put("/api/email/settings")
+async def update_email_settings(
+    settings: EmailProviderSettings,
+    current_user: dict = Depends(get_current_user)
+):
+    """Update email provider settings"""
+    # Note: In production, this should update a database record per user
+    # For now, we'll just validate and return success
+    
+    if settings.provider == 'sendgrid' and not settings.sendgrid_api_key:
+        raise HTTPException(status_code=400, detail="SendGrid API key required")
+    
+    if settings.provider == 'smtp':
+        if not all([settings.smtp_host, settings.smtp_username, settings.smtp_password]):
+            raise HTTPException(status_code=400, detail="SMTP credentials required")
+    
+    return {"message": "Settings updated successfully", "provider": settings.provider}
+
+# ==================== AI EMAIL GENERATION ====================
+
+@app.post("/api/email/ai/generate")
+async def generate_email_with_ai(
+    request: AIEmailRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """Generate email content using AI"""
+    try:
+        result = ai_generator.generate_email_content(
+            prompt=request.prompt,
+            tone=request.tone,
+            purpose=request.purpose,
+            length=request.length,
+            include_cta=request.include_cta
+        )
+        
+        return result
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"AI generation failed: {str(e)}")
+
+@app.post("/api/email/ai/improve-subject")
+async def improve_subject_line(
+    subject: str = Query(...),
+    context: str = Query(""),
+    current_user: dict = Depends(get_current_user)
+):
+    """Generate alternative subject lines"""
+    try:
+        alternatives = ai_generator.improve_subject_line(subject, context)
+        return {"alternatives": alternatives}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"AI generation failed: {str(e)}")
+
+# ==================== EMAIL ANALYTICS ====================
+
+@app.get("/api/email/analytics/summary")
+async def get_email_analytics_summary(current_user: dict = Depends(get_current_user)):
+    """Get email marketing analytics summary"""
+    # Total campaigns
+    total_campaigns = email_campaigns_collection.count_documents({"user_id": current_user['id']})
+    
+    # Sent campaigns
+    sent_campaigns = email_campaigns_collection.count_documents({
+        "user_id": current_user['id'],
+        "status": "sent"
+    })
+    
+    # Total emails sent
+    total_sent = email_logs_collection.count_documents({
+        "user_id": current_user['id'],
+        "status": {"$in": ["sent", "delivered", "opened", "clicked"]}
+    })
+    
+    # Delivery rate
+    total_delivered = email_logs_collection.count_documents({
+        "user_id": current_user['id'],
+        "status": {"$in": ["delivered", "opened", "clicked"]}
+    })
+    
+    # Open rate
+    total_opened = email_logs_collection.count_documents({
+        "user_id": current_user['id'],
+        "status": {"$in": ["opened", "clicked"]}
+    })
+    
+    # Click rate
+    total_clicked = email_logs_collection.count_documents({
+        "user_id": current_user['id'],
+        "status": "clicked"
+    })
+    
+    delivery_rate = (total_delivered / total_sent * 100) if total_sent > 0 else 0
+    open_rate = (total_opened / total_delivered * 100) if total_delivered > 0 else 0
+    click_rate = (total_clicked / total_opened * 100) if total_opened > 0 else 0
+    
+    return {
+        "total_campaigns": total_campaigns,
+        "sent_campaigns": sent_campaigns,
+        "total_sent": total_sent,
+        "total_delivered": total_delivered,
+        "total_opened": total_opened,
+        "total_clicked": total_clicked,
+        "delivery_rate": round(delivery_rate, 2),
+        "open_rate": round(open_rate, 2),
+        "click_rate": round(click_rate, 2)
+    }
+
+
 @app.on_event("startup")
 async def startup_event():
     """Create demo user on startup"""
