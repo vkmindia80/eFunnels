@@ -3,7 +3,11 @@ import {
   Menu, X, Home, Users, Mail, Layout, BookOpen, DollarSign, 
   Video, Zap, FileText, Settings, 
   LogOut, User, Bell, Search, Plus, BarChart2,
-  UserPlus, ShoppingCart, Target, Award, MessageSquare
+  UserPlus, ShoppingCart, Target, Award, MessageSquare,
+  Edit, Trash2, Tag, Download, Upload, Filter, 
+  ChevronLeft, ChevronRight, Check, FileSpreadsheet,
+  Phone, Globe, MapPin, Building, Briefcase, Calendar,
+  Activity, MessageCircle, Clock, TrendingUp
 } from 'lucide-react';
 import './App.css';
 import api from './api';
