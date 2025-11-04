@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Save, Eye, Sparkles, Undo, Redo, Smartphone, Monitor } from 'lucide-react';
+import React, { useState } from 'react';
+import { ArrowLeft, Save, Eye, Sparkles, Undo, Redo } from 'lucide-react';
 import BlockLibrary from './BlockLibrary';
 import Canvas from './Canvas';
 import StylePanel from './StylePanel';
 import PreviewPanel from './PreviewPanel';
 import { createDefaultBlock } from './blocks';
-import { blocksToHTML } from './utils';
 import api from '../../api';
 
 const EmailBuilder = ({ onBack, initialData = null, isTemplate = false, onSave }) => {
