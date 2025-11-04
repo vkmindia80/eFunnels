@@ -271,13 +271,16 @@ class EmailLogCreate(BaseModel):
     provider: str = "mock"
 
 class EmailProviderSettings(BaseModel):
-    provider: str = "mock"  # mock, sendgrid, smtp
+    provider: str = "mock"  # mock, sendgrid, smtp, aws_ses
     sendgrid_api_key: Optional[str] = None
     smtp_host: Optional[str] = None
     smtp_port: Optional[int] = 587
     smtp_username: Optional[str] = None
     smtp_password: Optional[str] = None
     smtp_use_tls: bool = True
+    aws_access_key_id: Optional[str] = None
+    aws_secret_access_key: Optional[str] = None
+    aws_region: Optional[str] = "us-east-1"
 
 class AIEmailRequest(BaseModel):
     prompt: str
