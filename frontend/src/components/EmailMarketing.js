@@ -454,7 +454,7 @@ const CreateCampaignWizard = ({ onBack }) => {
       setIsSubmitting(true);
       
       // Create campaign
-      const response = await api.post('/api/email/campaigns', campaignData);
+      await api.post('/api/email/campaigns', campaignData);
       
       alert('Campaign created successfully!');
       onBack();
