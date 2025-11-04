@@ -15,6 +15,7 @@ import EmailMarketingPage from './components/EmailMarketing';
 import Funnels from './components/Funnels';
 import Forms from './components/Forms';
 import WorkflowAutomation from './components/WorkflowAutomation';
+import Courses from './components/Courses';
 
 // Demo credentials banner component
 const DemoCredentialsBanner = ({ onFillCredentials }) => {
