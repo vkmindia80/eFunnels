@@ -381,14 +381,14 @@ Return ONLY valid JSON in this exact format (no markdown, no code blocks):
             },
             'promotional': {
                 'subject': 'Exclusive Offer Just For You',
-                'preview_text': 'Don't miss out on this special promotion',
+                'preview_text': 'Do not miss out on this special promotion',
                 'content': f'''
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                     <h1 style="color: #3B82F6;">Special Promotion!</h1>
                     <p>Hello,</p>
-                    <p>We have an exclusive offer that we think you'll love. For a limited time, take advantage of this special promotion.</p>
+                    <p>We have an exclusive offer that we think you will love. For a limited time, take advantage of this special promotion.</p>
                     <div style="background-color: #F3F4F6; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                        <h2 style="margin-top: 0;">What's Included:</h2>
+                        <h2 style="margin-top: 0;">What is Included:</h2>
                         <ul>
                             <li>Premium features access</li>
                             <li>Priority support</li>
