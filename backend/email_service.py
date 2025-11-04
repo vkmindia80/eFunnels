@@ -242,7 +242,7 @@ Return ONLY valid JSON in this exact format (no markdown, no code blocks):
     "content": "Full HTML email content with proper formatting"
 }}"""
 
-            # Call OpenAI API
+            # Call OpenAI API with timeout
             response = self.client.chat.completions.create(
                 model="gpt-4o",
                 messages=[
@@ -250,7 +250,8 @@ Return ONLY valid JSON in this exact format (no markdown, no code blocks):
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.7,
-                max_tokens=2000
+                max_tokens=2000,
+                timeout=10.0
             )
             
             # Parse response
