@@ -1328,6 +1328,9 @@ const Dashboard = ({ user, onLogout }) => {
           </div>
         );
       
+      case 'contacts':
+        return <ContactsPage />;
+      
       default:
         return (
           <div className="bg-white rounded-xl shadow-md p-12 text-center">
