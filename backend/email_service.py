@@ -55,6 +55,8 @@ class EmailService:
             return self._send_via_sendgrid(to_email, subject, html_content, from_name, from_email, reply_to)
         elif self.provider == 'smtp':
             return self._send_via_smtp(to_email, subject, html_content, from_name, from_email, reply_to)
+        elif self.provider == 'aws_ses':
+            return self._send_via_aws_ses(to_email, subject, html_content, from_name, from_email, reply_to)
         else:  # mock
             return self._send_via_mock(to_email, subject, html_content, from_name, from_email)
     
