@@ -345,7 +345,7 @@ const Funnels = () => {
               funnel={funnel}
               onEdit={() => {
                 setSelectedFunnel(funnel);
-                setActiveTab('funnels');
+                setShowEditModal(true);
               }}
               onDelete={() => deleteFunnel(funnel.id)}
               onStatusChange={(status) => updateFunnelStatus(funnel.id, status)}
