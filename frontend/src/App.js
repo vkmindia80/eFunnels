@@ -1340,6 +1340,9 @@ const Dashboard = ({ user, onLogout }) => {
       case 'funnels':
         return <Funnels />;
       
+      case 'forms':
+        return <Forms />;
+      
       default:
         return (
           <div className="bg-white rounded-xl shadow-md p-12 text-center">
