@@ -409,10 +409,10 @@ Return ONLY valid JSON in this exact format (no markdown, no code blocks):
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                     <h1 style="color: #3B82F6;">Monthly Newsletter</h1>
                     <p>Hi there,</p>
-                    <p>Here's what's new this month:</p>
+                    <p>Here is what is new this month:</p>
                     <div style="margin: 30px 0;">
                         <h3 style="color: #3B82F6;">Latest Updates</h3>
-                        <p>We've been busy improving our platform with new features and enhancements.</p>
+                        <p>We have been busy improving our platform with new features and enhancements.</p>
                         
                         <h3 style="color: #3B82F6;">Tips & Tricks</h3>
                         <p>Learn how to get the most out of our platform with these helpful tips.</p>
