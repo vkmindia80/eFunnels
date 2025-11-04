@@ -209,6 +209,30 @@ REACT_APP_GOOGLE_CLIENT_ID=your-google-client-id
 - `GET /api/auth/me` - Get current user
 - `PUT /api/auth/profile` - Update user profile
 
+### Contacts & CRM:
+- `GET /api/contacts` - List contacts (with pagination, search, filters)
+- `POST /api/contacts` - Create contact
+- `GET /api/contacts/{id}` - Get contact details
+- `PUT /api/contacts/{id}` - Update contact
+- `DELETE /api/contacts/{id}` - Delete contact
+- `POST /api/contacts/import` - Import contacts (CSV/Excel)
+- `GET /api/contacts/export` - Export contacts (CSV/Excel)
+- `POST /api/contacts/bulk/delete` - Bulk delete
+- `POST /api/contacts/bulk/tag` - Bulk tag
+- `POST /api/contacts/bulk/segment` - Bulk segment
+- `POST /api/contacts/{id}/activities` - Add activity
+- `GET /api/contacts/stats/summary` - Get statistics
+
+### Tags:
+- `GET /api/tags` - List tags
+- `POST /api/tags` - Create tag
+- `DELETE /api/tags/{id}` - Delete tag
+
+### Segments:
+- `GET /api/segments` - List segments
+- `POST /api/segments` - Create segment
+- `DELETE /api/segments/{id}` - Delete segment
+
 ### Demo:
 - `GET /api/demo/credentials` - Get demo credentials
 - `GET /api/health` - Health check
