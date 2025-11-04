@@ -360,7 +360,7 @@ Return ONLY valid JSON in this exact format (no markdown, no code blocks):
         templates = {
             'welcome': {
                 'subject': 'Welcome to Our Platform!',
-                'preview_text': 'We're excited to have you on board',
+                'preview_text': 'We are excited to have you on board',
                 'content': f'''
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                     <h1 style="color: #3B82F6;">Welcome Aboard!</h1>
