@@ -301,3 +301,134 @@ class TestEmailRequest(BaseModel):
 class SendCampaignRequest(BaseModel):
     send_now: bool = True
     schedule_at: Optional[datetime] = None
+
+
+# ==================== FUNNEL BUILDER MODELS ====================
+
+class FunnelPageBase(BaseModel):
+    name: str
+    path: str  # URL path like /landing, /thank-you
+    content: dict  # JSON structure for page builder blocks
+    order: int = 0
+    
+class FunnelPageCreate(FunnelPageBase):
+    pass
+
+class FunnelPage(FunnelPageBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    funnel_id: str
+    seo_title: Optional[str] = None
+    seo_description: Optional[str] = None
+    seo_keywords: Optional[str] = None
+    custom_css: Optional[str] = None
+    custom_js: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+class FunnelPageUpdate(BaseModel):
+    name: Optional[str] = None
+    path: Optional[str] = None
+    content: Optional[dict] = None
+    order: Optional[int] = None
+    seo_title: Optional[str] = None
+    seo_description: Optional[str] = None
+    seo_keywords: Optional[str] = None
+    custom_css: Optional[str] = None
+    custom_js: Optional[str] = None
+
+class FunnelBase(BaseModel):
+    name: str
+    description: Optional[str] = None
+    funnel_type: str = "custom"  # custom, lead_gen, sales, webinar, product_launch
+    
+class FunnelCreate(FunnelBase):
+    template_id: Optional[str] = None  # If creating from template
+    
+class FunnelUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    status: Optional[str] = None
+    domain: Optional[str] = None
+    subdomain: Optional[str] = None
+    favicon: Optional[str] = None
+    tracking_code: Optional[str] = None
+
+class Funnel(FunnelBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    status: str = "draft"  # draft, active, paused, archived
+    domain: Optional[str] = None
+    subdomain: Optional[str] = None
+    favicon: Optional[str] = None
+    tracking_code: Optional[str] = None  # Google Analytics, FB Pixel, etc.
+    pages: List[dict] = []  # Array of page summaries
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    published_at: Optional[datetime] = None
+    
+    # Analytics
+    total_visits: int = 0
+    total_conversions: int = 0
+    conversion_rate: float = 0.0
+    total_revenue: float = 0.0
+
+class FunnelTemplateBase(BaseModel):
+    name: str
+    description: str
+    funnel_type: str
+    thumbnail: Optional[str] = None
+    preview_url: Optional[str] = None
+    pages: List[dict]  # Array of pre-configured pages
+
+class FunnelTemplate(FunnelTemplateBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    is_public: bool = True
+    usage_count: int = 0
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class FunnelVisit(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    funnel_id: str
+    page_id: str
+    user_id: str
+    visitor_ip: Optional[str] = None
+    visitor_country: Optional[str] = None
+    visitor_city: Optional[str] = None
+    user_agent: Optional[str] = None
+    referrer: Optional[str] = None
+    utm_source: Optional[str] = None
+    utm_medium: Optional[str] = None
+    utm_campaign: Optional[str] = None
+    session_id: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class FunnelConversion(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    funnel_id: str
+    page_id: str
+    user_id: str
+    contact_id: Optional[str] = None
+    conversion_type: str = "form_submission"  # form_submission, purchase, signup
+    conversion_value: float = 0.0
+    form_data: Optional[dict] = None
+    session_id: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class FunnelAnalyticsRequest(BaseModel):
+    date_from: Optional[datetime] = None
+    date_to: Optional[datetime] = None
+    
+class TrackVisitRequest(BaseModel):
+    page_id: str
+    visitor_ip: Optional[str] = None
+    user_agent: Optional[str] = None
+    referrer: Optional[str] = None
+    utm_source: Optional[str] = None
+    utm_medium: Optional[str] = None
+    utm_campaign: Optional[str] = None
+    session_id: Optional[str] = None
+
+class FormSubmissionRequest(BaseModel):
+    page_id: str
+    form_data: dict
+    session_id: Optional[str] = None
