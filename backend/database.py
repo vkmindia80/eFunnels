@@ -75,3 +75,12 @@ surveys_collection.create_index('user_id')
 surveys_collection.create_index('status')
 survey_responses_collection.create_index('survey_id')
 survey_responses_collection.create_index('user_id')
+
+# Workflow automation indexes
+workflows_collection.create_index('user_id')
+workflows_collection.create_index('is_active')
+workflows_collection.create_index('trigger_type')
+workflow_executions_collection.create_index('workflow_id')
+workflow_executions_collection.create_index('contact_id')
+workflow_executions_collection.create_index('user_id')
+workflow_executions_collection.create_index('status')
