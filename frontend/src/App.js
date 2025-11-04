@@ -13,6 +13,7 @@ import './App.css';
 import api from './api';
 import EmailMarketingPage from './components/EmailMarketing';
 import Funnels from './components/Funnels';
+import Forms from './components/Forms';
 
 // Demo credentials banner component
 const DemoCredentialsBanner = ({ onFillCredentials }) => {
