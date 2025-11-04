@@ -692,3 +692,225 @@ class WorkflowAnalytics(BaseModel):
     tags_added: int
     last_execution: Optional[datetime] = None
 
+
+# ==================== COURSE & MEMBERSHIP MODELS ====================
+
+class CourseLessonBase(BaseModel):
+    title: str
+    description: Optional[str] = None
+    content_type: str  # video, text, pdf, quiz
+    content: dict  # Flexible content storage (video URL, text content, quiz data, etc.)
+    duration: Optional[int] = None  # Duration in minutes
+    order: int = 0
+    is_preview: bool = False  # Allow preview without enrollment
+    
+class CourseLessonCreate(CourseLessonBase):
+    pass
+
+class CourseLesson(CourseLessonBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    module_id: str
+    course_id: str
+    user_id: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+class CourseLessonUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    content_type: Optional[str] = None
+    content: Optional[dict] = None
+    duration: Optional[int] = None
+    order: Optional[int] = None
+    is_preview: Optional[bool] = None
+
+class CourseModuleBase(BaseModel):
+    title: str
+    description: Optional[str] = None
+    order: int = 0
+    
+class CourseModuleCreate(CourseModuleBase):
+    lessons: Optional[List[CourseLessonCreate]] = []
+
+class CourseModule(CourseModuleBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    course_id: str
+    user_id: str
+    lessons: List[dict] = []  # Summary of lessons
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+class CourseModuleUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    order: Optional[int] = None
+
+class CourseBase(BaseModel):
+    title: str
+    description: str
+    category: Optional[str] = "general"  # tech, business, design, marketing, etc.
+    level: str = "beginner"  # beginner, intermediate, advanced
+    language: str = "en"
+    thumbnail: Optional[str] = None
+    
+class CourseCreate(CourseBase):
+    pricing_type: str = "free"  # free, paid, membership
+    price: Optional[float] = 0.0
+    currency: str = "USD"
+    membership_tier_ids: Optional[List[str]] = []  # Required membership tiers
+    drip_enabled: bool = False
+    drip_interval_days: Optional[int] = 7  # Days between module releases
+
+class CourseUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    category: Optional[str] = None
+    level: Optional[str] = None
+    language: Optional[str] = None
+    thumbnail: Optional[str] = None
+    status: Optional[str] = None
+    pricing_type: Optional[str] = None
+    price: Optional[float] = None
+    currency: Optional[str] = None
+    membership_tier_ids: Optional[List[str]] = None
+    drip_enabled: Optional[bool] = None
+    drip_interval_days: Optional[int] = None
+
+class Course(CourseBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str  # Course creator
+    status: str = "draft"  # draft, published, archived
+    pricing_type: str = "free"
+    price: float = 0.0
+    currency: str = "USD"
+    membership_tier_ids: List[str] = []
+    modules: List[dict] = []  # Summary of modules
+    drip_enabled: bool = False
+    drip_interval_days: int = 7
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    published_at: Optional[datetime] = None
+    
+    # Analytics
+    total_students: int = 0
+    total_completions: int = 0
+    completion_rate: float = 0.0
+    average_rating: float = 0.0
+    total_reviews: int = 0
+
+class CourseEnrollmentBase(BaseModel):
+    course_id: str
+    
+class CourseEnrollmentCreate(CourseEnrollmentBase):
+    contact_id: Optional[str] = None
+    payment_status: str = "pending"  # pending, completed, failed
+    payment_amount: Optional[float] = None
+
+class CourseEnrollment(CourseEnrollmentBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str  # Student user ID
+    contact_id: Optional[str] = None  # Link to contact if exists
+    course_owner_id: str  # Course creator ID
+    enrollment_date: datetime = Field(default_factory=datetime.utcnow)
+    completed_date: Optional[datetime] = None
+    progress_percentage: float = 0.0
+    current_module_id: Optional[str] = None
+    current_lesson_id: Optional[str] = None
+    payment_status: str = "completed"  # pending, completed, failed
+    payment_amount: float = 0.0
+    certificate_issued: bool = False
+    certificate_id: Optional[str] = None
+    last_accessed: Optional[datetime] = None
+    total_time_spent: int = 0  # Minutes
+
+class CourseProgressBase(BaseModel):
+    lesson_id: str
+    
+class CourseProgressCreate(CourseProgressBase):
+    time_spent: Optional[int] = 0  # Minutes
+    quiz_score: Optional[float] = None
+    quiz_passed: Optional[bool] = None
+
+class CourseProgress(CourseProgressBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    enrollment_id: str
+    user_id: str
+    course_id: str
+    module_id: str
+    completed: bool = False
+    completed_at: Optional[datetime] = None
+    time_spent: int = 0  # Minutes
+    quiz_score: Optional[float] = None
+    quiz_passed: Optional[bool] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+class CertificateBase(BaseModel):
+    course_id: str
+    enrollment_id: str
+    
+class Certificate(CertificateBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str  # Student
+    course_owner_id: str
+    course_title: str
+    student_name: str
+    completion_date: datetime = Field(default_factory=datetime.utcnow)
+    certificate_number: str  # Unique certificate number
+    issued_at: datetime = Field(default_factory=datetime.utcnow)
+
+class MembershipTierBase(BaseModel):
+    name: str
+    description: str
+    price: float
+    currency: str = "USD"
+    billing_period: str = "monthly"  # monthly, yearly, lifetime
+    
+class MembershipTierCreate(MembershipTierBase):
+    features: List[str] = []
+    course_ids: List[str] = []  # Courses included in this tier
+    
+class MembershipTierUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    price: Optional[float] = None
+    currency: Optional[str] = None
+    billing_period: Optional[str] = None
+    features: Optional[List[str]] = None
+    course_ids: Optional[List[str]] = None
+    status: Optional[str] = None
+
+class MembershipTier(MembershipTierBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str  # Tier creator/owner
+    status: str = "active"  # active, inactive
+    features: List[str] = []
+    course_ids: List[str] = []
+    total_subscribers: int = 0
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+class MembershipSubscriptionBase(BaseModel):
+    tier_id: str
+    
+class MembershipSubscriptionCreate(MembershipSubscriptionBase):
+    payment_status: str = "pending"
+    
+class MembershipSubscription(MembershipSubscriptionBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str  # Subscriber
+    tier_owner_id: str
+    status: str = "active"  # active, cancelled, expired, paused
+    payment_status: str = "completed"
+    subscribed_at: datetime = Field(default_factory=datetime.utcnow)
+    expires_at: Optional[datetime] = None
+    cancelled_at: Optional[datetime] = None
+    last_payment_date: Optional[datetime] = None
+    next_payment_date: Optional[datetime] = None
+
+class PublicEnrollmentRequest(BaseModel):
+    student_name: str
+    student_email: EmailStr
+    payment_method: str = "mock"  # mock, stripe, paypal
+    payment_token: Optional[str] = None
+
