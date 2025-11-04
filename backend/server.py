@@ -2,7 +2,12 @@ from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from datetime import timedelta, datetime
-from models import UserCreate, UserLogin, User, Token, UserUpdate, GoogleLogin
+from models import (
+    UserCreate, UserLogin, User, Token, UserUpdate, GoogleLogin,
+    ContactCreate, ContactUpdate, Contact, ContactActivityCreate,
+    TagCreate, Tag, SegmentCreate, Segment,
+    BulkDeleteRequest, BulkTagRequest, BulkSegmentRequest
+)
 from auth import (
     get_password_hash, 
     verify_password, 
