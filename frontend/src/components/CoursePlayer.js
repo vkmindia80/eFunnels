@@ -74,7 +74,12 @@ const CoursePlayer = ({ courseId, onBack }) => {
     if (!currentLesson) return;
 
     try {
-      await api.post(`/courses/${courseId}/lessons/${currentLesson.id}/complete`);
+      await api.post(`/courses/${courseId}/lessons/${currentLesson.id}/complete`, {
+        lesson_id: currentLesson.id,
+        time_spent: 0,
+        quiz_score: null,
+        quiz_passed: null
+      });
       setCompletedLessons(prev => new Set([...prev, currentLesson.id]));
       
       // Auto-advance to next lesson
