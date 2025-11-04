@@ -1,10 +1,12 @@
-from fastapi import FastAPI, HTTPException, Depends, status, UploadFile, File, Query
+from fastapi import FastAPI, HTTPException, Depends, status, UploadFile, File, Query, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 from datetime import timedelta, datetime
 import io
 import csv
 import pandas as pd
+from email_service import EmailService, AIEmailGenerator, convert_blocks_to_html
+import asyncio
 from models import (
     UserCreate, UserLogin, User, Token, UserUpdate, GoogleLogin,
     ContactCreate, ContactUpdate, Contact, ContactActivityCreate,
