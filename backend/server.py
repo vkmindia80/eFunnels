@@ -40,7 +40,8 @@ from database import (
     funnels_collection, funnel_pages_collection, funnel_templates_collection,
     funnel_visits_collection, funnel_conversions_collection,
     forms_collection, form_submissions_collection, form_templates_collection, form_views_collection,
-    surveys_collection, survey_responses_collection
+    surveys_collection, survey_responses_collection,
+    workflows_collection, workflow_executions_collection, workflow_templates_collection
 )
 import uuid
 from typing import List
