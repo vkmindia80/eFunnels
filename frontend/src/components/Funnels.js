@@ -112,6 +112,20 @@ const Funnels = () => {
     }
   };
 
+  const updateFunnel = async (funnelId, funnelData) => {
+    try {
+      const response = await api.put(`/api/funnels/${funnelId}`, funnelData);
+      setFunnels(funnels.map(f => f.id === funnelId ? response.data : f));
+      setShowEditModal(false);
+      setSelectedFunnel(null);
+      alert('Funnel updated successfully!');
+      loadFunnels(); // Reload to get fresh data
+    } catch (error) {
+      console.error('Error updating funnel:', error);
+      alert('Failed to update funnel');
+    }
+  };
+
   const openPageBuilder = async (funnel, page) => {
     try {
       setLoading(true);
