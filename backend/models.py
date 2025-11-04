@@ -432,3 +432,161 @@ class FormSubmissionRequest(BaseModel):
     page_id: str
     form_data: dict
     session_id: Optional[str] = None
+
+
+# ==================== FORMS & SURVEYS MODELS ====================
+
+class FormFieldBase(BaseModel):
+    label: str
+    field_type: str  # text, email, phone, number, textarea, select, radio, checkbox, file, date, rating, agreement
+    placeholder: Optional[str] = None
+    required: bool = False
+    options: Optional[List[str]] = []  # For select, radio, checkbox
+    validation: Optional[dict] = {}  # min, max, pattern, etc.
+    conditional_logic: Optional[dict] = None  # Show/hide based on other fields
+    order: int = 0
+
+class FormFieldCreate(FormFieldBase):
+    pass
+
+class FormField(FormFieldBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+
+class FormBase(BaseModel):
+    name: str
+    description: Optional[str] = None
+    form_type: str = "standard"  # standard, survey, quiz
+    
+class FormCreate(FormBase):
+    fields: List[FormFieldCreate] = []
+    settings: Optional[dict] = {}  # Theme, notifications, thank you message, etc.
+    
+class FormUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    status: Optional[str] = None
+    fields: Optional[List[dict]] = None
+    settings: Optional[dict] = None
+    
+class Form(FormBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    status: str = "draft"  # draft, active, paused, archived
+    fields: List[dict] = []
+    settings: dict = {}  # notifications, thank_you_message, redirect_url, etc.
+    is_multi_step: bool = False
+    pages: Optional[List[dict]] = []  # For multi-step forms
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    published_at: Optional[datetime] = None
+    
+    # Analytics
+    total_views: int = 0
+    total_submissions: int = 0
+    conversion_rate: float = 0.0
+
+class FormSubmission(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    form_id: str
+    user_id: str  # Form owner
+    contact_id: Optional[str] = None
+    submission_data: dict
+    visitor_ip: Optional[str] = None
+    user_agent: Optional[str] = None
+    referrer: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class FormSubmissionCreate(BaseModel):
+    form_id: str
+    submission_data: dict
+    visitor_ip: Optional[str] = None
+    user_agent: Optional[str] = None
+    referrer: Optional[str] = None
+
+class FormTemplateBase(BaseModel):
+    name: str
+    description: str
+    category: str  # contact, feedback, registration, order, survey
+    thumbnail: Optional[str] = None
+    fields: List[dict]
+    
+class FormTemplate(FormTemplateBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    is_public: bool = True
+    usage_count: int = 0
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class FormViewTrack(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    form_id: str
+    user_id: str
+    visitor_ip: Optional[str] = None
+    user_agent: Optional[str] = None
+    referrer: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class PublicFormSubmissionRequest(BaseModel):
+    submission_data: dict
+    visitor_ip: Optional[str] = None
+    user_agent: Optional[str] = None
+    referrer: Optional[str] = None
+
+# ==================== SURVEY MODELS ====================
+
+class SurveyQuestionBase(BaseModel):
+    question_text: str
+    question_type: str  # multiple_choice, single_choice, rating, text, scale
+    options: Optional[List[str]] = []
+    required: bool = True
+    order: int = 0
+    
+class SurveyQuestionCreate(SurveyQuestionBase):
+    pass
+
+class SurveyQuestion(SurveyQuestionBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+
+class SurveyBase(BaseModel):
+    name: str
+    description: Optional[str] = None
+    
+class SurveyCreate(SurveyBase):
+    questions: List[SurveyQuestionCreate] = []
+    settings: Optional[dict] = {}
+    
+class SurveyUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    status: Optional[str] = None
+    questions: Optional[List[dict]] = None
+    settings: Optional[dict] = None
+    
+class Survey(SurveyBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    status: str = "draft"  # draft, active, paused, closed
+    questions: List[dict] = []
+    settings: dict = {}
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    published_at: Optional[datetime] = None
+    
+    # Analytics
+    total_responses: int = 0
+    completion_rate: float = 0.0
+
+class SurveyResponse(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    survey_id: str
+    user_id: str  # Survey owner
+    contact_id: Optional[str] = None
+    responses: dict  # question_id: answer
+    visitor_ip: Optional[str] = None
+    completed: bool = False
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    completed_at: Optional[datetime] = None
+
+class PublicSurveyResponseRequest(BaseModel):
+    responses: dict
+    visitor_ip: Optional[str] = None
+    completed: bool = True
