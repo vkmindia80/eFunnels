@@ -124,8 +124,31 @@ const Courses = ({ user }) => {
     setShowCourseBuilder(true);
   };
 
+  const openCoursePlayer = (courseId) => {
+    setPlayerCourseId(courseId);
+    setShowCoursePlayer(true);
+  };
+
+  const viewCertificate = (courseId) => {
+    setCertificateCourseId(courseId);
+    setShowCertificate(true);
+  };
+
+  // Route to different views
   if (showCourseBuilder && selectedCourse) {
-    return <CourseBuilder course={selectedCourse} onBack={() => { setShowCourseBuilder(false); setSelectedCourse(null); fetchData(); }} />;
+    return <EnhancedCourseBuilder course={selectedCourse} onBack={() => { setShowCourseBuilder(false); setSelectedCourse(null); fetchData(); }} />;
+  }
+
+  if (showCoursePlayer && playerCourseId) {
+    return <CoursePlayer courseId={playerCourseId} onBack={() => { setShowCoursePlayer(false); setPlayerCourseId(null); fetchData(); }} />;
+  }
+
+  if (showPublicCatalog) {
+    return <PublicCourseCatalog user={user} onBack={() => { setShowPublicCatalog(false); fetchData(); }} />;
+  }
+
+  if (showCertificate && certificateCourseId) {
+    return <CertificateDisplay courseId={certificateCourseId} onClose={() => { setShowCertificate(false); setCertificateCourseId(null); }} />;
   }
 
   return (
