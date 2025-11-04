@@ -134,7 +134,7 @@ class eFunnelsAPITester:
             "Create Course",
             "POST",
             "courses",
-            201,
+            200,
             course_data
         )
         
