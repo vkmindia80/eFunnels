@@ -18,7 +18,17 @@ email_templates_collection = db['email_templates']
 email_campaigns_collection = db['email_campaigns']
 email_logs_collection = db['email_logs']
 funnels_collection = db['funnels']
+
+# Course & Membership collections
 courses_collection = db['courses']
+course_modules_collection = db['course_modules']
+course_lessons_collection = db['course_lessons']
+course_enrollments_collection = db['course_enrollments']
+course_progress_collection = db['course_progress']
+certificates_collection = db['certificates']
+membership_tiers_collection = db['membership_tiers']
+membership_subscriptions_collection = db['membership_subscriptions']
+
 affiliates_collection = db['affiliates']
 blogs_collection = db['blogs']
 webinars_collection = db['webinars']
