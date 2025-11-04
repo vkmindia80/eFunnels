@@ -19,6 +19,11 @@ const Courses = ({ user }) => {
   const [editingMembership, setEditingMembership] = useState(null);
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [showCourseBuilder, setShowCourseBuilder] = useState(false);
+  const [showCoursePlayer, setShowCoursePlayer] = useState(false);
+  const [playerCourseId, setPlayerCourseId] = useState(null);
+  const [showPublicCatalog, setShowPublicCatalog] = useState(false);
+  const [showCertificate, setShowCertificate] = useState(false);
+  const [certificateCourseId, setCertificateCourseId] = useState(null);
 
   useEffect(() => {
     fetchData();
