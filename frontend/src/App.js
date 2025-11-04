@@ -12,6 +12,7 @@ import {
 import './App.css';
 import api from './api';
 import EmailMarketingPage from './components/EmailMarketing';
+import Funnels from './components/Funnels';
 
 // Demo credentials banner component
 const DemoCredentialsBanner = ({ onFillCredentials }) => {
