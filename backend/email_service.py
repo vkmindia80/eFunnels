@@ -25,6 +25,9 @@ class EmailService:
         self.smtp_port = int(os.getenv('SMTP_PORT', 587))
         self.smtp_username = os.getenv('SMTP_USERNAME')
         self.smtp_password = os.getenv('SMTP_PASSWORD')
+        self.aws_access_key = os.getenv('AWS_ACCESS_KEY_ID')
+        self.aws_secret_key = os.getenv('AWS_SECRET_ACCESS_KEY')
+        self.aws_region = os.getenv('AWS_REGION', 'us-east-1')
         self.from_email = os.getenv('EMAIL_FROM', 'noreply@efunnels.com')
         self.emergent_api_key = os.getenv('EMERGENT_LLM_KEY')
         
