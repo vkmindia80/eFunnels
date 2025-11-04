@@ -3843,6 +3843,1209 @@ def create_default_workflow_templates():
     print("✅ Workflow templates created")
 
 
+# ==================== COURSE & MEMBERSHIP ROUTES ====================
+
+# ==================== COURSES ROUTES ====================
+
+@app.get("/api/courses")
+async def get_courses(
+    current_user: dict = Depends(get_current_user),
+    status: str = Query(None),
+    category: str = Query(None),
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100)
+):
+    """Get all courses with pagination and filters"""
+    query = {"user_id": current_user['id']}
+    
+    if status:
+        query["status"] = status
+    if category:
+        query["category"] = category
+    
+    total = courses_collection.count_documents(query)
+    skip = (page - 1) * limit
+    
+    courses = list(courses_collection.find(query)
+                  .skip(skip)
+                  .limit(limit)
+                  .sort("created_at", -1))
+    
+    for course in courses:
+        course.pop('_id', None)
+    
+    return {
+        "courses": courses,
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "pages": (total + limit - 1) // limit
+    }
+
+@app.post("/api/courses")
+async def create_course(
+    course: CourseCreate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Create a new course"""
+    course_dict = course.model_dump()
+    course_dict['id'] = str(uuid.uuid4())
+    course_dict['user_id'] = current_user['id']
+    course_dict['status'] = 'draft'
+    course_dict['modules'] = []
+    course_dict['created_at'] = datetime.utcnow()
+    course_dict['updated_at'] = datetime.utcnow()
+    course_dict['total_students'] = 0
+    course_dict['total_completions'] = 0
+    course_dict['completion_rate'] = 0.0
+    course_dict['average_rating'] = 0.0
+    course_dict['total_reviews'] = 0
+    
+    courses_collection.insert_one(course_dict)
+    course_dict.pop('_id')
+    
+    return course_dict
+
+@app.get("/api/courses/{course_id}")
+async def get_course(
+    course_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get a specific course with all modules and lessons"""
+    course = courses_collection.find_one({
+        "id": course_id,
+        "user_id": current_user['id']
+    })
+    
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    
+    course.pop('_id', None)
+    
+    # Get all modules with lessons
+    modules = list(course_modules_collection.find({"course_id": course_id}).sort("order", 1))
+    for module in modules:
+        module.pop('_id', None)
+        # Get lessons for this module
+        lessons = list(course_lessons_collection.find({"module_id": module['id']}).sort("order", 1))
+        for lesson in lessons:
+            lesson.pop('_id', None)
+        module['lessons'] = lessons
+    
+    course['modules'] = modules
+    
+    return course
+
+@app.put("/api/courses/{course_id}")
+async def update_course(
+    course_id: str,
+    course_update: CourseUpdate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Update a course"""
+    existing = courses_collection.find_one({
+        "id": course_id,
+        "user_id": current_user['id']
+    })
+    
+    if not existing:
+        raise HTTPException(status_code=404, detail="Course not found")
+    
+    update_data = course_update.model_dump(exclude_unset=True)
+    update_data['updated_at'] = datetime.utcnow()
+    
+    # If publishing, set published_at
+    if update_data.get('status') == 'published' and existing['status'] != 'published':
+        update_data['published_at'] = datetime.utcnow()
+    
+    courses_collection.update_one(
+        {"id": course_id},
+        {"$set": update_data}
+    )
+    
+    updated = courses_collection.find_one({"id": course_id})
+    updated.pop('_id', None)
+    return updated
+
+@app.delete("/api/courses/{course_id}")
+async def delete_course(
+    course_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Delete a course"""
+    result = courses_collection.delete_one({
+        "id": course_id,
+        "user_id": current_user['id']
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Course not found")
+    
+    # Delete all related data
+    course_modules_collection.delete_many({"course_id": course_id})
+    course_lessons_collection.delete_many({"course_id": course_id})
+    course_enrollments_collection.delete_many({"course_id": course_id})
+    course_progress_collection.delete_many({"course_id": course_id})
+    
+    return {"message": "Course deleted successfully"}
+
+# ==================== COURSE MODULES ROUTES ====================
+
+@app.post("/api/courses/{course_id}/modules")
+async def create_module(
+    course_id: str,
+    module: CourseModuleCreate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Create a new module in a course"""
+    course = courses_collection.find_one({
+        "id": course_id,
+        "user_id": current_user['id']
+    })
+    
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    
+    module_dict = module.model_dump()
+    module_dict['id'] = str(uuid.uuid4())
+    module_dict['course_id'] = course_id
+    module_dict['user_id'] = current_user['id']
+    module_dict['lessons'] = []
+    module_dict['created_at'] = datetime.utcnow()
+    module_dict['updated_at'] = datetime.utcnow()
+    
+    # Create lessons if provided
+    if module_dict.get('lessons'):
+        for lesson_data in module_dict['lessons']:
+            lesson_dict = lesson_data
+            lesson_dict['id'] = str(uuid.uuid4())
+            lesson_dict['module_id'] = module_dict['id']
+            lesson_dict['course_id'] = course_id
+            lesson_dict['user_id'] = current_user['id']
+            lesson_dict['created_at'] = datetime.utcnow()
+            lesson_dict['updated_at'] = datetime.utcnow()
+            course_lessons_collection.insert_one(lesson_dict)
+            lesson_dict.pop('_id')
+            module_dict['lessons'].append({
+                'id': lesson_dict['id'],
+                'title': lesson_dict['title'],
+                'content_type': lesson_dict['content_type'],
+                'duration': lesson_dict.get('duration'),
+                'order': lesson_dict['order']
+            })
+    
+    course_modules_collection.insert_one(module_dict)
+    module_dict.pop('_id')
+    
+    # Update course modules summary
+    courses_collection.update_one(
+        {"id": course_id},
+        {"$push": {"modules": {
+            "id": module_dict['id'],
+            "title": module_dict['title'],
+            "order": module_dict['order']
+        }}}
+    )
+    
+    return module_dict
+
+@app.put("/api/courses/{course_id}/modules/{module_id}")
+async def update_module(
+    course_id: str,
+    module_id: str,
+    module_update: CourseModuleUpdate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Update a module"""
+    existing = course_modules_collection.find_one({
+        "id": module_id,
+        "course_id": course_id,
+        "user_id": current_user['id']
+    })
+    
+    if not existing:
+        raise HTTPException(status_code=404, detail="Module not found")
+    
+    update_data = module_update.model_dump(exclude_unset=True)
+    update_data['updated_at'] = datetime.utcnow()
+    
+    course_modules_collection.update_one(
+        {"id": module_id},
+        {"$set": update_data}
+    )
+    
+    # Update course modules summary
+    if 'title' in update_data or 'order' in update_data:
+        updated_module = course_modules_collection.find_one({"id": module_id})
+        courses_collection.update_one(
+            {"id": course_id, "modules.id": module_id},
+            {"$set": {
+                "modules.$.title": updated_module['title'],
+                "modules.$.order": updated_module['order']
+            }}
+        )
+    
+    updated = course_modules_collection.find_one({"id": module_id})
+    updated.pop('_id', None)
+    return updated
+
+@app.delete("/api/courses/{course_id}/modules/{module_id}")
+async def delete_module(
+    course_id: str,
+    module_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Delete a module"""
+    result = course_modules_collection.delete_one({
+        "id": module_id,
+        "course_id": course_id,
+        "user_id": current_user['id']
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Module not found")
+    
+    # Delete all lessons in this module
+    course_lessons_collection.delete_many({"module_id": module_id})
+    
+    # Remove from course modules summary
+    courses_collection.update_one(
+        {"id": course_id},
+        {"$pull": {"modules": {"id": module_id}}}
+    )
+    
+    return {"message": "Module deleted successfully"}
+
+# ==================== COURSE LESSONS ROUTES ====================
+
+@app.post("/api/courses/{course_id}/modules/{module_id}/lessons")
+async def create_lesson(
+    course_id: str,
+    module_id: str,
+    lesson: CourseLessonCreate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Create a new lesson in a module"""
+    module = course_modules_collection.find_one({
+        "id": module_id,
+        "course_id": course_id,
+        "user_id": current_user['id']
+    })
+    
+    if not module:
+        raise HTTPException(status_code=404, detail="Module not found")
+    
+    lesson_dict = lesson.model_dump()
+    lesson_dict['id'] = str(uuid.uuid4())
+    lesson_dict['module_id'] = module_id
+    lesson_dict['course_id'] = course_id
+    lesson_dict['user_id'] = current_user['id']
+    lesson_dict['created_at'] = datetime.utcnow()
+    lesson_dict['updated_at'] = datetime.utcnow()
+    
+    course_lessons_collection.insert_one(lesson_dict)
+    lesson_dict.pop('_id')
+    
+    # Update module lessons summary
+    course_modules_collection.update_one(
+        {"id": module_id},
+        {"$push": {"lessons": {
+            "id": lesson_dict['id'],
+            "title": lesson_dict['title'],
+            "content_type": lesson_dict['content_type'],
+            "duration": lesson_dict.get('duration'),
+            "order": lesson_dict['order']
+        }}}
+    )
+    
+    return lesson_dict
+
+@app.get("/api/courses/{course_id}/modules/{module_id}/lessons/{lesson_id}")
+async def get_lesson(
+    course_id: str,
+    module_id: str,
+    lesson_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get a specific lesson"""
+    lesson = course_lessons_collection.find_one({
+        "id": lesson_id,
+        "module_id": module_id,
+        "course_id": course_id,
+        "user_id": current_user['id']
+    })
+    
+    if not lesson:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+    
+    lesson.pop('_id', None)
+    return lesson
+
+@app.put("/api/courses/{course_id}/modules/{module_id}/lessons/{lesson_id}")
+async def update_lesson(
+    course_id: str,
+    module_id: str,
+    lesson_id: str,
+    lesson_update: CourseLessonUpdate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Update a lesson"""
+    existing = course_lessons_collection.find_one({
+        "id": lesson_id,
+        "module_id": module_id,
+        "course_id": course_id,
+        "user_id": current_user['id']
+    })
+    
+    if not existing:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+    
+    update_data = lesson_update.model_dump(exclude_unset=True)
+    update_data['updated_at'] = datetime.utcnow()
+    
+    course_lessons_collection.update_one(
+        {"id": lesson_id},
+        {"$set": update_data}
+    )
+    
+    # Update module lessons summary
+    if any(key in update_data for key in ['title', 'content_type', 'duration', 'order']):
+        updated_lesson = course_lessons_collection.find_one({"id": lesson_id})
+        course_modules_collection.update_one(
+            {"id": module_id, "lessons.id": lesson_id},
+            {"$set": {
+                "lessons.$.title": updated_lesson['title'],
+                "lessons.$.content_type": updated_lesson['content_type'],
+                "lessons.$.duration": updated_lesson.get('duration'),
+                "lessons.$.order": updated_lesson['order']
+            }}
+        )
+    
+    updated = course_lessons_collection.find_one({"id": lesson_id})
+    updated.pop('_id', None)
+    return updated
+
+@app.delete("/api/courses/{course_id}/modules/{module_id}/lessons/{lesson_id}")
+async def delete_lesson(
+    course_id: str,
+    module_id: str,
+    lesson_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Delete a lesson"""
+    result = course_lessons_collection.delete_one({
+        "id": lesson_id,
+        "module_id": module_id,
+        "course_id": course_id,
+        "user_id": current_user['id']
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+    
+    # Remove from module lessons summary
+    course_modules_collection.update_one(
+        {"id": module_id},
+        {"$pull": {"lessons": {"id": lesson_id}}}
+    )
+    
+    return {"message": "Lesson deleted successfully"}
+
+# ==================== COURSE ENROLLMENT ROUTES ====================
+
+@app.get("/api/courses/public/list")
+async def get_public_courses(
+    category: str = Query(None),
+    level: str = Query(None),
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100)
+):
+    """Get published courses (public endpoint)"""
+    query = {"status": "published"}
+    
+    if category:
+        query["category"] = category
+    if level:
+        query["level"] = level
+    
+    total = courses_collection.count_documents(query)
+    skip = (page - 1) * limit
+    
+    courses = list(courses_collection.find(query, {
+        'user_id': 0  # Don't expose user_id
+    }).skip(skip).limit(limit).sort("created_at", -1))
+    
+    for course in courses:
+        course.pop('_id', None)
+        # Only show preview lessons
+        modules = list(course_modules_collection.find({"course_id": course['id']}))
+        for module in modules:
+            module.pop('_id', None)
+            preview_lessons = list(course_lessons_collection.find({
+                "module_id": module['id'],
+                "is_preview": True
+            }, {'content': 0}))  # Don't expose full content
+            for lesson in preview_lessons:
+                lesson.pop('_id', None)
+            module['preview_lessons'] = preview_lessons
+        course['preview_modules'] = modules
+    
+    return {
+        "courses": courses,
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "pages": (total + limit - 1) // limit
+    }
+
+@app.get("/api/courses/{course_id}/public/preview")
+async def get_course_preview(course_id: str):
+    """Get course preview (public endpoint)"""
+    course = courses_collection.find_one({
+        "id": course_id,
+        "status": "published"
+    })
+    
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    
+    course.pop('_id', None)
+    course.pop('user_id', None)
+    
+    # Get modules with preview lessons only
+    modules = list(course_modules_collection.find({"course_id": course_id}).sort("order", 1))
+    for module in modules:
+        module.pop('_id', None)
+        module.pop('user_id', None)
+        # Get preview lessons
+        lessons = list(course_lessons_collection.find({
+            "module_id": module['id'],
+            "is_preview": True
+        }, {
+            'id': 1, 'title': 1, 'description': 1, 'content_type': 1, 'duration': 1, 'order': 1
+        }))
+        for lesson in lessons:
+            lesson.pop('_id', None)
+        module['preview_lessons'] = lessons
+    
+    course['modules_preview'] = modules
+    
+    return course
+
+@app.post("/api/courses/{course_id}/enroll")
+async def enroll_in_course(
+    course_id: str,
+    enrollment_data: PublicEnrollmentRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """Enroll in a course"""
+    course = courses_collection.find_one({
+        "id": course_id,
+        "status": "published"
+    })
+    
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found or not published")
+    
+    # Check if already enrolled
+    existing = course_enrollments_collection.find_one({
+        "user_id": current_user['id'],
+        "course_id": course_id
+    })
+    
+    if existing:
+        raise HTTPException(status_code=400, detail="Already enrolled in this course")
+    
+    # Check pricing
+    if course['pricing_type'] == 'paid' and course['price'] > 0:
+        # Mock payment processing
+        if enrollment_data.payment_method == 'mock':
+            payment_status = 'completed'
+            payment_amount = course['price']
+        else:
+            # In production, integrate with Stripe/PayPal
+            payment_status = 'pending'
+            payment_amount = course['price']
+    else:
+        payment_status = 'completed'
+        payment_amount = 0.0
+    
+    # Create or find contact
+    contact_id = None
+    existing_contact = contacts_collection.find_one({
+        "user_id": course['user_id'],
+        "email": enrollment_data.student_email
+    })
+    
+    if existing_contact:
+        contact_id = existing_contact['id']
+    else:
+        # Create new contact
+        contact = {
+            'id': str(uuid.uuid4()),
+            'user_id': course['user_id'],
+            'first_name': enrollment_data.student_name.split()[0],
+            'last_name': ' '.join(enrollment_data.student_name.split()[1:]) if len(enrollment_data.student_name.split()) > 1 else None,
+            'email': enrollment_data.student_email,
+            'source': f"Course Enrollment: {course['title']}",
+            'status': 'lead',
+            'score': 0,
+            'tags': ['course-student'],
+            'segments': [],
+            'custom_fields': {},
+            'created_at': datetime.utcnow(),
+            'updated_at': datetime.utcnow(),
+            'engagement_count': 0
+        }
+        contacts_collection.insert_one(contact)
+        contact_id = contact['id']
+    
+    # Create enrollment
+    enrollment = {
+        'id': str(uuid.uuid4()),
+        'user_id': current_user['id'],
+        'contact_id': contact_id,
+        'course_id': course_id,
+        'course_owner_id': course['user_id'],
+        'enrollment_date': datetime.utcnow(),
+        'completed_date': None,
+        'progress_percentage': 0.0,
+        'current_module_id': None,
+        'current_lesson_id': None,
+        'payment_status': payment_status,
+        'payment_amount': payment_amount,
+        'certificate_issued': False,
+        'certificate_id': None,
+        'last_accessed': datetime.utcnow(),
+        'total_time_spent': 0
+    }
+    
+    course_enrollments_collection.insert_one(enrollment)
+    enrollment.pop('_id')
+    
+    # Update course student count
+    courses_collection.update_one(
+        {"id": course_id},
+        {"$inc": {"total_students": 1}}
+    )
+    
+    return enrollment
+
+@app.get("/api/enrollments")
+async def get_my_enrollments(current_user: dict = Depends(get_current_user)):
+    """Get user's course enrollments"""
+    enrollments = list(course_enrollments_collection.find({
+        "user_id": current_user['id']
+    }).sort("enrollment_date", -1))
+    
+    for enrollment in enrollments:
+        enrollment.pop('_id', None)
+        # Get course details
+        course = courses_collection.find_one({"id": enrollment['course_id']})
+        if course:
+            course.pop('_id', None)
+            enrollment['course'] = {
+                'id': course['id'],
+                'title': course['title'],
+                'description': course['description'],
+                'thumbnail': course.get('thumbnail'),
+                'level': course.get('level')
+            }
+    
+    return enrollments
+
+@app.get("/api/courses/{course_id}/students")
+async def get_course_students(
+    course_id: str,
+    current_user: dict = Depends(get_current_user),
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100)
+):
+    """Get students enrolled in a course (admin only)"""
+    # Verify course ownership
+    course = courses_collection.find_one({
+        "id": course_id,
+        "user_id": current_user['id']
+    })
+    
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    
+    query = {"course_id": course_id}
+    total = course_enrollments_collection.count_documents(query)
+    skip = (page - 1) * limit
+    
+    enrollments = list(course_enrollments_collection.find(query)
+                      .skip(skip)
+                      .limit(limit)
+                      .sort("enrollment_date", -1))
+    
+    for enrollment in enrollments:
+        enrollment.pop('_id', None)
+        # Get contact details
+        if enrollment.get('contact_id'):
+            contact = contacts_collection.find_one({"id": enrollment['contact_id']})
+            if contact:
+                enrollment['student'] = {
+                    'name': f"{contact['first_name']} {contact.get('last_name', '')}".strip(),
+                    'email': contact['email']
+                }
+    
+    return {
+        "students": enrollments,
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "pages": (total + limit - 1) // limit
+    }
+
+# ==================== COURSE PROGRESS ROUTES ====================
+
+@app.post("/api/courses/{course_id}/lessons/{lesson_id}/complete")
+async def mark_lesson_complete(
+    course_id: str,
+    lesson_id: str,
+    progress_data: CourseProgressCreate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Mark a lesson as complete"""
+    # Get enrollment
+    enrollment = course_enrollments_collection.find_one({
+        "user_id": current_user['id'],
+        "course_id": course_id
+    })
+    
+    if not enrollment:
+        raise HTTPException(status_code=404, detail="Enrollment not found")
+    
+    # Get lesson
+    lesson = course_lessons_collection.find_one({"id": lesson_id, "course_id": course_id})
+    if not lesson:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+    
+    # Check if already completed
+    existing_progress = course_progress_collection.find_one({
+        "enrollment_id": enrollment['id'],
+        "lesson_id": lesson_id
+    })
+    
+    if existing_progress:
+        # Update existing progress
+        course_progress_collection.update_one(
+            {"id": existing_progress['id']},
+            {"$set": {
+                "completed": True,
+                "completed_at": datetime.utcnow(),
+                "time_spent": progress_data.time_spent,
+                "quiz_score": progress_data.quiz_score,
+                "quiz_passed": progress_data.quiz_passed,
+                "updated_at": datetime.utcnow()
+            }}
+        )
+        progress = course_progress_collection.find_one({"id": existing_progress['id']})
+    else:
+        # Create new progress record
+        progress = {
+            'id': str(uuid.uuid4()),
+            'enrollment_id': enrollment['id'],
+            'user_id': current_user['id'],
+            'course_id': course_id,
+            'module_id': lesson['module_id'],
+            'lesson_id': lesson_id,
+            'completed': True,
+            'completed_at': datetime.utcnow(),
+            'time_spent': progress_data.time_spent,
+            'quiz_score': progress_data.quiz_score,
+            'quiz_passed': progress_data.quiz_passed,
+            'created_at': datetime.utcnow(),
+            'updated_at': datetime.utcnow()
+        }
+        course_progress_collection.insert_one(progress)
+    
+    progress.pop('_id', None)
+    
+    # Update enrollment progress
+    total_lessons = course_lessons_collection.count_documents({"course_id": course_id})
+    completed_lessons = course_progress_collection.count_documents({
+        "enrollment_id": enrollment['id'],
+        "completed": True
+    })
+    
+    progress_percentage = (completed_lessons / total_lessons * 100) if total_lessons > 0 else 0
+    
+    course_enrollments_collection.update_one(
+        {"id": enrollment['id']},
+        {"$set": {
+            "progress_percentage": round(progress_percentage, 2),
+            "current_lesson_id": lesson_id,
+            "current_module_id": lesson['module_id'],
+            "last_accessed": datetime.utcnow()
+        },
+        "$inc": {"total_time_spent": progress_data.time_spent}
+        }
+    )
+    
+    # Check if course is complete
+    if progress_percentage >= 100:
+        course_enrollments_collection.update_one(
+            {"id": enrollment['id']},
+            {"$set": {"completed_date": datetime.utcnow()}}
+        )
+        
+        # Update course completions
+        courses_collection.update_one(
+            {"id": course_id},
+            {"$inc": {"total_completions": 1}}
+        )
+        
+        # Recalculate completion rate
+        course = courses_collection.find_one({"id": course_id})
+        completion_rate = (course['total_completions'] / course['total_students'] * 100) if course['total_students'] > 0 else 0
+        courses_collection.update_one(
+            {"id": course_id},
+            {"$set": {"completion_rate": round(completion_rate, 2)}}
+        )
+    
+    return progress
+
+@app.get("/api/courses/{course_id}/progress")
+async def get_course_progress(
+    course_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get student's progress in a course"""
+    enrollment = course_enrollments_collection.find_one({
+        "user_id": current_user['id'],
+        "course_id": course_id
+    })
+    
+    if not enrollment:
+        raise HTTPException(status_code=404, detail="Enrollment not found")
+    
+    enrollment.pop('_id', None)
+    
+    # Get all progress records
+    progress_records = list(course_progress_collection.find({
+        "enrollment_id": enrollment['id']
+    }))
+    
+    for record in progress_records:
+        record.pop('_id', None)
+    
+    enrollment['progress_records'] = progress_records
+    
+    return enrollment
+
+# ==================== CERTIFICATES ROUTES ====================
+
+@app.post("/api/courses/{course_id}/certificate")
+async def generate_certificate(
+    course_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Generate course completion certificate"""
+    enrollment = course_enrollments_collection.find_one({
+        "user_id": current_user['id'],
+        "course_id": course_id
+    })
+    
+    if not enrollment:
+        raise HTTPException(status_code=404, detail="Enrollment not found")
+    
+    if not enrollment.get('completed_date'):
+        raise HTTPException(status_code=400, detail="Course not completed yet")
+    
+    if enrollment.get('certificate_issued'):
+        # Return existing certificate
+        certificate = certificates_collection.find_one({"id": enrollment['certificate_id']})
+        certificate.pop('_id', None)
+        return certificate
+    
+    # Get course details
+    course = courses_collection.find_one({"id": course_id})
+    
+    # Generate certificate
+    certificate_number = f"CERT-{str(uuid.uuid4())[:8].upper()}-{datetime.utcnow().year}"
+    
+    certificate = {
+        'id': str(uuid.uuid4()),
+        'user_id': current_user['id'],
+        'course_id': course_id,
+        'enrollment_id': enrollment['id'],
+        'course_owner_id': course['user_id'],
+        'course_title': course['title'],
+        'student_name': current_user.get('full_name', 'Student'),
+        'completion_date': enrollment['completed_date'],
+        'certificate_number': certificate_number,
+        'issued_at': datetime.utcnow()
+    }
+    
+    certificates_collection.insert_one(certificate)
+    certificate.pop('_id')
+    
+    # Update enrollment
+    course_enrollments_collection.update_one(
+        {"id": enrollment['id']},
+        {"$set": {
+            "certificate_issued": True,
+            "certificate_id": certificate['id']
+        }}
+    )
+    
+    return certificate
+
+@app.get("/api/certificates")
+async def get_my_certificates(current_user: dict = Depends(get_current_user)):
+    """Get user's certificates"""
+    certificates = list(certificates_collection.find({
+        "user_id": current_user['id']
+    }).sort("issued_at", -1))
+    
+    for cert in certificates:
+        cert.pop('_id', None)
+    
+    return certificates
+
+@app.get("/api/certificates/{certificate_id}")
+async def get_certificate(certificate_id: str):
+    """Get certificate by ID (public endpoint for verification)"""
+    certificate = certificates_collection.find_one({"id": certificate_id})
+    
+    if not certificate:
+        raise HTTPException(status_code=404, detail="Certificate not found")
+    
+    certificate.pop('_id', None)
+    return certificate
+
+# ==================== MEMBERSHIP TIERS ROUTES ====================
+
+@app.get("/api/memberships")
+async def get_membership_tiers(
+    current_user: dict = Depends(get_current_user),
+    status: str = Query(None)
+):
+    """Get all membership tiers"""
+    query = {"user_id": current_user['id']}
+    
+    if status:
+        query["status"] = status
+    
+    tiers = list(membership_tiers_collection.find(query).sort("price", 1))
+    
+    for tier in tiers:
+        tier.pop('_id', None)
+    
+    return tiers
+
+@app.post("/api/memberships")
+async def create_membership_tier(
+    tier: MembershipTierCreate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Create a new membership tier"""
+    tier_dict = tier.model_dump()
+    tier_dict['id'] = str(uuid.uuid4())
+    tier_dict['user_id'] = current_user['id']
+    tier_dict['status'] = 'active'
+    tier_dict['total_subscribers'] = 0
+    tier_dict['created_at'] = datetime.utcnow()
+    tier_dict['updated_at'] = datetime.utcnow()
+    
+    membership_tiers_collection.insert_one(tier_dict)
+    tier_dict.pop('_id')
+    
+    return tier_dict
+
+@app.get("/api/memberships/{tier_id}")
+async def get_membership_tier(
+    tier_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get a specific membership tier"""
+    tier = membership_tiers_collection.find_one({
+        "id": tier_id,
+        "user_id": current_user['id']
+    })
+    
+    if not tier:
+        raise HTTPException(status_code=404, detail="Membership tier not found")
+    
+    tier.pop('_id', None)
+    
+    # Get courses in this tier
+    if tier.get('course_ids'):
+        courses = list(courses_collection.find({
+            "id": {"$in": tier['course_ids']}
+        }, {'id': 1, 'title': 1, 'description': 1, 'thumbnail': 1}))
+        for course in courses:
+            course.pop('_id', None)
+        tier['courses'] = courses
+    
+    return tier
+
+@app.put("/api/memberships/{tier_id}")
+async def update_membership_tier(
+    tier_id: str,
+    tier_update: MembershipTierUpdate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Update a membership tier"""
+    existing = membership_tiers_collection.find_one({
+        "id": tier_id,
+        "user_id": current_user['id']
+    })
+    
+    if not existing:
+        raise HTTPException(status_code=404, detail="Membership tier not found")
+    
+    update_data = tier_update.model_dump(exclude_unset=True)
+    update_data['updated_at'] = datetime.utcnow()
+    
+    membership_tiers_collection.update_one(
+        {"id": tier_id},
+        {"$set": update_data}
+    )
+    
+    updated = membership_tiers_collection.find_one({"id": tier_id})
+    updated.pop('_id', None)
+    return updated
+
+@app.delete("/api/memberships/{tier_id}")
+async def delete_membership_tier(
+    tier_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Delete a membership tier"""
+    result = membership_tiers_collection.delete_one({
+        "id": tier_id,
+        "user_id": current_user['id']
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Membership tier not found")
+    
+    # Cancel all subscriptions for this tier
+    membership_subscriptions_collection.update_many(
+        {"tier_id": tier_id, "status": "active"},
+        {"$set": {"status": "cancelled", "cancelled_at": datetime.utcnow()}}
+    )
+    
+    return {"message": "Membership tier deleted successfully"}
+
+# ==================== MEMBERSHIP SUBSCRIPTIONS ROUTES ====================
+
+@app.get("/api/memberships/public/list")
+async def get_public_membership_tiers():
+    """Get all active membership tiers (public endpoint)"""
+    tiers = list(membership_tiers_collection.find({"status": "active"}).sort("price", 1))
+    
+    for tier in tiers:
+        tier.pop('_id', None)
+        tier.pop('user_id', None)
+        # Get course details
+        if tier.get('course_ids'):
+            courses = list(courses_collection.find({
+                "id": {"$in": tier['course_ids']},
+                "status": "published"
+            }, {'id': 1, 'title': 1, 'description': 1, 'thumbnail': 1}))
+            for course in courses:
+                course.pop('_id', None)
+            tier['courses'] = courses
+    
+    return tiers
+
+@app.post("/api/memberships/{tier_id}/subscribe")
+async def subscribe_to_tier(
+    tier_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Subscribe to a membership tier"""
+    tier = membership_tiers_collection.find_one({
+        "id": tier_id,
+        "status": "active"
+    })
+    
+    if not tier:
+        raise HTTPException(status_code=404, detail="Membership tier not found")
+    
+    # Check if already subscribed
+    existing = membership_subscriptions_collection.find_one({
+        "user_id": current_user['id'],
+        "tier_id": tier_id,
+        "status": "active"
+    })
+    
+    if existing:
+        raise HTTPException(status_code=400, detail="Already subscribed to this tier")
+    
+    # Mock payment processing
+    payment_status = 'completed'
+    
+    # Calculate expiration
+    from dateutil.relativedelta import relativedelta
+    if tier['billing_period'] == 'monthly':
+        expires_at = datetime.utcnow() + relativedelta(months=1)
+        next_payment = datetime.utcnow() + relativedelta(months=1)
+    elif tier['billing_period'] == 'yearly':
+        expires_at = datetime.utcnow() + relativedelta(years=1)
+        next_payment = datetime.utcnow() + relativedelta(years=1)
+    else:  # lifetime
+        expires_at = None
+        next_payment = None
+    
+    # Create subscription
+    subscription = {
+        'id': str(uuid.uuid4()),
+        'user_id': current_user['id'],
+        'tier_id': tier_id,
+        'tier_owner_id': tier['user_id'],
+        'status': 'active',
+        'payment_status': payment_status,
+        'subscribed_at': datetime.utcnow(),
+        'expires_at': expires_at,
+        'cancelled_at': None,
+        'last_payment_date': datetime.utcnow(),
+        'next_payment_date': next_payment
+    }
+    
+    membership_subscriptions_collection.insert_one(subscription)
+    subscription.pop('_id')
+    
+    # Update tier subscriber count
+    membership_tiers_collection.update_one(
+        {"id": tier_id},
+        {"$inc": {"total_subscribers": 1}}
+    )
+    
+    # Auto-enroll in tier courses
+    if tier.get('course_ids'):
+        for course_id in tier['course_ids']:
+            # Check if not already enrolled
+            existing_enrollment = course_enrollments_collection.find_one({
+                "user_id": current_user['id'],
+                "course_id": course_id
+            })
+            
+            if not existing_enrollment:
+                course = courses_collection.find_one({"id": course_id})
+                if course:
+                    enrollment = {
+                        'id': str(uuid.uuid4()),
+                        'user_id': current_user['id'],
+                        'contact_id': None,
+                        'course_id': course_id,
+                        'course_owner_id': course['user_id'],
+                        'enrollment_date': datetime.utcnow(),
+                        'completed_date': None,
+                        'progress_percentage': 0.0,
+                        'current_module_id': None,
+                        'current_lesson_id': None,
+                        'payment_status': 'completed',
+                        'payment_amount': 0.0,
+                        'certificate_issued': False,
+                        'certificate_id': None,
+                        'last_accessed': datetime.utcnow(),
+                        'total_time_spent': 0
+                    }
+                    course_enrollments_collection.insert_one(enrollment)
+                    
+                    # Update course student count
+                    courses_collection.update_one(
+                        {"id": course_id},
+                        {"$inc": {"total_students": 1}}
+                    )
+    
+    return subscription
+
+@app.get("/api/memberships/my-subscription")
+async def get_my_subscription(current_user: dict = Depends(get_current_user)):
+    """Get user's active subscription"""
+    subscription = membership_subscriptions_collection.find_one({
+        "user_id": current_user['id'],
+        "status": "active"
+    })
+    
+    if not subscription:
+        return {"subscription": None}
+    
+    subscription.pop('_id', None)
+    
+    # Get tier details
+    tier = membership_tiers_collection.find_one({"id": subscription['tier_id']})
+    if tier:
+        tier.pop('_id', None)
+        subscription['tier'] = tier
+    
+    return {"subscription": subscription}
+
+@app.post("/api/memberships/cancel")
+async def cancel_subscription(current_user: dict = Depends(get_current_user)):
+    """Cancel active subscription"""
+    subscription = membership_subscriptions_collection.find_one({
+        "user_id": current_user['id'],
+        "status": "active"
+    })
+    
+    if not subscription:
+        raise HTTPException(status_code=404, detail="No active subscription found")
+    
+    membership_subscriptions_collection.update_one(
+        {"id": subscription['id']},
+        {"$set": {
+            "status": "cancelled",
+            "cancelled_at": datetime.utcnow()
+        }}
+    )
+    
+    # Update tier subscriber count
+    membership_tiers_collection.update_one(
+        {"id": subscription['tier_id']},
+        {"$inc": {"total_subscribers": -1}}
+    )
+    
+    return {"message": "Subscription cancelled successfully"}
+
+# ==================== COURSE ANALYTICS ====================
+
+@app.get("/api/courses/analytics/summary")
+async def get_course_analytics_summary(current_user: dict = Depends(get_current_user)):
+    """Get course analytics summary"""
+    total_courses = courses_collection.count_documents({"user_id": current_user['id']})
+    published_courses = courses_collection.count_documents({
+        "user_id": current_user['id'],
+        "status": "published"
+    })
+    
+    total_students = course_enrollments_collection.count_documents({
+        "course_owner_id": current_user['id']
+    })
+    
+    total_completions = course_enrollments_collection.count_documents({
+        "course_owner_id": current_user['id'],
+        "completed_date": {"$ne": None}
+    })
+    
+    completion_rate = (total_completions / total_students * 100) if total_students > 0 else 0
+    
+    # Revenue (mock for now)
+    total_revenue = course_enrollments_collection.aggregate([
+        {"$match": {"course_owner_id": current_user['id']}},
+        {"$group": {"_id": None, "total": {"$sum": "$payment_amount"}}}
+    ])
+    revenue = list(total_revenue)
+    total_revenue_amount = revenue[0]['total'] if revenue else 0
+    
+    return {
+        "total_courses": total_courses,
+        "published_courses": published_courses,
+        "total_students": total_students,
+        "total_completions": total_completions,
+        "completion_rate": round(completion_rate, 2),
+        "total_revenue": round(total_revenue_amount, 2)
+    }
+
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
