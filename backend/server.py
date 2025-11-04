@@ -23,7 +23,12 @@ from models import (
     PublicFormSubmissionRequest, FormTemplate,
     SurveyCreate, SurveyUpdate, Survey, SurveyResponse, PublicSurveyResponseRequest,
     WorkflowCreate, WorkflowUpdate, Workflow, WorkflowExecution, WorkflowTemplate, 
-    WorkflowNode, WorkflowEdge, WorkflowAnalytics
+    WorkflowNode, WorkflowEdge, WorkflowAnalytics,
+    CourseCreate, CourseUpdate, Course, CourseModuleCreate, CourseModuleUpdate, CourseModule,
+    CourseLessonCreate, CourseLessonUpdate, CourseLesson, CourseEnrollmentCreate, CourseEnrollment,
+    CourseProgressCreate, CourseProgress, Certificate, PublicEnrollmentRequest,
+    MembershipTierCreate, MembershipTierUpdate, MembershipTier, 
+    MembershipSubscriptionCreate, MembershipSubscription
 )
 from auth import (
     get_password_hash, 
