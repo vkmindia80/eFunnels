@@ -590,3 +590,105 @@ class PublicSurveyResponseRequest(BaseModel):
     responses: dict
     visitor_ip: Optional[str] = None
     completed: bool = True
+
+
+# ==================== WORKFLOW AUTOMATION MODELS ====================
+
+class WorkflowNodeData(BaseModel):
+    """Data stored in each workflow node"""
+    label: Optional[str] = None
+    # Trigger-specific data
+    trigger_type: Optional[str] = None  # email_opened, email_clicked, form_submitted, tag_added, contact_created
+    trigger_config: Optional[dict] = {}  # Additional trigger configuration
+    # Action-specific data
+    action_type: Optional[str] = None  # send_email, add_tag, remove_tag, update_contact, wait, conditional
+    action_config: Optional[dict] = {}  # Additional action configuration
+    # Condition-specific data
+    condition_field: Optional[str] = None  # Field to check for conditions
+    condition_operator: Optional[str] = None  # equals, not_equals, contains, greater_than, less_than
+    condition_value: Optional[str] = None  # Value to compare against
+
+class WorkflowNode(BaseModel):
+    """Visual node in workflow builder"""
+    id: str
+    type: str  # trigger, action, condition, end
+    position: dict  # {x: int, y: int}
+    data: WorkflowNodeData
+
+class WorkflowEdge(BaseModel):
+    """Connection between workflow nodes"""
+    id: str
+    source: str  # Source node ID
+    target: str  # Target node ID
+    sourceHandle: Optional[str] = None
+    targetHandle: Optional[str] = None
+    label: Optional[str] = None  # For condition branches (yes/no)
+
+class WorkflowBase(BaseModel):
+    name: str
+    description: Optional[str] = None
+    is_active: bool = False
+    trigger_type: str  # Main trigger type for the workflow
+
+class WorkflowCreate(WorkflowBase):
+    nodes: List[WorkflowNode] = []
+    edges: List[WorkflowEdge] = []
+
+class WorkflowUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    is_active: Optional[bool] = None
+    nodes: Optional[List[WorkflowNode]] = None
+    edges: Optional[List[WorkflowEdge]] = None
+    trigger_type: Optional[str] = None
+
+class Workflow(WorkflowBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    nodes: List[WorkflowNode] = []
+    edges: List[WorkflowEdge] = []
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    last_triggered: Optional[datetime] = None
+    total_executions: int = 0
+    successful_executions: int = 0
+    failed_executions: int = 0
+
+class WorkflowExecution(BaseModel):
+    """Track individual workflow execution"""
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    workflow_id: str
+    user_id: str
+    contact_id: str  # Contact that triggered the workflow
+    status: str = "running"  # running, completed, failed
+    current_node: Optional[str] = None  # Current node being executed
+    execution_log: List[dict] = []  # Log of actions taken
+    started_at: datetime = Field(default_factory=datetime.utcnow)
+    completed_at: Optional[datetime] = None
+    error_message: Optional[str] = None
+
+class WorkflowTemplate(BaseModel):
+    """Pre-built workflow templates"""
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    description: str
+    category: str  # welcome, nurture, re_engagement, abandoned_cart
+    thumbnail: Optional[str] = None
+    trigger_type: str
+    nodes: List[WorkflowNode]
+    edges: List[WorkflowEdge]
+    usage_count: int = 0
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class WorkflowAnalytics(BaseModel):
+    """Workflow performance analytics"""
+    workflow_id: str
+    total_executions: int
+    successful_executions: int
+    failed_executions: int
+    success_rate: float
+    contacts_processed: int
+    emails_sent: int
+    tags_added: int
+    last_execution: Optional[datetime] = None
+
