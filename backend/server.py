@@ -1182,6 +1182,10 @@ async def update_email_settings(
         if not all([settings.smtp_host, settings.smtp_username, settings.smtp_password]):
             raise HTTPException(status_code=400, detail="SMTP credentials required")
     
+    if settings.provider == 'aws_ses':
+        if not all([settings.aws_access_key_id, settings.aws_secret_access_key]):
+            raise HTTPException(status_code=400, detail="AWS SES credentials required")
+    
     return {"message": "Settings updated successfully", "provider": settings.provider}
 
 # ==================== AI EMAIL GENERATION ====================
