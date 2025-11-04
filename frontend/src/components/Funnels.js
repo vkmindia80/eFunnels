@@ -389,6 +389,18 @@ const Funnels = () => {
           onSelect={createFunnelFromTemplate}
         />
       )}
+
+      {/* Edit Funnel Modal */}
+      {showEditModal && selectedFunnel && (
+        <EditFunnelModal
+          funnel={selectedFunnel}
+          onClose={() => {
+            setShowEditModal(false);
+            setSelectedFunnel(null);
+          }}
+          onUpdate={updateFunnel}
+        />
+      )}
     </div>
   );
 };
