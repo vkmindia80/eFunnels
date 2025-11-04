@@ -1,0 +1,389 @@
+import React, { useState, useEffect } from 'react';
+import { ArrowLeft, Save, Eye, Sparkles, Undo, Redo, Smartphone, Monitor } from 'lucide-react';
+import BlockLibrary from './BlockLibrary';
+import Canvas from './Canvas';
+import StylePanel from './StylePanel';
+import PreviewPanel from './PreviewPanel';
+import { createDefaultBlock } from './blocks';
+import { blocksToHTML } from './utils';
+import api from '../../api';
+
+const EmailBuilder = ({ onBack, initialData = null, isTemplate = false, onSave }) => {
+  const [blocks, setBlocks] = useState(initialData?.blocks || []);
+  const [selectedBlockId, setSelectedBlockId] = useState(null);
+  const [history, setHistory] = useState([initialData?.blocks || []]);
+  const [historyIndex, setHistoryIndex] = useState(0);
+  const [showPreview, setShowPreview] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [emailName, setEmailName] = useState(initialData?.name || '');
+  const [emailSubject, setEmailSubject] = useState(initialData?.subject || '');
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [aiGenerating, setAiGenerating] = useState(false);
+
+  // Add block to canvas
+  const handleAddBlock = (blockType) => {
+    const newBlock = createDefaultBlock(blockType);
+    const newBlocks = [...blocks, newBlock];
+    setBlocks(newBlocks);
+    addToHistory(newBlocks);
+    setSelectedBlockId(newBlock.id);
+  };
+
+  // Select block
+  const handleSelectBlock = (blockId) => {
+    setSelectedBlockId(blockId);
+  };
+
+  // Update block
+  const handleUpdateBlock = (blockId, updatedBlock) => {
+    const newBlocks = blocks.map((block) =>
+      block.id === blockId ? updatedBlock : block
+    );
+    setBlocks(newBlocks);
+    addToHistory(newBlocks);
+  };
+
+  // Delete block
+  const handleDeleteBlock = (blockId) => {
+    const newBlocks = blocks.filter((block) => block.id !== blockId);
+    setBlocks(newBlocks);
+    addToHistory(newBlocks);
+    if (selectedBlockId === blockId) {
+      setSelectedBlockId(null);
+    }
+  };
+
+  // Duplicate block
+  const handleDuplicateBlock = (blockId) => {
+    const blockIndex = blocks.findIndex((b) => b.id === blockId);
+    if (blockIndex === -1) return;
+
+    const blockToDuplicate = blocks[blockIndex];
+    const duplicatedBlock = {
+      ...JSON.parse(JSON.stringify(blockToDuplicate)),
+      id: `block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    };
+
+    const newBlocks = [
+      ...blocks.slice(0, blockIndex + 1),
+      duplicatedBlock,
+      ...blocks.slice(blockIndex + 1),
+    ];
+    setBlocks(newBlocks);
+    addToHistory(newBlocks);
+  };
+
+  // Reorder blocks
+  const handleReorderBlocks = (startIndex, endIndex) => {
+    const newBlocks = Array.from(blocks);
+    const [removed] = newBlocks.splice(startIndex, 1);
+    newBlocks.splice(endIndex, 0, removed);
+    setBlocks(newBlocks);
+    addToHistory(newBlocks);
+  };
+
+  // History management
+  const addToHistory = (newBlocks) => {
+    const newHistory = history.slice(0, historyIndex + 1);
+    newHistory.push(newBlocks);
+    setHistory(newHistory);
+    setHistoryIndex(newHistory.length - 1);
+  };
+
+  // Undo
+  const handleUndo = () => {
+    if (historyIndex > 0) {
+      setHistoryIndex(historyIndex - 1);
+      setBlocks(history[historyIndex - 1]);
+    }
+  };
+
+  // Redo
+  const handleRedo = () => {
+    if (historyIndex < history.length - 1) {
+      setHistoryIndex(historyIndex + 1);
+      setBlocks(history[historyIndex + 1]);
+    }
+  };
+
+  // AI Content Generation
+  const handleAIGenerate = async () => {
+    if (!emailSubject) {
+      alert('Please enter an email subject first');
+      return;
+    }
+
+    try {
+      setAiGenerating(true);
+      const response = await api.post('/api/email/ai/generate', {
+        purpose: 'promotional',
+        tone: 'professional',
+        topic: emailSubject,
+        length: 'medium',
+      });
+
+      // Parse AI content and create blocks
+      const content = response.data.content;
+      const aiBlocks = parseAIContentToBlocks(content);
+      setBlocks(aiBlocks);
+      addToHistory(aiBlocks);
+    } catch (error) {
+      console.error('AI generation failed:', error);
+      alert('Failed to generate AI content. Please try again.');
+    } finally {
+      setAiGenerating(false);
+    }
+  };
+
+  // Parse AI content into blocks (simple parser)
+  const parseAIContentToBlocks = (content) => {
+    const lines = content.split('\n\n');
+    const newBlocks = [];
+
+    lines.forEach((line, index) => {
+      if (line.trim()) {
+        // Check if it's a heading (starts with # or is short and at the beginning)
+        if (index === 0 && line.length < 100) {
+          newBlocks.push({
+            ...createDefaultBlock('heading'),
+            content: line.replace(/^#+\s*/, ''),
+          });
+        } else {
+          newBlocks.push({
+            ...createDefaultBlock('paragraph'),
+            content: line,
+          });
+        }
+      }
+    });
+
+    // Add a CTA button at the end
+    newBlocks.push(createDefaultBlock('button'));
+
+    return newBlocks;
+  };
+
+  // Save template or campaign
+  const handleSaveClick = () => {
+    setShowSaveModal(true);
+  };
+
+  const handleSaveConfirm = async () => {
+    if (!emailName || !emailSubject) {
+      alert('Please enter both name and subject');
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      const contentData = { blocks };
+
+      if (isTemplate) {
+        // Save as template
+        if (initialData?.id) {
+          await api.put(`/api/email/templates/${initialData.id}`, {
+            name: emailName,
+            subject: emailSubject,
+            content: contentData,
+          });
+        } else {
+          await api.post('/api/email/templates', {
+            name: emailName,
+            subject: emailSubject,
+            content: contentData,
+            category: 'custom',
+          });
+        }
+      } else {
+        // Pass back to parent (campaign wizard)
+        if (onSave) {
+          onSave({
+            name: emailName,
+            subject: emailSubject,
+            content: contentData,
+          });
+        }
+      }
+
+      setShowSaveModal(false);
+      if (isTemplate) {
+        onBack();
+      }
+    } catch (error) {
+      console.error('Save failed:', error);
+      alert('Failed to save. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const selectedBlock = blocks.find((b) => b.id === selectedBlockId);
+
+  return (
+    <div className="flex flex-col h-screen">
+      {/* Toolbar */}
+      <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={onBack}
+            className="p-2 hover:bg-gray-100 rounded-lg transition"
+          >
+            <ArrowLeft size={20} />
+          </button>
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">
+              {isTemplate ? 'Email Template Builder' : 'Email Designer'}
+            </h2>
+            <p className="text-sm text-gray-500">
+              {blocks.length} block{blocks.length !== 1 ? 's' : ''}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          {/* Undo/Redo */}
+          <div className="flex gap-1 border-r border-gray-200 pr-3">
+            <button
+              onClick={handleUndo}
+              disabled={historyIndex === 0}
+              className={`p-2 rounded-lg transition ${
+                historyIndex === 0
+                  ? 'text-gray-300 cursor-not-allowed'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+              title="Undo"
+            >
+              <Undo size={18} />
+            </button>
+            <button
+              onClick={handleRedo}
+              disabled={historyIndex === history.length - 1}
+              className={`p-2 rounded-lg transition ${
+                historyIndex === history.length - 1
+                  ? 'text-gray-300 cursor-not-allowed'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+              title="Redo"
+            >
+              <Redo size={18} />
+            </button>
+          </div>
+
+          {/* AI Generate */}
+          <button
+            onClick={handleAIGenerate}
+            disabled={aiGenerating}
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:shadow-lg transition disabled:opacity-50"
+          >
+            <Sparkles size={18} className={aiGenerating ? 'animate-spin' : ''} />
+            {aiGenerating ? 'Generating...' : 'AI Generate'}
+          </button>
+
+          {/* Preview */}
+          <button
+            onClick={() => setShowPreview(true)}
+            className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+          >
+            <Eye size={18} />
+            Preview
+          </button>
+
+          {/* Save */}
+          <button
+            onClick={handleSaveClick}
+            disabled={blocks.length === 0}
+            className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Save size={18} />
+            Save
+          </button>
+        </div>
+      </div>
+
+      {/* Main Editor */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Block Library */}
+        <BlockLibrary onAddBlock={handleAddBlock} />
+
+        {/* Canvas */}
+        <Canvas
+          blocks={blocks}
+          selectedBlockId={selectedBlockId}
+          onSelectBlock={handleSelectBlock}
+          onReorderBlocks={handleReorderBlocks}
+          onDeleteBlock={handleDeleteBlock}
+          onDuplicateBlock={handleDuplicateBlock}
+        />
+
+        {/* Style Panel */}
+        <StylePanel
+          block={selectedBlock}
+          onUpdateBlock={handleUpdateBlock}
+          onClose={() => setSelectedBlockId(null)}
+        />
+      </div>
+
+      {/* Preview Modal */}
+      {showPreview && (
+        <PreviewPanel blocks={blocks} onClose={() => setShowPreview(false)} />
+      )}
+
+      {/* Save Modal */}
+      {showSaveModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-md p-6">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">
+              {isTemplate ? 'Save Template' : 'Save Email Design'}
+            </h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {isTemplate ? 'Template' : 'Email'} Name
+                </label>
+                <input
+                  type="text"
+                  value={emailName}
+                  onChange={(e) => setEmailName(e.target.value)}
+                  placeholder="Enter name"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Email Subject
+                </label>
+                <input
+                  type="text"
+                  value={emailSubject}
+                  onChange={(e) => setEmailSubject(e.target.value)}
+                  placeholder="Enter subject line"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowSaveModal(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveConfirm}
+                disabled={isSaving || !emailName || !emailSubject}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
+              >
+                {isSaving ? 'Saving...' : 'Save'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default EmailBuilder;
