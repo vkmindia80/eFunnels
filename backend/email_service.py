@@ -7,7 +7,7 @@ from sendgrid.helpers.mail import Mail, Email, To, Content
 from typing import Optional, List
 from datetime import datetime
 import logging
-from emergentintegrations import OpenAI
+from openai import OpenAI
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
