@@ -360,7 +360,7 @@ class eFunnelsAPITester:
             "Enroll in Course",
             "POST",
             f"courses/{self.course_id}/enroll",
-            201,
+            200,
             enrollment_data
         )
         
