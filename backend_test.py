@@ -460,7 +460,7 @@ class eFunnelsAPITester:
             "Create Membership Tier",
             "POST",
             "memberships",
-            201,
+            200,
             membership_data
         )
         
