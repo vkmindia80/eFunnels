@@ -9,7 +9,10 @@ from models import (
     UserCreate, UserLogin, User, Token, UserUpdate, GoogleLogin,
     ContactCreate, ContactUpdate, Contact, ContactActivityCreate,
     TagCreate, Tag, SegmentCreate, Segment,
-    BulkDeleteRequest, BulkTagRequest, BulkSegmentRequest
+    BulkDeleteRequest, BulkTagRequest, BulkSegmentRequest,
+    EmailTemplateCreate, EmailTemplateUpdate, EmailTemplate,
+    EmailCampaignCreate, EmailCampaignUpdate, EmailCampaign,
+    EmailProviderSettings, AIEmailRequest, TestEmailRequest, SendCampaignRequest
 )
 from auth import (
     get_password_hash, 
