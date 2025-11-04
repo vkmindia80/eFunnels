@@ -1344,6 +1344,9 @@ const Dashboard = ({ user, onLogout }) => {
       case 'forms':
         return <Forms />;
       
+      case 'workflows':
+        return <WorkflowAutomation />;
+      
       default:
         return (
           <div className="bg-white rounded-xl shadow-md p-12 text-center">
