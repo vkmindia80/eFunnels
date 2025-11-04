@@ -824,8 +824,9 @@ const MembershipModal = ({ membership, courses, onClose, onSave }) => {
   );
 };
 
-// Course Builder Component (placeholder for now)
-const CourseBuilder = ({ course, onBack }) => {
+// OLD Course Builder - Now replaced by EnhancedCourseBuilder
+// Keeping for reference only, not used anymore
+const OldCourseBuilder = ({ course, onBack }) => {
   const [modules, setModules] = useState([]);
   const [loading, setLoading] = useState(true);
 
