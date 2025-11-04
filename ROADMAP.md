@@ -163,33 +163,40 @@ Building a comprehensive all-in-one business platform similar to systeme.io with
 - [x] Save settings functionality
 - [x] Provider status indicators
 
-### 🚧 In Progress / Remaining (30%):
+#### Advanced Email Builder:
+- [x] **Best-in-class drag-drop visual email editor** ✨
+  - [x] Block library: Heading, Paragraph, Button, Image, Divider, Spacer, Columns, Lists (8 blocks)
+  - [x] Drag & drop interface for block positioning (react-beautiful-dnd)
+  - [x] Live preview panel (Desktop/Mobile/HTML views)
+  - [x] Block styling options (colors, fonts, alignment, spacing, padding, borders)
+  - [x] Mobile/Desktop preview toggle
+  - [x] Undo/Redo functionality (full history management)
+  - [x] Save as template
+  - [x] AI content generation integration in editor
+  - [x] Block duplication and deletion
+  - [x] Real-time HTML generation
 
-#### Advanced Email Builder (Priority 1):
-- [ ] **Best-in-class drag-drop visual email editor** (reference: systeme.io++)
-  - [ ] Block library: Heading, Paragraph, Button, Image, Divider, Spacer, Columns, Lists
-  - [ ] Drag & drop interface for block positioning
-  - [ ] Live preview panel
-  - [ ] Block styling options (colors, fonts, alignment, spacing, padding)
-  - [ ] Mobile/Desktop preview toggle
-  - [ ] Undo/Redo functionality
-  - [ ] Save as template
-  - [ ] AI content generation integration in editor
+#### Campaign Creation Wizard:
+- [x] **Complete 5-step wizard flow** ✨
+- [x] Step 1: Campaign Details (name, subject, from name/email, reply-to, preview text)
+- [x] Step 2: Recipients (select all contacts, specific contacts, or segments)
+- [x] Step 3: Design (integrated email builder)
+- [x] Step 4: Schedule (send immediately or schedule for later with date/time picker)
+- [x] Step 5: Review & Send (preview, test email, edit capability, confirm)
+- [x] AI subject line improvement
+- [x] Recipient count display
+- [x] Step validation
+- [x] Progress indicator
 
-#### Campaign Creation Wizard (Priority 2):
-- [ ] Step 1: Campaign Details (name, subject, from name/email, reply-to)
-- [ ] Step 2: Recipients (select all contacts, specific contacts, or segments)
-- [ ] Step 3: Design (use advanced email builder)
-- [ ] Step 4: Schedule (send immediately or schedule for later)
-- [ ] Step 5: Review & Send (preview, test email, confirm)
-
-#### Additional Features (Priority 3):
+### 🔮 Future Enhancements (Optional - Phase 3+):
 - [ ] A/B testing configuration UI
 - [ ] A/B test analytics & winner selection
-- [ ] Email personalization tokens UI
+- [ ] Email personalization tokens UI ({{first_name}}, {{company}})
 - [ ] Campaign duplication
 - [ ] Campaign editing for drafts
 - [ ] Scheduled campaign management (pause, resume, cancel)
+- [ ] Import HTML templates
+- [ ] More advanced block types (video, countdown timer, social media)
 
 ### Technical Achievements So Far:
 - **18 new API endpoints** implemented
