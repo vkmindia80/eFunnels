@@ -1835,6 +1835,696 @@ async def submit_funnel_form(
     
     return {"message": "Form submitted successfully", "contact_id": contact_id}
 
+
+# ==================== FORMS & SURVEYS ROUTES ====================
+
+# ==================== FORMS ROUTES ====================
+
+@app.get("/api/forms")
+async def get_forms(
+    current_user: dict = Depends(get_current_user),
+    status: str = Query(None),
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100)
+):
+    """Get all forms with pagination"""
+    query = {"user_id": current_user['id']}
+    
+    if status:
+        query["status"] = status
+    
+    total = forms_collection.count_documents(query)
+    skip = (page - 1) * limit
+    
+    forms = list(forms_collection.find(query)
+                .skip(skip)
+                .limit(limit)
+                .sort("created_at", -1))
+    
+    for form in forms:
+        form.pop('_id', None)
+    
+    return {
+        "forms": forms,
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "pages": (total + limit - 1) // limit
+    }
+
+@app.post("/api/forms")
+async def create_form(
+    form: FormCreate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Create a new form"""
+    form_dict = form.model_dump()
+    form_dict['id'] = str(uuid.uuid4())
+    form_dict['user_id'] = current_user['id']
+    form_dict['status'] = 'draft'
+    form_dict['created_at'] = datetime.utcnow()
+    form_dict['updated_at'] = datetime.utcnow()
+    form_dict['total_views'] = 0
+    form_dict['total_submissions'] = 0
+    form_dict['conversion_rate'] = 0.0
+    
+    # Convert fields to dict format with IDs
+    fields = []
+    for idx, field in enumerate(form_dict.get('fields', [])):
+        field['id'] = str(uuid.uuid4())
+        field['order'] = idx
+        fields.append(field)
+    form_dict['fields'] = fields
+    
+    forms_collection.insert_one(form_dict)
+    form_dict.pop('_id')
+    
+    return form_dict
+
+@app.get("/api/forms/{form_id}")
+async def get_form(
+    form_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get a specific form"""
+    form = forms_collection.find_one({
+        "id": form_id,
+        "user_id": current_user['id']
+    })
+    
+    if not form:
+        raise HTTPException(status_code=404, detail="Form not found")
+    
+    form.pop('_id', None)
+    return form
+
+@app.put("/api/forms/{form_id}")
+async def update_form(
+    form_id: str,
+    form_update: FormUpdate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Update a form"""
+    existing = forms_collection.find_one({
+        "id": form_id,
+        "user_id": current_user['id']
+    })
+    
+    if not existing:
+        raise HTTPException(status_code=404, detail="Form not found")
+    
+    update_data = form_update.model_dump(exclude_unset=True)
+    update_data['updated_at'] = datetime.utcnow()
+    
+    # If publishing, set published_at
+    if update_data.get('status') == 'active' and existing['status'] != 'active':
+        update_data['published_at'] = datetime.utcnow()
+    
+    forms_collection.update_one(
+        {"id": form_id},
+        {"$set": update_data}
+    )
+    
+    updated = forms_collection.find_one({"id": form_id})
+    updated.pop('_id', None)
+    return updated
+
+@app.delete("/api/forms/{form_id}")
+async def delete_form(
+    form_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Delete a form"""
+    result = forms_collection.delete_one({
+        "id": form_id,
+        "user_id": current_user['id']
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Form not found")
+    
+    # Delete all submissions
+    form_submissions_collection.delete_many({"form_id": form_id})
+    # Delete all views
+    form_views_collection.delete_many({"form_id": form_id})
+    
+    return {"message": "Form deleted successfully"}
+
+# ==================== FORM SUBMISSIONS ROUTES ====================
+
+@app.get("/api/forms/{form_id}/submissions")
+async def get_form_submissions(
+    form_id: str,
+    current_user: dict = Depends(get_current_user),
+    page: int = Query(1, ge=1),
+    limit: int = Query(50, ge=1, le=100)
+):
+    """Get all submissions for a form"""
+    # Verify form ownership
+    form = forms_collection.find_one({
+        "id": form_id,
+        "user_id": current_user['id']
+    })
+    
+    if not form:
+        raise HTTPException(status_code=404, detail="Form not found")
+    
+    query = {"form_id": form_id}
+    total = form_submissions_collection.count_documents(query)
+    skip = (page - 1) * limit
+    
+    submissions = list(form_submissions_collection.find(query)
+                      .skip(skip)
+                      .limit(limit)
+                      .sort("created_at", -1))
+    
+    for submission in submissions:
+        submission.pop('_id', None)
+    
+    return {
+        "submissions": submissions,
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "pages": (total + limit - 1) // limit
+    }
+
+@app.post("/api/forms/{form_id}/submit")
+async def submit_form(
+    form_id: str,
+    submission: PublicFormSubmissionRequest
+):
+    """Submit a form (public endpoint - no auth required)"""
+    # Verify form exists and is active
+    form = forms_collection.find_one({"id": form_id, "status": "active"})
+    
+    if not form:
+        raise HTTPException(status_code=404, detail="Form not found or not active")
+    
+    # Create submission record
+    submission_dict = submission.model_dump()
+    submission_dict['id'] = str(uuid.uuid4())
+    submission_dict['form_id'] = form_id
+    submission_dict['user_id'] = form['user_id']
+    submission_dict['created_at'] = datetime.utcnow()
+    
+    # Check if email exists in submission data to create/update contact
+    contact_id = None
+    submission_data = submission_dict['submission_data']
+    
+    if 'email' in submission_data:
+        email = submission_data['email']
+        
+        # Check if contact exists
+        existing_contact = contacts_collection.find_one({
+            "user_id": form['user_id'],
+            "email": email
+        })
+        
+        if existing_contact:
+            contact_id = existing_contact['id']
+            # Update contact with any new data
+            update_data = {}
+            if 'first_name' in submission_data:
+                update_data['first_name'] = submission_data['first_name']
+            if 'last_name' in submission_data:
+                update_data['last_name'] = submission_data['last_name']
+            if 'phone' in submission_data:
+                update_data['phone'] = submission_data['phone']
+            if 'company' in submission_data:
+                update_data['company'] = submission_data['company']
+            
+            if update_data:
+                update_data['updated_at'] = datetime.utcnow()
+                contacts_collection.update_one(
+                    {"id": contact_id},
+                    {"$set": update_data}
+                )
+        else:
+            # Create new contact
+            contact = {
+                'id': str(uuid.uuid4()),
+                'user_id': form['user_id'],
+                'first_name': submission_data.get('first_name', 'Unknown'),
+                'last_name': submission_data.get('last_name'),
+                'email': email,
+                'phone': submission_data.get('phone'),
+                'company': submission_data.get('company'),
+                'source': f"Form: {form['name']}",
+                'status': 'lead',
+                'score': 0,
+                'tags': [f"form-{form['name'].lower().replace(' ', '-')}"],
+                'segments': [],
+                'custom_fields': {},
+                'created_at': datetime.utcnow(),
+                'updated_at': datetime.utcnow(),
+                'engagement_count': 0
+            }
+            contacts_collection.insert_one(contact)
+            contact_id = contact['id']
+    
+    submission_dict['contact_id'] = contact_id
+    
+    form_submissions_collection.insert_one(submission_dict)
+    
+    # Update form stats
+    forms_collection.update_one(
+        {"id": form_id},
+        {"$inc": {"total_submissions": 1}}
+    )
+    
+    # Recalculate conversion rate
+    updated_form = forms_collection.find_one({"id": form_id})
+    if updated_form['total_views'] > 0:
+        conversion_rate = (updated_form['total_submissions'] / updated_form['total_views']) * 100
+        forms_collection.update_one(
+            {"id": form_id},
+            {"$set": {"conversion_rate": round(conversion_rate, 2)}}
+        )
+    
+    return {"message": "Form submitted successfully", "submission_id": submission_dict['id'], "contact_id": contact_id}
+
+@app.post("/api/forms/{form_id}/track-view")
+async def track_form_view(
+    form_id: str,
+    visitor_ip: Optional[str] = None,
+    user_agent: Optional[str] = None,
+    referrer: Optional[str] = None
+):
+    """Track a form view (public endpoint - no auth required)"""
+    # Verify form exists
+    form = forms_collection.find_one({"id": form_id})
+    
+    if not form:
+        raise HTTPException(status_code=404, detail="Form not found")
+    
+    # Create view record
+    view = {
+        'id': str(uuid.uuid4()),
+        'form_id': form_id,
+        'user_id': form['user_id'],
+        'visitor_ip': visitor_ip,
+        'user_agent': user_agent,
+        'referrer': referrer,
+        'created_at': datetime.utcnow()
+    }
+    
+    form_views_collection.insert_one(view)
+    
+    # Update form view count
+    forms_collection.update_one(
+        {"id": form_id},
+        {"$inc": {"total_views": 1}}
+    )
+    
+    return {"message": "View tracked"}
+
+@app.get("/api/forms/{form_id}/analytics")
+async def get_form_analytics(
+    form_id: str,
+    current_user: dict = Depends(get_current_user),
+    date_from: Optional[str] = Query(None),
+    date_to: Optional[str] = Query(None)
+):
+    """Get form analytics"""
+    # Verify form ownership
+    form = forms_collection.find_one({
+        "id": form_id,
+        "user_id": current_user['id']
+    })
+    
+    if not form:
+        raise HTTPException(status_code=404, detail="Form not found")
+    
+    # Build date filter
+    date_filter = {}
+    if date_from:
+        date_filter['$gte'] = datetime.fromisoformat(date_from.replace('Z', '+00:00'))
+    if date_to:
+        date_filter['$lte'] = datetime.fromisoformat(date_to.replace('Z', '+00:00'))
+    
+    query = {"form_id": form_id}
+    if date_filter:
+        query['created_at'] = date_filter
+    
+    # Get stats
+    total_views = form_views_collection.count_documents(query)
+    total_submissions = form_submissions_collection.count_documents(query)
+    
+    # Calculate conversion rate
+    conversion_rate = (total_submissions / total_views * 100) if total_views > 0 else 0
+    
+    # Get field-by-field stats
+    submissions = list(form_submissions_collection.find(query))
+    field_stats = {}
+    
+    for submission in submissions:
+        for field_id, value in submission.get('submission_data', {}).items():
+            if field_id not in field_stats:
+                field_stats[field_id] = {
+                    'total_responses': 0,
+                    'values': {}
+                }
+            field_stats[field_id]['total_responses'] += 1
+            
+            # Count value occurrences (for dropdowns, radio, etc.)
+            if isinstance(value, str):
+                if value not in field_stats[field_id]['values']:
+                    field_stats[field_id]['values'][value] = 0
+                field_stats[field_id]['values'][value] += 1
+    
+    return {
+        "form_id": form_id,
+        "form_name": form['name'],
+        "total_views": total_views,
+        "total_submissions": total_submissions,
+        "conversion_rate": round(conversion_rate, 2),
+        "field_stats": field_stats
+    }
+
+@app.get("/api/forms/{form_id}/export")
+async def export_form_submissions(
+    form_id: str,
+    format: str = Query("csv", regex="^(csv|excel)$"),
+    current_user: dict = Depends(get_current_user)
+):
+    """Export form submissions to CSV or Excel"""
+    # Verify form ownership
+    form = forms_collection.find_one({
+        "id": form_id,
+        "user_id": current_user['id']
+    })
+    
+    if not form:
+        raise HTTPException(status_code=404, detail="Form not found")
+    
+    submissions = list(form_submissions_collection.find({"form_id": form_id}))
+    
+    if not submissions:
+        raise HTTPException(status_code=404, detail="No submissions to export")
+    
+    # Prepare data for export
+    export_data = []
+    for submission in submissions:
+        row = {
+            'submission_id': submission.get('id', ''),
+            'submitted_at': submission.get('created_at', '').isoformat() if submission.get('created_at') else '',
+            'contact_id': submission.get('contact_id', ''),
+            **submission.get('submission_data', {})
+        }
+        export_data.append(row)
+    
+    df = pd.DataFrame(export_data)
+    
+    if format == 'csv':
+        output = io.StringIO()
+        df.to_csv(output, index=False)
+        output.seek(0)
+        
+        return StreamingResponse(
+            iter([output.getvalue()]),
+            media_type="text/csv",
+            headers={"Content-Disposition": f"attachment; filename=form_{form_id}_submissions.csv"}
+        )
+    else:  # excel
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False, sheet_name='Submissions')
+        output.seek(0)
+        
+        return StreamingResponse(
+            output,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename=form_{form_id}_submissions.xlsx"}
+        )
+
+# ==================== FORM TEMPLATES ROUTES ====================
+
+@app.get("/api/form-templates")
+async def get_form_templates(current_user: dict = Depends(get_current_user)):
+    """Get all form templates"""
+    templates = list(form_templates_collection.find({"is_public": True}))
+    
+    for template in templates:
+        template.pop('_id', None)
+    
+    return templates
+
+# ==================== SURVEYS ROUTES ====================
+
+@app.get("/api/surveys")
+async def get_surveys(
+    current_user: dict = Depends(get_current_user),
+    status: str = Query(None),
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100)
+):
+    """Get all surveys with pagination"""
+    query = {"user_id": current_user['id']}
+    
+    if status:
+        query["status"] = status
+    
+    total = surveys_collection.count_documents(query)
+    skip = (page - 1) * limit
+    
+    surveys = list(surveys_collection.find(query)
+                  .skip(skip)
+                  .limit(limit)
+                  .sort("created_at", -1))
+    
+    for survey in surveys:
+        survey.pop('_id', None)
+    
+    return {
+        "surveys": surveys,
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "pages": (total + limit - 1) // limit
+    }
+
+@app.post("/api/surveys")
+async def create_survey(
+    survey: SurveyCreate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Create a new survey"""
+    survey_dict = survey.model_dump()
+    survey_dict['id'] = str(uuid.uuid4())
+    survey_dict['user_id'] = current_user['id']
+    survey_dict['status'] = 'draft'
+    survey_dict['created_at'] = datetime.utcnow()
+    survey_dict['updated_at'] = datetime.utcnow()
+    survey_dict['total_responses'] = 0
+    survey_dict['completion_rate'] = 0.0
+    
+    # Convert questions to dict format with IDs
+    questions = []
+    for idx, question in enumerate(survey_dict.get('questions', [])):
+        question['id'] = str(uuid.uuid4())
+        question['order'] = idx
+        questions.append(question)
+    survey_dict['questions'] = questions
+    
+    surveys_collection.insert_one(survey_dict)
+    survey_dict.pop('_id')
+    
+    return survey_dict
+
+@app.get("/api/surveys/{survey_id}")
+async def get_survey(
+    survey_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get a specific survey"""
+    survey = surveys_collection.find_one({
+        "id": survey_id,
+        "user_id": current_user['id']
+    })
+    
+    if not survey:
+        raise HTTPException(status_code=404, detail="Survey not found")
+    
+    survey.pop('_id', None)
+    return survey
+
+@app.put("/api/surveys/{survey_id}")
+async def update_survey(
+    survey_id: str,
+    survey_update: SurveyUpdate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Update a survey"""
+    existing = surveys_collection.find_one({
+        "id": survey_id,
+        "user_id": current_user['id']
+    })
+    
+    if not existing:
+        raise HTTPException(status_code=404, detail="Survey not found")
+    
+    update_data = survey_update.model_dump(exclude_unset=True)
+    update_data['updated_at'] = datetime.utcnow()
+    
+    # If publishing, set published_at
+    if update_data.get('status') == 'active' and existing['status'] != 'active':
+        update_data['published_at'] = datetime.utcnow()
+    
+    surveys_collection.update_one(
+        {"id": survey_id},
+        {"$set": update_data}
+    )
+    
+    updated = surveys_collection.find_one({"id": survey_id})
+    updated.pop('_id', None)
+    return updated
+
+@app.delete("/api/surveys/{survey_id}")
+async def delete_survey(
+    survey_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Delete a survey"""
+    result = surveys_collection.delete_one({
+        "id": survey_id,
+        "user_id": current_user['id']
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Survey not found")
+    
+    # Delete all responses
+    survey_responses_collection.delete_many({"survey_id": survey_id})
+    
+    return {"message": "Survey deleted successfully"}
+
+# ==================== SURVEY RESPONSES ROUTES ====================
+
+@app.get("/api/surveys/{survey_id}/responses")
+async def get_survey_responses(
+    survey_id: str,
+    current_user: dict = Depends(get_current_user),
+    page: int = Query(1, ge=1),
+    limit: int = Query(50, ge=1, le=100)
+):
+    """Get all responses for a survey"""
+    # Verify survey ownership
+    survey = surveys_collection.find_one({
+        "id": survey_id,
+        "user_id": current_user['id']
+    })
+    
+    if not survey:
+        raise HTTPException(status_code=404, detail="Survey not found")
+    
+    query = {"survey_id": survey_id}
+    total = survey_responses_collection.count_documents(query)
+    skip = (page - 1) * limit
+    
+    responses = list(survey_responses_collection.find(query)
+                    .skip(skip)
+                    .limit(limit)
+                    .sort("created_at", -1))
+    
+    for response in responses:
+        response.pop('_id', None)
+    
+    return {
+        "responses": responses,
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "pages": (total + limit - 1) // limit
+    }
+
+@app.post("/api/surveys/{survey_id}/submit")
+async def submit_survey(
+    survey_id: str,
+    response: PublicSurveyResponseRequest
+):
+    """Submit a survey response (public endpoint - no auth required)"""
+    # Verify survey exists and is active
+    survey = surveys_collection.find_one({"id": survey_id, "status": "active"})
+    
+    if not survey:
+        raise HTTPException(status_code=404, detail="Survey not found or not active")
+    
+    # Create response record
+    response_dict = response.model_dump()
+    response_dict['id'] = str(uuid.uuid4())
+    response_dict['survey_id'] = survey_id
+    response_dict['user_id'] = survey['user_id']
+    response_dict['created_at'] = datetime.utcnow()
+    
+    if response_dict.get('completed'):
+        response_dict['completed_at'] = datetime.utcnow()
+    
+    survey_responses_collection.insert_one(response_dict)
+    
+    # Update survey stats
+    surveys_collection.update_one(
+        {"id": survey_id},
+        {"$inc": {"total_responses": 1}}
+    )
+    
+    return {"message": "Survey submitted successfully", "response_id": response_dict['id']}
+
+@app.get("/api/surveys/{survey_id}/analytics")
+async def get_survey_analytics(
+    survey_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get survey analytics"""
+    # Verify survey ownership
+    survey = surveys_collection.find_one({
+        "id": survey_id,
+        "user_id": current_user['id']
+    })
+    
+    if not survey:
+        raise HTTPException(status_code=404, detail="Survey not found")
+    
+    # Get all responses
+    responses = list(survey_responses_collection.find({"survey_id": survey_id}))
+    
+    total_responses = len(responses)
+    completed_responses = len([r for r in responses if r.get('completed')])
+    completion_rate = (completed_responses / total_responses * 100) if total_responses > 0 else 0
+    
+    # Question-by-question stats
+    question_stats = {}
+    
+    for response in responses:
+        for question_id, answer in response.get('responses', {}).items():
+            if question_id not in question_stats:
+                question_stats[question_id] = {
+                    'total_responses': 0,
+                    'answers': {}
+                }
+            question_stats[question_id]['total_responses'] += 1
+            
+            # Count answer occurrences
+            if isinstance(answer, str):
+                if answer not in question_stats[question_id]['answers']:
+                    question_stats[question_id]['answers'][answer] = 0
+                question_stats[question_id]['answers'][answer] += 1
+            elif isinstance(answer, list):
+                for item in answer:
+                    if item not in question_stats[question_id]['answers']:
+                        question_stats[question_id]['answers'][item] = 0
+                    question_stats[question_id]['answers'][item] += 1
+    
+    return {
+        "survey_id": survey_id,
+        "survey_name": survey['name'],
+        "total_responses": total_responses,
+        "completed_responses": completed_responses,
+        "completion_rate": round(completion_rate, 2),
+        "question_stats": question_stats
+    }
+
+
 @app.on_event("startup")
 async def startup_event():
     """Create demo user on startup"""
