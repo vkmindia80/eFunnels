@@ -2936,6 +2936,86 @@ async def startup_event():
         
         funnel_templates_collection.insert_many(templates)
         print("✅ Funnel templates created")
+    
+    # Create form templates if they don't exist
+    existing_form_templates = form_templates_collection.count_documents({})
+    if existing_form_templates == 0:
+        form_templates = [
+            {
+                'id': str(uuid.uuid4()),
+                'name': 'Contact Form',
+                'description': 'Simple contact form with name, email, and message',
+                'category': 'contact',
+                'is_public': True,
+                'usage_count': 0,
+                'thumbnail': 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=400',
+                'fields': [
+                    {'id': '1', 'field_type': 'text', 'label': 'First Name', 'placeholder': 'John', 'required': True, 'order': 0},
+                    {'id': '2', 'field_type': 'text', 'label': 'Last Name', 'placeholder': 'Doe', 'required': True, 'order': 1},
+                    {'id': '3', 'field_type': 'email', 'label': 'Email Address', 'placeholder': 'john@example.com', 'required': True, 'order': 2},
+                    {'id': '4', 'field_type': 'phone', 'label': 'Phone Number', 'placeholder': '+1 (555) 000-0000', 'required': False, 'order': 3},
+                    {'id': '5', 'field_type': 'textarea', 'label': 'Message', 'placeholder': 'How can we help you?', 'required': True, 'order': 4}
+                ],
+                'created_at': datetime.utcnow()
+            },
+            {
+                'id': str(uuid.uuid4()),
+                'name': 'Registration Form',
+                'description': 'Event or service registration form',
+                'category': 'registration',
+                'is_public': True,
+                'usage_count': 0,
+                'thumbnail': 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400',
+                'fields': [
+                    {'id': '1', 'field_type': 'text', 'label': 'Full Name', 'placeholder': 'John Doe', 'required': True, 'order': 0},
+                    {'id': '2', 'field_type': 'email', 'label': 'Email', 'placeholder': 'john@example.com', 'required': True, 'order': 1},
+                    {'id': '3', 'field_type': 'phone', 'label': 'Phone', 'placeholder': '+1 (555) 000-0000', 'required': True, 'order': 2},
+                    {'id': '4', 'field_type': 'text', 'label': 'Company', 'placeholder': 'Your Company', 'required': False, 'order': 3},
+                    {'id': '5', 'field_type': 'select', 'label': 'How did you hear about us?', 'options': ['Google Search', 'Social Media', 'Friend Referral', 'Advertisement', 'Other'], 'required': False, 'order': 4},
+                    {'id': '6', 'field_type': 'agreement', 'label': 'I agree to receive updates and promotional materials', 'required': False, 'order': 5}
+                ],
+                'created_at': datetime.utcnow()
+            },
+            {
+                'id': str(uuid.uuid4()),
+                'name': 'Feedback Form',
+                'description': 'Collect customer feedback and ratings',
+                'category': 'feedback',
+                'is_public': True,
+                'usage_count': 0,
+                'thumbnail': 'https://images.unsplash.com/photo-1589561253898-768105ca91a8?w=400',
+                'fields': [
+                    {'id': '1', 'field_type': 'text', 'label': 'Name', 'placeholder': 'Your name', 'required': False, 'order': 0},
+                    {'id': '2', 'field_type': 'email', 'label': 'Email', 'placeholder': 'your@email.com', 'required': True, 'order': 1},
+                    {'id': '3', 'field_type': 'rating', 'label': 'Overall Satisfaction', 'maxRating': 5, 'required': True, 'order': 2},
+                    {'id': '4', 'field_type': 'radio', 'label': 'Would you recommend us?', 'options': ['Definitely', 'Probably', 'Not Sure', 'Probably Not', 'Definitely Not'], 'required': True, 'order': 3},
+                    {'id': '5', 'field_type': 'textarea', 'label': 'Additional Comments', 'placeholder': 'Tell us more...', 'required': False, 'order': 4}
+                ],
+                'created_at': datetime.utcnow()
+            },
+            {
+                'id': str(uuid.uuid4()),
+                'name': 'Order Form',
+                'description': 'Product or service order form',
+                'category': 'order',
+                'is_public': True,
+                'usage_count': 0,
+                'thumbnail': 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=400',
+                'fields': [
+                    {'id': '1', 'field_type': 'text', 'label': 'Full Name', 'placeholder': 'John Doe', 'required': True, 'order': 0},
+                    {'id': '2', 'field_type': 'email', 'label': 'Email', 'placeholder': 'john@example.com', 'required': True, 'order': 1},
+                    {'id': '3', 'field_type': 'phone', 'label': 'Phone', 'placeholder': '+1 (555) 000-0000', 'required': True, 'order': 2},
+                    {'id': '4', 'field_type': 'select', 'label': 'Product/Service', 'options': ['Product A - $99', 'Product B - $149', 'Product C - $199', 'Custom Package'], 'required': True, 'order': 3},
+                    {'id': '5', 'field_type': 'number', 'label': 'Quantity', 'placeholder': '1', 'required': True, 'order': 4},
+                    {'id': '6', 'field_type': 'textarea', 'label': 'Special Instructions', 'placeholder': 'Any special requirements?', 'required': False, 'order': 5},
+                    {'id': '7', 'field_type': 'agreement', 'label': 'I agree to the terms and conditions', 'required': True, 'order': 6}
+                ],
+                'created_at': datetime.utcnow()
+            }
+        ]
+        
+        form_templates_collection.insert_many(form_templates)
+        print("✅ Form templates created")
 
 if __name__ == "__main__":
     import uvicorn
