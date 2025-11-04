@@ -3020,6 +3020,821 @@ async def startup_event():
         form_templates_collection.insert_many(form_templates)
         print("✅ Form templates created")
 
+
+
+# ==================== WORKFLOW AUTOMATION ROUTES ====================
+
+@app.get("/api/workflows")
+async def get_workflows(
+    current_user: User = Depends(get_current_user),
+    skip: int = 0,
+    limit: int = 50,
+    status: Optional[str] = None  # active, inactive
+):
+    """Get all workflows for the current user"""
+    query = {"user_id": current_user['id']}
+    
+    if status == "active":
+        query["is_active"] = True
+    elif status == "inactive":
+        query["is_active"] = False
+    
+    workflows = list(workflows_collection.find(query).skip(skip).limit(limit))
+    
+    # Remove MongoDB _id
+    for workflow in workflows:
+        workflow.pop('_id', None)
+    
+    total = workflows_collection.count_documents(query)
+    
+    return {
+        "workflows": workflows,
+        "total": total,
+        "skip": skip,
+        "limit": limit
+    }
+
+@app.post("/api/workflows", response_model=Workflow)
+async def create_workflow(
+    workflow: WorkflowCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Create a new workflow"""
+    workflow_dict = workflow.model_dump()
+    workflow_dict['id'] = str(uuid.uuid4())
+    workflow_dict['user_id'] = current_user['id']
+    workflow_dict['created_at'] = datetime.utcnow()
+    workflow_dict['updated_at'] = datetime.utcnow()
+    workflow_dict['total_executions'] = 0
+    workflow_dict['successful_executions'] = 0
+    workflow_dict['failed_executions'] = 0
+    workflow_dict['last_triggered'] = None
+    
+    # Convert nodes and edges from Pydantic models to dicts
+    workflow_dict['nodes'] = [node.model_dump() if hasattr(node, 'model_dump') else node for node in workflow_dict.get('nodes', [])]
+    workflow_dict['edges'] = [edge.model_dump() if hasattr(edge, 'model_dump') else edge for edge in workflow_dict.get('edges', [])]
+    
+    workflows_collection.insert_one(workflow_dict)
+    workflow_dict.pop('_id')
+    
+    return workflow_dict
+
+@app.get("/api/workflows/{workflow_id}")
+async def get_workflow(
+    workflow_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get a specific workflow"""
+    workflow = workflows_collection.find_one({
+        "id": workflow_id,
+        "user_id": current_user['id']
+    })
+    
+    if not workflow:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+    
+    workflow.pop('_id')
+    return workflow
+
+@app.put("/api/workflows/{workflow_id}")
+async def update_workflow(
+    workflow_id: str,
+    workflow_update: WorkflowUpdate,
+    current_user: User = Depends(get_current_user)
+):
+    """Update a workflow"""
+    workflow = workflows_collection.find_one({
+        "id": workflow_id,
+        "user_id": current_user['id']
+    })
+    
+    if not workflow:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+    
+    update_data = workflow_update.model_dump(exclude_unset=True)
+    update_data['updated_at'] = datetime.utcnow()
+    
+    # Convert nodes and edges to dicts if present
+    if 'nodes' in update_data:
+        update_data['nodes'] = [node.model_dump() if hasattr(node, 'model_dump') else node for node in update_data['nodes']]
+    if 'edges' in update_data:
+        update_data['edges'] = [edge.model_dump() if hasattr(edge, 'model_dump') else edge for edge in update_data['edges']]
+    
+    workflows_collection.update_one(
+        {"id": workflow_id, "user_id": current_user['id']},
+        {"$set": update_data}
+    )
+    
+    updated_workflow = workflows_collection.find_one({"id": workflow_id})
+    updated_workflow.pop('_id')
+    
+    return updated_workflow
+
+@app.delete("/api/workflows/{workflow_id}")
+async def delete_workflow(
+    workflow_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Delete a workflow"""
+    result = workflows_collection.delete_one({
+        "id": workflow_id,
+        "user_id": current_user['id']
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+    
+    # Also delete all executions for this workflow
+    workflow_executions_collection.delete_many({"workflow_id": workflow_id})
+    
+    return {"message": "Workflow deleted successfully"}
+
+@app.post("/api/workflows/{workflow_id}/activate")
+async def activate_workflow(
+    workflow_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Activate a workflow"""
+    workflow = workflows_collection.find_one({
+        "id": workflow_id,
+        "user_id": current_user['id']
+    })
+    
+    if not workflow:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+    
+    workflows_collection.update_one(
+        {"id": workflow_id},
+        {"$set": {"is_active": True, "updated_at": datetime.utcnow()}}
+    )
+    
+    return {"message": "Workflow activated successfully", "workflow_id": workflow_id}
+
+@app.post("/api/workflows/{workflow_id}/deactivate")
+async def deactivate_workflow(
+    workflow_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Deactivate a workflow"""
+    workflow = workflows_collection.find_one({
+        "id": workflow_id,
+        "user_id": current_user['id']
+    })
+    
+    if not workflow:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+    
+    workflows_collection.update_one(
+        {"id": workflow_id},
+        {"$set": {"is_active": False, "updated_at": datetime.utcnow()}}
+    )
+    
+    return {"message": "Workflow deactivated successfully", "workflow_id": workflow_id}
+
+@app.get("/api/workflows/{workflow_id}/executions")
+async def get_workflow_executions(
+    workflow_id: str,
+    current_user: User = Depends(get_current_user),
+    skip: int = 0,
+    limit: int = 50
+):
+    """Get execution history for a workflow"""
+    workflow = workflows_collection.find_one({
+        "id": workflow_id,
+        "user_id": current_user['id']
+    })
+    
+    if not workflow:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+    
+    executions = list(
+        workflow_executions_collection.find({"workflow_id": workflow_id})
+        .sort("started_at", -1)
+        .skip(skip)
+        .limit(limit)
+    )
+    
+    for execution in executions:
+        execution.pop('_id', None)
+    
+    total = workflow_executions_collection.count_documents({"workflow_id": workflow_id})
+    
+    return {
+        "executions": executions,
+        "total": total,
+        "skip": skip,
+        "limit": limit
+    }
+
+@app.get("/api/workflows/{workflow_id}/analytics")
+async def get_workflow_analytics(
+    workflow_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get analytics for a workflow"""
+    workflow = workflows_collection.find_one({
+        "id": workflow_id,
+        "user_id": current_user['id']
+    })
+    
+    if not workflow:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+    
+    # Get execution stats
+    total_executions = workflow_executions_collection.count_documents({"workflow_id": workflow_id})
+    successful = workflow_executions_collection.count_documents({"workflow_id": workflow_id, "status": "completed"})
+    failed = workflow_executions_collection.count_documents({"workflow_id": workflow_id, "status": "failed"})
+    
+    success_rate = (successful / total_executions * 100) if total_executions > 0 else 0
+    
+    # Get unique contacts processed
+    executions = list(workflow_executions_collection.find({"workflow_id": workflow_id}))
+    contacts_processed = len(set([ex['contact_id'] for ex in executions]))
+    
+    # Get last execution
+    last_execution = workflow_executions_collection.find_one(
+        {"workflow_id": workflow_id},
+        sort=[("started_at", -1)]
+    )
+    
+    # Count actions from execution logs
+    emails_sent = 0
+    tags_added = 0
+    
+    for execution in executions:
+        for log_entry in execution.get('execution_log', []):
+            if log_entry.get('action') == 'send_email':
+                emails_sent += 1
+            elif log_entry.get('action') == 'add_tag':
+                tags_added += 1
+    
+    return {
+        "workflow_id": workflow_id,
+        "total_executions": total_executions,
+        "successful_executions": successful,
+        "failed_executions": failed,
+        "success_rate": round(success_rate, 2),
+        "contacts_processed": contacts_processed,
+        "emails_sent": emails_sent,
+        "tags_added": tags_added,
+        "last_execution": last_execution['started_at'] if last_execution else None
+    }
+
+@app.post("/api/workflows/{workflow_id}/test")
+async def test_workflow(
+    workflow_id: str,
+    contact_id: str,
+    current_user: User = Depends(get_current_user),
+    background_tasks: BackgroundTasks = None
+):
+    """Test a workflow with a specific contact"""
+    workflow = workflows_collection.find_one({
+        "id": workflow_id,
+        "user_id": current_user['id']
+    })
+    
+    if not workflow:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+    
+    contact = contacts_collection.find_one({
+        "id": contact_id,
+        "user_id": current_user['id']
+    })
+    
+    if not contact:
+        raise HTTPException(status_code=404, detail="Contact not found")
+    
+    # Create a test execution
+    execution_id = str(uuid.uuid4())
+    execution = {
+        "id": execution_id,
+        "workflow_id": workflow_id,
+        "user_id": current_user['id'],
+        "contact_id": contact_id,
+        "status": "running",
+        "current_node": None,
+        "execution_log": [],
+        "started_at": datetime.utcnow(),
+        "completed_at": None,
+        "error_message": None
+    }
+    
+    workflow_executions_collection.insert_one(execution)
+    
+    # Execute workflow in background
+    if background_tasks:
+        background_tasks.add_task(execute_workflow, workflow, contact, execution_id)
+    
+    return {
+        "message": "Workflow test started",
+        "execution_id": execution_id
+    }
+
+@app.get("/api/workflow-templates")
+async def get_workflow_templates(current_user: User = Depends(get_current_user)):
+    """Get all workflow templates"""
+    # Check if templates exist
+    count = workflow_templates_collection.count_documents({})
+    
+    if count == 0:
+        # Create default templates
+        create_default_workflow_templates()
+    
+    templates = list(workflow_templates_collection.find({}))
+    
+    for template in templates:
+        template.pop('_id', None)
+    
+    return {"templates": templates}
+
+@app.post("/api/workflows/from-template/{template_id}")
+async def create_workflow_from_template(
+    template_id: str,
+    workflow_name: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Create a workflow from a template"""
+    template = workflow_templates_collection.find_one({"id": template_id})
+    
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+    
+    # Create new workflow from template
+    workflow_dict = {
+        "id": str(uuid.uuid4()),
+        "user_id": current_user['id'],
+        "name": workflow_name,
+        "description": template['description'],
+        "is_active": False,
+        "trigger_type": template['trigger_type'],
+        "nodes": template['nodes'],
+        "edges": template['edges'],
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow(),
+        "total_executions": 0,
+        "successful_executions": 0,
+        "failed_executions": 0,
+        "last_triggered": None
+    }
+    
+    workflows_collection.insert_one(workflow_dict)
+    workflow_dict.pop('_id')
+    
+    # Update template usage count
+    workflow_templates_collection.update_one(
+        {"id": template_id},
+        {"$inc": {"usage_count": 1}}
+    )
+    
+    return workflow_dict
+
+# Background task to execute workflow
+async def execute_workflow(workflow: dict, contact: dict, execution_id: str):
+    """Execute a workflow for a contact"""
+    try:
+        execution_log = []
+        nodes = workflow.get('nodes', [])
+        edges = workflow.get('edges', [])
+        
+        # Find the trigger node (starting point)
+        trigger_node = next((node for node in nodes if node['type'] == 'trigger'), None)
+        
+        if not trigger_node:
+            raise Exception("No trigger node found in workflow")
+        
+        current_node_id = trigger_node['id']
+        
+        # Execute nodes in sequence
+        while current_node_id:
+            current_node = next((node for node in nodes if node['id'] == current_node_id), None)
+            
+            if not current_node:
+                break
+            
+            # Update current node
+            workflow_executions_collection.update_one(
+                {"id": execution_id},
+                {"$set": {"current_node": current_node_id}}
+            )
+            
+            # Execute node action
+            node_data = current_node.get('data', {})
+            node_type = current_node['type']
+            
+            if node_type == 'action':
+                action_type = node_data.get('action_type')
+                action_config = node_data.get('action_config', {})
+                
+                if action_type == 'send_email':
+                    # Send email action
+                    template_id = action_config.get('template_id')
+                    if template_id:
+                        # Send email using email service
+                        execution_log.append({
+                            "node_id": current_node_id,
+                            "action": "send_email",
+                            "timestamp": datetime.utcnow().isoformat(),
+                            "status": "success",
+                            "details": f"Email sent to {contact.get('email')}"
+                        })
+                
+                elif action_type == 'add_tag':
+                    # Add tag action
+                    tag_name = action_config.get('tag_name')
+                    if tag_name:
+                        # Add tag to contact
+                        contacts_collection.update_one(
+                            {"id": contact['id']},
+                            {"$addToSet": {"tags": tag_name}}
+                        )
+                        execution_log.append({
+                            "node_id": current_node_id,
+                            "action": "add_tag",
+                            "timestamp": datetime.utcnow().isoformat(),
+                            "status": "success",
+                            "details": f"Tag '{tag_name}' added"
+                        })
+                
+                elif action_type == 'remove_tag':
+                    # Remove tag action
+                    tag_name = action_config.get('tag_name')
+                    if tag_name:
+                        contacts_collection.update_one(
+                            {"id": contact['id']},
+                            {"$pull": {"tags": tag_name}}
+                        )
+                        execution_log.append({
+                            "node_id": current_node_id,
+                            "action": "remove_tag",
+                            "timestamp": datetime.utcnow().isoformat(),
+                            "status": "success",
+                            "details": f"Tag '{tag_name}' removed"
+                        })
+                
+                elif action_type == 'wait':
+                    # Wait action (for now, just log it)
+                    wait_duration = action_config.get('duration', '1 day')
+                    execution_log.append({
+                        "node_id": current_node_id,
+                        "action": "wait",
+                        "timestamp": datetime.utcnow().isoformat(),
+                        "status": "success",
+                        "details": f"Wait for {wait_duration}"
+                    })
+                
+                elif action_type == 'update_contact':
+                    # Update contact field
+                    field_name = action_config.get('field_name')
+                    field_value = action_config.get('field_value')
+                    if field_name and field_value:
+                        contacts_collection.update_one(
+                            {"id": contact['id']},
+                            {"$set": {field_name: field_value}}
+                        )
+                        execution_log.append({
+                            "node_id": current_node_id,
+                            "action": "update_contact",
+                            "timestamp": datetime.utcnow().isoformat(),
+                            "status": "success",
+                            "details": f"Updated {field_name} to {field_value}"
+                        })
+            
+            elif node_type == 'condition':
+                # Handle conditional logic
+                condition_field = node_data.get('condition_field')
+                condition_operator = node_data.get('condition_operator')
+                condition_value = node_data.get('condition_value')
+                
+                # Evaluate condition
+                contact_value = contact.get(condition_field)
+                condition_met = False
+                
+                if condition_operator == 'equals':
+                    condition_met = str(contact_value) == str(condition_value)
+                elif condition_operator == 'not_equals':
+                    condition_met = str(contact_value) != str(condition_value)
+                elif condition_operator == 'contains':
+                    condition_met = condition_value in str(contact_value)
+                
+                execution_log.append({
+                    "node_id": current_node_id,
+                    "action": "condition_check",
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "status": "success",
+                    "details": f"Condition {condition_met}: {condition_field} {condition_operator} {condition_value}"
+                })
+                
+                # Find next node based on condition
+                # Look for edge with label 'yes' or 'no'
+                next_edge = next(
+                    (edge for edge in edges if edge['source'] == current_node_id and 
+                     edge.get('label', '').lower() == ('yes' if condition_met else 'no')),
+                    None
+                )
+                
+                if next_edge:
+                    current_node_id = next_edge['target']
+                else:
+                    current_node_id = None
+                continue
+            
+            elif node_type == 'end':
+                execution_log.append({
+                    "node_id": current_node_id,
+                    "action": "workflow_end",
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "status": "success",
+                    "details": "Workflow completed"
+                })
+                break
+            
+            # Find next node
+            next_edge = next((edge for edge in edges if edge['source'] == current_node_id), None)
+            
+            if next_edge:
+                current_node_id = next_edge['target']
+            else:
+                current_node_id = None
+        
+        # Mark execution as completed
+        workflow_executions_collection.update_one(
+            {"id": execution_id},
+            {
+                "$set": {
+                    "status": "completed",
+                    "completed_at": datetime.utcnow(),
+                    "execution_log": execution_log
+                }
+            }
+        )
+        
+        # Update workflow stats
+        workflows_collection.update_one(
+            {"id": workflow['id']},
+            {
+                "$inc": {"total_executions": 1, "successful_executions": 1},
+                "$set": {"last_triggered": datetime.utcnow()}
+            }
+        )
+        
+    except Exception as e:
+        # Mark execution as failed
+        workflow_executions_collection.update_one(
+            {"id": execution_id},
+            {
+                "$set": {
+                    "status": "failed",
+                    "completed_at": datetime.utcnow(),
+                    "error_message": str(e)
+                }
+            }
+        )
+        
+        # Update workflow stats
+        workflows_collection.update_one(
+            {"id": workflow['id']},
+            {
+                "$inc": {"total_executions": 1, "failed_executions": 1},
+                "$set": {"last_triggered": datetime.utcnow()}
+            }
+        )
+
+def create_default_workflow_templates():
+    """Create default workflow templates"""
+    templates = [
+        {
+            "id": str(uuid.uuid4()),
+            "name": "Welcome Email Series",
+            "description": "3-email welcome sequence for new subscribers",
+            "category": "welcome",
+            "thumbnail": "https://images.unsplash.com/photo-1557804506-669a67965ba0?w=400",
+            "trigger_type": "contact_created",
+            "usage_count": 0,
+            "created_at": datetime.utcnow(),
+            "nodes": [
+                {
+                    "id": "trigger-1",
+                    "type": "trigger",
+                    "position": {"x": 100, "y": 100},
+                    "data": {
+                        "label": "New Contact Created",
+                        "trigger_type": "contact_created",
+                        "trigger_config": {}
+                    }
+                },
+                {
+                    "id": "action-1",
+                    "type": "action",
+                    "position": {"x": 100, "y": 250},
+                    "data": {
+                        "label": "Send Welcome Email",
+                        "action_type": "send_email",
+                        "action_config": {"template_id": "welcome-email-1"}
+                    }
+                },
+                {
+                    "id": "action-2",
+                    "type": "action",
+                    "position": {"x": 100, "y": 400},
+                    "data": {
+                        "label": "Wait 2 Days",
+                        "action_type": "wait",
+                        "action_config": {"duration": "2 days"}
+                    }
+                },
+                {
+                    "id": "action-3",
+                    "type": "action",
+                    "position": {"x": 100, "y": 550},
+                    "data": {
+                        "label": "Send Email 2",
+                        "action_type": "send_email",
+                        "action_config": {"template_id": "welcome-email-2"}
+                    }
+                },
+                {
+                    "id": "action-4",
+                    "type": "action",
+                    "position": {"x": 100, "y": 700},
+                    "data": {
+                        "label": "Add Tag: Welcomed",
+                        "action_type": "add_tag",
+                        "action_config": {"tag_name": "welcomed"}
+                    }
+                },
+                {
+                    "id": "end-1",
+                    "type": "end",
+                    "position": {"x": 100, "y": 850},
+                    "data": {"label": "End"}
+                }
+            ],
+            "edges": [
+                {"id": "e1", "source": "trigger-1", "target": "action-1"},
+                {"id": "e2", "source": "action-1", "target": "action-2"},
+                {"id": "e3", "source": "action-2", "target": "action-3"},
+                {"id": "e4", "source": "action-3", "target": "action-4"},
+                {"id": "e5", "source": "action-4", "target": "end-1"}
+            ]
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "name": "Lead Nurturing Campaign",
+            "description": "5-email nurturing sequence for leads",
+            "category": "nurture",
+            "thumbnail": "https://images.unsplash.com/photo-1552664730-d307ca884978?w=400",
+            "trigger_type": "tag_added",
+            "usage_count": 0,
+            "created_at": datetime.utcnow(),
+            "nodes": [
+                {
+                    "id": "trigger-1",
+                    "type": "trigger",
+                    "position": {"x": 100, "y": 100},
+                    "data": {
+                        "label": "Tag Added: Lead",
+                        "trigger_type": "tag_added",
+                        "trigger_config": {"tag_name": "lead"}
+                    }
+                },
+                {
+                    "id": "action-1",
+                    "type": "action",
+                    "position": {"x": 100, "y": 250},
+                    "data": {
+                        "label": "Send Nurture Email 1",
+                        "action_type": "send_email",
+                        "action_config": {"template_id": "nurture-1"}
+                    }
+                },
+                {
+                    "id": "action-2",
+                    "type": "action",
+                    "position": {"x": 100, "y": 400},
+                    "data": {
+                        "label": "Wait 3 Days",
+                        "action_type": "wait",
+                        "action_config": {"duration": "3 days"}
+                    }
+                },
+                {
+                    "id": "action-3",
+                    "type": "action",
+                    "position": {"x": 100, "y": 550},
+                    "data": {
+                        "label": "Send Nurture Email 2",
+                        "action_type": "send_email",
+                        "action_config": {"template_id": "nurture-2"}
+                    }
+                },
+                {
+                    "id": "end-1",
+                    "type": "end",
+                    "position": {"x": 100, "y": 700},
+                    "data": {"label": "End"}
+                }
+            ],
+            "edges": [
+                {"id": "e1", "source": "trigger-1", "target": "action-1"},
+                {"id": "e2", "source": "action-1", "target": "action-2"},
+                {"id": "e3", "source": "action-2", "target": "action-3"},
+                {"id": "e4", "source": "action-3", "target": "end-1"}
+            ]
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "name": "Re-engagement Campaign",
+            "description": "Win back inactive contacts",
+            "category": "re_engagement",
+            "thumbnail": "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400",
+            "trigger_type": "tag_added",
+            "usage_count": 0,
+            "created_at": datetime.utcnow(),
+            "nodes": [
+                {
+                    "id": "trigger-1",
+                    "type": "trigger",
+                    "position": {"x": 100, "y": 100},
+                    "data": {
+                        "label": "Tag Added: Inactive",
+                        "trigger_type": "tag_added",
+                        "trigger_config": {"tag_name": "inactive"}
+                    }
+                },
+                {
+                    "id": "action-1",
+                    "type": "action",
+                    "position": {"x": 100, "y": 250},
+                    "data": {
+                        "label": "Send Re-engagement Email",
+                        "action_type": "send_email",
+                        "action_config": {"template_id": "reengagement-1"}
+                    }
+                },
+                {
+                    "id": "action-2",
+                    "type": "action",
+                    "position": {"x": 100, "y": 400},
+                    "data": {
+                        "label": "Wait 5 Days",
+                        "action_type": "wait",
+                        "action_config": {"duration": "5 days"}
+                    }
+                },
+                {
+                    "id": "condition-1",
+                    "type": "condition",
+                    "position": {"x": 100, "y": 550},
+                    "data": {
+                        "label": "Email Opened?",
+                        "condition_field": "last_email_opened",
+                        "condition_operator": "not_equals",
+                        "condition_value": "null"
+                    }
+                },
+                {
+                    "id": "action-3",
+                    "type": "action",
+                    "position": {"x": 300, "y": 700},
+                    "data": {
+                        "label": "Remove Inactive Tag",
+                        "action_type": "remove_tag",
+                        "action_config": {"tag_name": "inactive"}
+                    }
+                },
+                {
+                    "id": "action-4",
+                    "type": "action",
+                    "position": {"x": -100, "y": 700},
+                    "data": {
+                        "label": "Send Final Email",
+                        "action_type": "send_email",
+                        "action_config": {"template_id": "reengagement-2"}
+                    }
+                },
+                {
+                    "id": "end-1",
+                    "type": "end",
+                    "position": {"x": 100, "y": 850},
+                    "data": {"label": "End"}
+                }
+            ],
+            "edges": [
+                {"id": "e1", "source": "trigger-1", "target": "action-1"},
+                {"id": "e2", "source": "action-1", "target": "action-2"},
+                {"id": "e3", "source": "action-2", "target": "condition-1"},
+                {"id": "e4", "source": "condition-1", "target": "action-3", "label": "yes"},
+                {"id": "e5", "source": "condition-1", "target": "action-4", "label": "no"},
+                {"id": "e6", "source": "action-3", "target": "end-1"},
+                {"id": "e7", "source": "action-4", "target": "end-1"}
+            ]
+        }
+    ]
+    
+    workflow_templates_collection.insert_many(templates)
+    print("✅ Workflow templates created")
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
