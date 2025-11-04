@@ -839,8 +839,9 @@ POST   /api/workflows/from-template/{id}    - Create from template
 - **Email Providers:** Mock + SendGrid + SMTP + AWS SES
 - **AI:** Emergent LLM Key (GPT-4o for email generation)
 - **Payments:** Mock + Stripe (ready)
-- **Drag-Drop:** React Beautiful DnD
+- **Drag-Drop:** React Beautiful DnD + React Flow
 - **Forms:** Contact capture with CRM integration
+- **Workflow Automation:** React Flow visual builder
 
 ### Code Statistics:
 - **Lines of Code:** 12,700+ (Phases 1, 2, 3, 4 & 5)
