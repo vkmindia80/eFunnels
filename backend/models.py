@@ -162,3 +162,139 @@ class BulkTagRequest(BaseModel):
 class BulkSegmentRequest(BaseModel):
     contact_ids: List[str]
     segment_id: str
+
+
+# ==================== EMAIL MARKETING MODELS ====================
+
+class EmailTemplateBase(BaseModel):
+    name: str
+    subject: str
+    content: dict  # JSON structure for email builder blocks
+    thumbnail: Optional[str] = None
+    category: Optional[str] = "custom"  # custom, welcome, newsletter, promotional
+
+class EmailTemplateCreate(EmailTemplateBase):
+    pass
+
+class EmailTemplate(EmailTemplateBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    is_public: bool = False
+    usage_count: int = 0
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+class EmailTemplateUpdate(BaseModel):
+    name: Optional[str] = None
+    subject: Optional[str] = None
+    content: Optional[dict] = None
+    thumbnail: Optional[str] = None
+    category: Optional[str] = None
+
+class EmailCampaignBase(BaseModel):
+    name: str
+    subject: str
+    content: dict  # Email builder blocks
+    from_name: str
+    from_email: EmailStr
+    reply_to: Optional[EmailStr] = None
+    
+class EmailCampaignCreate(EmailCampaignBase):
+    recipient_list: List[str] = []  # List of contact IDs or segment IDs
+    recipient_type: str = "contacts"  # contacts, segments, all
+    schedule_type: str = "immediate"  # immediate, scheduled
+    scheduled_at: Optional[datetime] = None
+    enable_ab_test: bool = False
+    ab_test_config: Optional[dict] = None
+
+class EmailCampaign(EmailCampaignBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    status: str = "draft"  # draft, scheduled, sending, sent, paused, failed
+    recipient_list: List[str] = []
+    recipient_type: str = "contacts"
+    schedule_type: str = "immediate"
+    scheduled_at: Optional[datetime] = None
+    sent_at: Optional[datetime] = None
+    enable_ab_test: bool = False
+    ab_test_config: Optional[dict] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    
+    # Analytics
+    total_recipients: int = 0
+    total_sent: int = 0
+    total_delivered: int = 0
+    total_opened: int = 0
+    total_clicked: int = 0
+    total_bounced: int = 0
+    total_unsubscribed: int = 0
+    total_failed: int = 0
+
+class EmailCampaignUpdate(BaseModel):
+    name: Optional[str] = None
+    subject: Optional[str] = None
+    content: Optional[dict] = None
+    from_name: Optional[str] = None
+    from_email: Optional[EmailStr] = None
+    reply_to: Optional[EmailStr] = None
+    status: Optional[str] = None
+    recipient_list: Optional[List[str]] = None
+    recipient_type: Optional[str] = None
+    schedule_type: Optional[str] = None
+    scheduled_at: Optional[datetime] = None
+
+class EmailLog(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    campaign_id: str
+    contact_id: str
+    user_id: str
+    recipient_email: EmailStr
+    subject: str
+    status: str = "pending"  # pending, sent, delivered, opened, clicked, bounced, failed
+    provider: str = "mock"  # mock, sendgrid, smtp
+    provider_message_id: Optional[str] = None
+    error_message: Optional[str] = None
+    sent_at: Optional[datetime] = None
+    delivered_at: Optional[datetime] = None
+    opened_at: Optional[datetime] = None
+    clicked_at: Optional[datetime] = None
+    bounced_at: Optional[datetime] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+class EmailLogCreate(BaseModel):
+    campaign_id: str
+    contact_id: str
+    recipient_email: EmailStr
+    subject: str
+    provider: str = "mock"
+
+class EmailProviderSettings(BaseModel):
+    provider: str = "mock"  # mock, sendgrid, smtp
+    sendgrid_api_key: Optional[str] = None
+    smtp_host: Optional[str] = None
+    smtp_port: Optional[int] = 587
+    smtp_username: Optional[str] = None
+    smtp_password: Optional[str] = None
+    smtp_use_tls: bool = True
+
+class AIEmailRequest(BaseModel):
+    prompt: str
+    tone: str = "professional"  # professional, friendly, casual, formal, persuasive
+    purpose: str = "general"  # general, welcome, promotional, newsletter, announcement
+    length: str = "medium"  # short, medium, long
+    include_cta: bool = True
+
+class AIEmailResponse(BaseModel):
+    subject: str
+    content: str
+    preview_text: Optional[str] = None
+
+class TestEmailRequest(BaseModel):
+    campaign_id: str
+    test_emails: List[EmailStr]
+
+class SendCampaignRequest(BaseModel):
+    send_now: bool = True
+    schedule_at: Optional[datetime] = None
