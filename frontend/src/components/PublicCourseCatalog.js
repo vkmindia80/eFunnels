@@ -43,9 +43,14 @@ const PublicCourseCatalog = ({ onBack, user }) => {
 
   const enrollInCourse = async (courseId) => {
     try {
+      // Get student info from current user
+      const studentName = user?.full_name || 'Student';
+      const studentEmail = user?.email || 'student@example.com';
+      
       await api.post(`/courses/${courseId}/enroll`, {
-        payment_method: 'mock',
-        payment_amount: selectedCourse?.price || 0
+        student_name: studentName,
+        student_email: studentEmail,
+        payment_method: 'mock'
       });
       alert('Successfully enrolled in course!');
       setShowEnrollModal(false);
