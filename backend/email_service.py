@@ -365,7 +365,7 @@ Return ONLY valid JSON in this exact format (no markdown, no code blocks):
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                     <h1 style="color: #3B82F6;">Welcome Aboard!</h1>
                     <p>Hi there,</p>
-                    <p>We're thrilled to have you join our platform. You're now part of a community that values innovation and excellence.</p>
+                    <p>We are thrilled to have you join our platform. You are now part of a community that values innovation and excellence.</p>
                     <p>Here's what you can do next:</p>
                     <ul>
                         <li>Complete your profile</li>
