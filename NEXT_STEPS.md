@@ -97,39 +97,45 @@
 
 **What you'll add:**
 
-**A. A/B Testing for Email Campaigns** (1-2 days)
-- Configure A/B tests in campaign wizard
-- Test subject lines and content
+**A. A/B Testing for Funnels** (1-2 days)
+- Create A/B test variants for pages
+- Split traffic between variants
+- Track performance per variant
 - Automatic winner selection
-- A/B analytics dashboard
+- A/B test analytics
 
-**B. Email Personalization** (0.5-1 day)
-- Dynamic tokens ({{first_name}}, {{company}}, {{custom_field}})
-- Token picker in email builder
-- Backend merge tag processing
+**B. More Block Types** (1-2 days)
+- Countdown timer block
+- Social proof notifications
+- Progress bars
+- Testimonial carousel
+- Icon grid
+- Statistics/numbers showcase
 
-**C. Advanced Campaign Management** (1 day)
-- Campaign duplication
-- Edit campaigns in draft status
-- Scheduled campaign management (pause, resume, cancel)
-- Campaign templates
+**C. Advanced Analytics** (1 day)
+- Heatmaps (where visitors click)
+- Scroll tracking (how far users scroll)
+- Time on page tracking
+- Visitor session recordings
+- Drop-off analysis
 
-**D. Import/Export** (0.5-1 day)
-- Import HTML templates
-- Export campaigns as HTML
-- Import from other platforms
+**D. SEO & Domain Settings UI** (1 day)
+- SEO settings interface
+- Meta tags editor
+- Open Graph tags
+- Custom domain setup UI
+- SSL certificate management
 
-**E. More Block Types** (1-2 days)
-- Video block
-- Countdown timer
-- Social media icons
-- HTML/Code block
-- Accordion/Tabs
-- Testimonial block
+**E. Funnel Management** (1 day)
+- Funnel duplication
+- Export/import funnels
+- Funnel versioning
+- Share funnels with team
+- Funnel templates marketplace
 
 **Estimated Time:** 3-5 days  
 **Complexity:** Medium  
-**User Impact:** High (improved email marketing features)
+**User Impact:** High (improved funnel conversion rates)
 
 ---
 
