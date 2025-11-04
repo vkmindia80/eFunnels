@@ -357,33 +357,30 @@ Return ONLY valid JSON in this exact format (no markdown, no code blocks):
     
     def _generate_fallback_content(self, prompt: str, tone: str, purpose: str, include_cta: bool) -> dict:
         """Generate fallback email content when AI is unavailable"""
+        cta_button = '<div style="text-align: center; margin: 30px 0;"><a href="#" style="background-color: #3B82F6; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">Get Started</a></div>' if include_cta else ''
+        
         templates = {
             'welcome': {
                 'subject': 'Welcome to Our Platform!',
                 'preview_text': 'We are excited to have you on board',
-                'content': f'''
-                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                'content': f'''<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                     <h1 style="color: #3B82F6;">Welcome Aboard!</h1>
                     <p>Hi there,</p>
                     <p>We are thrilled to have you join our platform. You are now part of a community that values innovation and excellence.</p>
-                    <p>Here's what you can do next:</p>
+                    <p>Here is what you can do next:</p>
                     <ul>
                         <li>Complete your profile</li>
                         <li>Explore our features</li>
                         <li>Connect with your team</li>
                     </ul>
-                    {'''<div style="text-align: center; margin: 30px 0;">
-                        <a href="#" style="background-color: #3B82F6; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">Get Started</a>
-                    </div>''' if include_cta else ''}
+                    {cta_button}
                     <p>Best regards,<br>The Team</p>
-                </div>
-                '''
+                </div>'''
             },
             'promotional': {
                 'subject': 'Exclusive Offer Just For You',
                 'preview_text': 'Do not miss out on this special promotion',
-                'content': f'''
-                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                'content': f'''<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                     <h1 style="color: #3B82F6;">Special Promotion!</h1>
                     <p>Hello,</p>
                     <p>We have an exclusive offer that we think you will love. For a limited time, take advantage of this special promotion.</p>
@@ -395,18 +392,14 @@ Return ONLY valid JSON in this exact format (no markdown, no code blocks):
                             <li>Exclusive resources</li>
                         </ul>
                     </div>
-                    {'''<div style="text-align: center; margin: 30px 0;">
-                        <a href="#" style="background-color: #3B82F6; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">Claim Your Offer</a>
-                    </div>''' if include_cta else ''}
+                    {cta_button.replace("Get Started", "Claim Your Offer")}
                     <p>Cheers,<br>The Team</p>
-                </div>
-                '''
+                </div>'''
             },
             'newsletter': {
                 'subject': 'Your Monthly Newsletter',
                 'preview_text': 'Updates, tips, and news from our team',
-                'content': f'''
-                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                'content': f'''<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                     <h1 style="color: #3B82F6;">Monthly Newsletter</h1>
                     <p>Hi there,</p>
                     <p>Here is what is new this month:</p>
@@ -414,18 +407,15 @@ Return ONLY valid JSON in this exact format (no markdown, no code blocks):
                         <h3 style="color: #3B82F6;">Latest Updates</h3>
                         <p>We have been busy improving our platform with new features and enhancements.</p>
                         
-                        <h3 style="color: #3B82F6;">Tips & Tricks</h3>
+                        <h3 style="color: #3B82F6;">Tips and Tricks</h3>
                         <p>Learn how to get the most out of our platform with these helpful tips.</p>
                         
                         <h3 style="color: #3B82F6;">Community Highlights</h3>
                         <p>See what our amazing community has been up to this month.</p>
                     </div>
-                    {'''<div style="text-align: center; margin: 30px 0;">
-                        <a href="#" style="background-color: #3B82F6; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">Read More</a>
-                    </div>''' if include_cta else ''}
+                    {cta_button.replace("Get Started", "Read More")}
                     <p>Until next time,<br>The Team</p>
-                </div>
-                '''
+                </div>'''
             }
         }
         
@@ -433,17 +423,13 @@ Return ONLY valid JSON in this exact format (no markdown, no code blocks):
         return templates.get(purpose, {
             'subject': 'Important Update',
             'preview_text': 'We have something important to share with you',
-            'content': f'''
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            'content': f'''<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                 <h1 style="color: #3B82F6;">Hello!</h1>
                 <p>We wanted to reach out to you with an important update.</p>
                 <p>{prompt}</p>
-                {'''<div style="text-align: center; margin: 30px 0;">
-                    <a href="#" style="background-color: #3B82F6; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">Learn More</a>
-                </div>''' if include_cta else ''}
+                {cta_button.replace("Get Started", "Learn More")}
                 <p>Best regards,<br>The Team</p>
-            </div>
-            '''
+            </div>'''
         })
     
     def improve_subject_line(self, subject: str, context: str = "") -> List[str]:
