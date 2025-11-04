@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException, Depends, status, UploadFile, File, Q
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 from datetime import timedelta, datetime
+from typing import Optional
 import io
 import csv
 import os
