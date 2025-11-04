@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   Mail, Plus, Send, Eye, Trash2, Copy, Settings, 
   Edit, ArrowLeft, Users, Calendar, BarChart2,
-  Check, X, Search, Layout, TrendingUp, MousePointer,
-  ChevronRight, ArrowRight, Clock, Sparkles
+  Check, Search, Layout, TrendingUp, MousePointer,
+  ChevronRight, Clock, Sparkles
 } from 'lucide-react';
 import api from '../api';
 import EmailBuilder from './EmailBuilder/EmailBuilder';
