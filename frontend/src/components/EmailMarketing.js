@@ -11,7 +11,6 @@ import EmailBuilder from './EmailBuilder/EmailBuilder';
 // Email Marketing Main Page
 const EmailMarketingPage = () => {
   const [activeView, setActiveView] = useState('campaigns');
-  const [selectedCampaign, setSelectedCampaign] = useState(null);
   
   return (
     <div className="space-y-6">
