@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Menu, X, Home, Users, Mail, Layout, BookOpen, DollarSign, 
-  TrendingUp, Video, Globe, Zap, FileText, Settings, 
-  LogOut, User, Bell, Search, Plus, BarChart2, Send,
+  Video, Zap, FileText, Settings, 
+  LogOut, User, Bell, Search, Plus, BarChart2,
   UserPlus, ShoppingCart, Target, Award, MessageSquare
 } from 'lucide-react';
 import './App.css';
