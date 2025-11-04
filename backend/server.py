@@ -18,7 +18,10 @@ from models import (
     EmailCampaignCreate, EmailCampaignUpdate, EmailCampaign,
     EmailProviderSettings, AIEmailRequest, TestEmailRequest, SendCampaignRequest,
     FunnelCreate, FunnelUpdate, Funnel, FunnelPageCreate, FunnelPageUpdate, FunnelPage,
-    FunnelTemplate, TrackVisitRequest, FormSubmissionRequest, FunnelAnalyticsRequest
+    FunnelTemplate, TrackVisitRequest, FormSubmissionRequest, FunnelAnalyticsRequest,
+    FormCreate, FormUpdate, Form, FormSubmission, FormSubmissionCreate,
+    PublicFormSubmissionRequest, FormTemplate,
+    SurveyCreate, SurveyUpdate, Survey, SurveyResponse, PublicSurveyResponseRequest
 )
 from auth import (
     get_password_hash, 
