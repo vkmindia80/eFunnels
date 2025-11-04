@@ -1090,17 +1090,38 @@ const AnalyticsView = () => {
       setAnalytics(response.data);
     } catch (error) {
       console.error('Error loading analytics:', error);
+      // Set default analytics on error
+      setAnalytics({
+        total_campaigns: 0,
+        total_sent: 0,
+        total_delivered: 0,
+        total_opened: 0,
+        total_clicked: 0,
+        total_bounced: 0,
+        avg_open_rate: 0,
+        avg_click_rate: 0,
+      });
     } finally {
       setLoading(false);
     }
   };
 
   if (loading || !analytics) {
-    return <div className="text-center py-12">Loading analytics...</div>;
+    return <div className="text-center py-12" data-testid="analytics-loading">Loading analytics...</div>;
   }
 
+  // Safe access with defaults
+  const totalCampaigns = analytics.total_campaigns || 0;
+  const totalSent = analytics.total_sent || 0;
+  const totalDelivered = analytics.total_delivered || 0;
+  const totalOpened = analytics.total_opened || 0;
+  const totalClicked = analytics.total_clicked || 0;
+  const totalBounced = analytics.total_bounced || 0;
+  const avgOpenRate = analytics.avg_open_rate || 0;
+  const avgClickRate = analytics.avg_click_rate || 0;
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-testid="analytics-view">
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -1108,7 +1129,7 @@ const AnalyticsView = () => {
             <div className="text-sm text-gray-600">Total Campaigns</div>
             <Mail size={20} className="text-blue-600" />
           </div>
-          <div className="text-3xl font-bold text-gray-900">{analytics.total_campaigns}</div>
+          <div className="text-3xl font-bold text-gray-900">{totalCampaigns}</div>
         </div>
 
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -1116,7 +1137,7 @@ const AnalyticsView = () => {
             <div className="text-sm text-gray-600">Emails Sent</div>
             <Send size={20} className="text-green-600" />
           </div>
-          <div className="text-3xl font-bold text-gray-900">{analytics.total_sent.toLocaleString()}</div>
+          <div className="text-3xl font-bold text-gray-900">{totalSent.toLocaleString()}</div>
         </div>
 
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -1124,7 +1145,7 @@ const AnalyticsView = () => {
             <div className="text-sm text-gray-600">Open Rate</div>
             <TrendingUp size={20} className="text-purple-600" />
           </div>
-          <div className="text-3xl font-bold text-gray-900">{analytics.avg_open_rate.toFixed(1)}%</div>
+          <div className="text-3xl font-bold text-gray-900">{avgOpenRate.toFixed(1)}%</div>
         </div>
 
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -1132,7 +1153,7 @@ const AnalyticsView = () => {
             <div className="text-sm text-gray-600">Click Rate</div>
             <MousePointer size={20} className="text-orange-600" />
           </div>
-          <div className="text-3xl font-bold text-gray-900">{analytics.avg_click_rate.toFixed(1)}%</div>
+          <div className="text-3xl font-bold text-gray-900">{avgClickRate.toFixed(1)}%</div>
         </div>
       </div>
 
@@ -1141,12 +1162,12 @@ const AnalyticsView = () => {
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Delivery Metrics</h3>
         <div className="space-y-4">
           {[
-            { label: 'Delivered', value: analytics.total_delivered, total: analytics.total_sent, color: 'bg-green-500' },
-            { label: 'Opened', value: analytics.total_opened, total: analytics.total_sent, color: 'bg-blue-500' },
-            { label: 'Clicked', value: analytics.total_clicked, total: analytics.total_sent, color: 'bg-purple-500' },
-            { label: 'Bounced', value: analytics.total_bounced, total: analytics.total_sent, color: 'bg-red-500' },
+            { label: 'Delivered', value: totalDelivered, total: totalSent, color: 'bg-green-500' },
+            { label: 'Opened', value: totalOpened, total: totalSent, color: 'bg-blue-500' },
+            { label: 'Clicked', value: totalClicked, total: totalSent, color: 'bg-purple-500' },
+            { label: 'Bounced', value: totalBounced, total: totalSent, color: 'bg-red-500' },
           ].map((metric) => {
-            const percentage = analytics.total_sent > 0 ? (metric.value / analytics.total_sent) * 100 : 0;
+            const percentage = totalSent > 0 ? (metric.value / totalSent) * 100 : 0;
             return (
               <div key={metric.label}>
                 <div className="flex items-center justify-between mb-2">
