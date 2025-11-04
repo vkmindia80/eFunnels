@@ -46,7 +46,10 @@ from database import (
     funnel_visits_collection, funnel_conversions_collection,
     forms_collection, form_submissions_collection, form_templates_collection, form_views_collection,
     surveys_collection, survey_responses_collection,
-    workflows_collection, workflow_executions_collection, workflow_templates_collection
+    workflows_collection, workflow_executions_collection, workflow_templates_collection,
+    courses_collection, course_modules_collection, course_lessons_collection,
+    course_enrollments_collection, course_progress_collection, certificates_collection,
+    membership_tiers_collection, membership_subscriptions_collection
 )
 import uuid
 from typing import List
