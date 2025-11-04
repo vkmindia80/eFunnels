@@ -1159,6 +1159,10 @@ async def get_email_settings(current_user: dict = Depends(get_current_user)):
             os.getenv('SMTP_HOST'),
             os.getenv('SMTP_USERNAME'),
             os.getenv('SMTP_PASSWORD')
+        ]),
+        "aws_ses_configured": all([
+            os.getenv('AWS_ACCESS_KEY_ID'),
+            os.getenv('AWS_SECRET_ACCESS_KEY')
         ])
     }
 
