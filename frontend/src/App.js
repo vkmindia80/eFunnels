@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import './App.css';
 import api from './api';
+import EmailMarketingPage from './components/EmailMarketing';
 
 // Demo credentials banner component
 const DemoCredentialsBanner = ({ onFillCredentials }) => {
