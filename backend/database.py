@@ -61,3 +61,15 @@ funnel_visits_collection.create_index('session_id')
 funnel_conversions_collection = db['funnel_conversions']
 funnel_conversions_collection.create_index('funnel_id')
 funnel_conversions_collection.create_index('contact_id')
+
+# Forms & Surveys indexes
+forms_collection.create_index('user_id')
+forms_collection.create_index('status')
+form_submissions_collection.create_index('form_id')
+form_submissions_collection.create_index('user_id')
+form_submissions_collection.create_index('contact_id')
+form_views_collection.create_index('form_id')
+surveys_collection.create_index('user_id')
+surveys_collection.create_index('status')
+survey_responses_collection.create_index('survey_id')
+survey_responses_collection.create_index('user_id')
