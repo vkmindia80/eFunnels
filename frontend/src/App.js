@@ -1336,6 +1336,9 @@ const Dashboard = ({ user, onLogout }) => {
       case 'emails':
         return <EmailMarketingPage />;
       
+      case 'funnels':
+        return <Funnels />;
+      
       default:
         return (
           <div className="bg-white rounded-xl shadow-md p-12 text-center">
