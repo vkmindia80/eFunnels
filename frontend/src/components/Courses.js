@@ -154,9 +154,19 @@ const Courses = ({ user }) => {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Courses & Memberships</h1>
-        <p className="text-gray-600">Create and manage your educational content</p>
+      <div className="mb-8 flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Courses & Memberships</h1>
+          <p className="text-gray-600">Create and manage your educational content</p>
+        </div>
+        <button
+          onClick={() => setShowPublicCatalog(true)}
+          className="flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700"
+          data-testid="browse-courses-button"
+        >
+          <GlobeAltIcon className="w-5 h-5 mr-2" />
+          Browse Public Courses
+        </button>
       </div>
 
       {/* Analytics Cards */}
