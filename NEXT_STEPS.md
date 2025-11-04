@@ -253,32 +253,33 @@
 
 ## 🚀 HOW TO PROCEED
 
-### If you choose Option 1 (Phase 4):
-**Tell me:** "Let's start Phase 4 - Sales Funnel Builder"
+### If you choose Option 1 (Phase 5):
+**Tell me:** "Let's start Phase 5 - Forms & Surveys"
 
 I will:
-1. Review Phase 4 requirements
-2. Design the funnel builder architecture
+1. Review Phase 5 requirements
+2. Design the form builder architecture
 3. Create implementation plan
-4. Build the drag-drop page builder
-5. Add funnel templates
-6. Build analytics
+4. Build the drag-drop form builder
+5. Add survey functionality
+6. Build submission management
 
-### If you choose Option 2 (Polish Phase 3):
-**Tell me:** "Let's enhance Phase 3 with A/B testing and personalization"
+### If you choose Option 2 (Polish Phase 4):
+**Tell me:** "Let's enhance Phase 4 with A/B testing and advanced features"
 
 I will:
 1. Prioritize features with you
-2. Implement A/B testing
-3. Add personalization tokens
-4. Build advanced campaign features
+2. Implement A/B testing for funnels
+3. Add more block types
+4. Build advanced analytics (heatmaps)
+5. Create SEO settings UI
 
 ### If you choose Option 3 (Testing):
 **Tell me:** "Let's test and polish everything we've built"
 
 I will:
 1. Create comprehensive test plan
-2. Test all user flows
+2. Test all 4 phases
 3. Fix bugs
 4. Optimize performance
 5. Improve UI/UX
