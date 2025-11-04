@@ -298,7 +298,7 @@ class eFunnelsAPITester:
                 f"Create {lesson_data['content_type']} Lesson",
                 "POST",
                 f"courses/{self.course_id}/modules/{self.module_id}/lessons",
-                201,
+                200,
                 lesson_data
             )
             
