@@ -24,7 +24,8 @@ from auth import (
 )
 from database import (
     users_collection, contacts_collection, contact_activities_collection,
-    tags_collection, segments_collection
+    tags_collection, segments_collection,
+    email_templates_collection, email_campaigns_collection, email_logs_collection
 )
 import uuid
 from typing import List
