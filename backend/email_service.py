@@ -274,12 +274,100 @@ Return ONLY valid JSON in this exact format (no markdown, no code blocks):
             
         except Exception as e:
             logger.error(f"AI generation error: {str(e)}")
-            # Return a fallback response
-            return {
-                'subject': 'Your Email Subject',
-                'content': f'<p>Error generating content: {str(e)}</p>',
-                'preview_text': 'Generated email content'
+            # Return a proper fallback response based on purpose
+            fallback_content = self._generate_fallback_content(prompt, tone, purpose, include_cta)
+            return fallback_content
+    
+    def _generate_fallback_content(self, prompt: str, tone: str, purpose: str, include_cta: bool) -> dict:
+        """Generate fallback email content when AI is unavailable"""
+        templates = {
+            'welcome': {
+                'subject': 'Welcome to Our Platform!',
+                'preview_text': 'We're excited to have you on board',
+                'content': f'''
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h1 style="color: #3B82F6;">Welcome Aboard!</h1>
+                    <p>Hi there,</p>
+                    <p>We're thrilled to have you join our platform. You're now part of a community that values innovation and excellence.</p>
+                    <p>Here's what you can do next:</p>
+                    <ul>
+                        <li>Complete your profile</li>
+                        <li>Explore our features</li>
+                        <li>Connect with your team</li>
+                    </ul>
+                    {'''<div style="text-align: center; margin: 30px 0;">
+                        <a href="#" style="background-color: #3B82F6; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">Get Started</a>
+                    </div>''' if include_cta else ''}
+                    <p>Best regards,<br>The Team</p>
+                </div>
+                '''
+            },
+            'promotional': {
+                'subject': 'Exclusive Offer Just For You',
+                'preview_text': 'Don't miss out on this special promotion',
+                'content': f'''
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h1 style="color: #3B82F6;">Special Promotion!</h1>
+                    <p>Hello,</p>
+                    <p>We have an exclusive offer that we think you'll love. For a limited time, take advantage of this special promotion.</p>
+                    <div style="background-color: #F3F4F6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                        <h2 style="margin-top: 0;">What's Included:</h2>
+                        <ul>
+                            <li>Premium features access</li>
+                            <li>Priority support</li>
+                            <li>Exclusive resources</li>
+                        </ul>
+                    </div>
+                    {'''<div style="text-align: center; margin: 30px 0;">
+                        <a href="#" style="background-color: #3B82F6; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">Claim Your Offer</a>
+                    </div>''' if include_cta else ''}
+                    <p>Cheers,<br>The Team</p>
+                </div>
+                '''
+            },
+            'newsletter': {
+                'subject': 'Your Monthly Newsletter',
+                'preview_text': 'Updates, tips, and news from our team',
+                'content': f'''
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h1 style="color: #3B82F6;">Monthly Newsletter</h1>
+                    <p>Hi there,</p>
+                    <p>Here's what's new this month:</p>
+                    <div style="margin: 30px 0;">
+                        <h3 style="color: #3B82F6;">Latest Updates</h3>
+                        <p>We've been busy improving our platform with new features and enhancements.</p>
+                        
+                        <h3 style="color: #3B82F6;">Tips & Tricks</h3>
+                        <p>Learn how to get the most out of our platform with these helpful tips.</p>
+                        
+                        <h3 style="color: #3B82F6;">Community Highlights</h3>
+                        <p>See what our amazing community has been up to this month.</p>
+                    </div>
+                    {'''<div style="text-align: center; margin: 30px 0;">
+                        <a href="#" style="background-color: #3B82F6; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">Read More</a>
+                    </div>''' if include_cta else ''}
+                    <p>Until next time,<br>The Team</p>
+                </div>
+                '''
             }
+        }
+        
+        # Return template based on purpose, or general template
+        return templates.get(purpose, {
+            'subject': 'Important Update',
+            'preview_text': 'We have something important to share with you',
+            'content': f'''
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h1 style="color: #3B82F6;">Hello!</h1>
+                <p>We wanted to reach out to you with an important update.</p>
+                <p>{prompt}</p>
+                {'''<div style="text-align: center; margin: 30px 0;">
+                    <a href="#" style="background-color: #3B82F6; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">Learn More</a>
+                </div>''' if include_cta else ''}
+                <p>Best regards,<br>The Team</p>
+            </div>
+            '''
+        })
     
     def improve_subject_line(self, subject: str, context: str = "") -> List[str]:
         """Generate alternative subject lines"""
