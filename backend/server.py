@@ -15,7 +15,9 @@ from models import (
     BulkDeleteRequest, BulkTagRequest, BulkSegmentRequest,
     EmailTemplateCreate, EmailTemplateUpdate, EmailTemplate,
     EmailCampaignCreate, EmailCampaignUpdate, EmailCampaign,
-    EmailProviderSettings, AIEmailRequest, TestEmailRequest, SendCampaignRequest
+    EmailProviderSettings, AIEmailRequest, TestEmailRequest, SendCampaignRequest,
+    FunnelCreate, FunnelUpdate, Funnel, FunnelPageCreate, FunnelPageUpdate, FunnelPage,
+    FunnelTemplate, TrackVisitRequest, FormSubmissionRequest, FunnelAnalyticsRequest
 )
 from auth import (
     get_password_hash, 
