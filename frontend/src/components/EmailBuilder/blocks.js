@@ -1,5 +1,5 @@
 import React from 'react';
-import { Type, Image as ImageIcon, Square, Minus, Columns, List, Link, GripVertical } from 'lucide-react';
+import { Type, Image as ImageIcon, Square, Minus, Columns, List } from 'lucide-react';
 
 // Block definitions with metadata
 export const BLOCK_TYPES = {
