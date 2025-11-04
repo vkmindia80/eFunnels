@@ -21,7 +21,9 @@ from models import (
     FunnelTemplate, TrackVisitRequest, FormSubmissionRequest, FunnelAnalyticsRequest,
     FormCreate, FormUpdate, Form, FormSubmission, FormSubmissionCreate,
     PublicFormSubmissionRequest, FormTemplate,
-    SurveyCreate, SurveyUpdate, Survey, SurveyResponse, PublicSurveyResponseRequest
+    SurveyCreate, SurveyUpdate, Survey, SurveyResponse, PublicSurveyResponseRequest,
+    WorkflowCreate, WorkflowUpdate, Workflow, WorkflowExecution, WorkflowTemplate, 
+    WorkflowNode, WorkflowEdge, WorkflowAnalytics
 )
 from auth import (
     get_password_hash, 
