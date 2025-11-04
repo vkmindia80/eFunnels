@@ -11,6 +11,9 @@ db = client['efunnels']
 # Collections
 users_collection = db['users']
 contacts_collection = db['contacts']
+contact_activities_collection = db['contact_activities']
+tags_collection = db['tags']
+segments_collection = db['segments']
 funnels_collection = db['funnels']
 emails_collection = db['emails']
 courses_collection = db['courses']
@@ -26,5 +29,11 @@ settings_collection = db['settings']
 # Create indexes
 users_collection.create_index('email', unique=True)
 contacts_collection.create_index('email')
+contacts_collection.create_index('user_id')
+contacts_collection.create_index([('user_id', 1), ('email', 1)])
+contact_activities_collection.create_index('contact_id')
+contact_activities_collection.create_index('user_id')
+tags_collection.create_index([('user_id', 1), ('name', 1)], unique=True)
+segments_collection.create_index('user_id')
 funnels_collection.create_index('user_id')
 emails_collection.create_index('user_id')
