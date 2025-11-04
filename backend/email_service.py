@@ -203,7 +203,11 @@ class AIEmailGenerator:
         if not self.api_key:
             raise ValueError("EMERGENT_LLM_KEY not found in environment")
         
-        self.client = OpenAI(api_key=self.api_key)
+        # Configure OpenAI client with Emergent LLM key
+        self.client = OpenAI(
+            api_key=self.api_key,
+            base_url="https://llm.emergent.tech/v1"
+        )
     
     def generate_email_content(
         self,
