@@ -7,7 +7,7 @@ import {
   Edit, Trash2, Tag, Download, Upload, Filter, 
   ChevronLeft, ChevronRight, Check, FileSpreadsheet,
   Phone, Globe, MapPin, Building, Briefcase, Calendar,
-  Activity, MessageCircle, Clock, TrendingUp
+  Activity, MessageCircle, Clock, TrendingUp, Eye
 } from 'lucide-react';
 import './App.css';
 import api from './api';
