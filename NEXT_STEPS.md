@@ -93,7 +93,7 @@
 
 ---
 
-### **Option 2: Polish & Enhance Phase 3** ✨
+### **Option 2: Polish & Enhance Phase 4** ✨
 
 **What you'll add:**
 
