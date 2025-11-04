@@ -398,15 +398,26 @@ const Courses = ({ user }) => {
                             </div>
                           </div>
 
-                          {enrollment.completed_date && (
-                            <div className="bg-green-50 border border-green-200 rounded p-2 mb-4">
-                              <p className="text-sm text-green-800 font-medium">✅ Completed</p>
+                          {enrollment.completed_date ? (
+                            <div className="space-y-2">
+                              <div className="bg-green-50 border border-green-200 rounded p-2">
+                                <p className="text-sm text-green-800 font-medium">✅ Completed</p>
+                              </div>
+                              <button
+                                onClick={() => viewCertificate(enrollment.course_id)}
+                                className="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm"
+                                data-testid={`view-certificate-${enrollment.course_id}`}
+                              >
+                                <AcademicCapIcon className="w-5 h-5 inline mr-2" />
+                                View Certificate
+                              </button>
                             </div>
-                          )}
+                          ) : null}
 
                           <button
-                            onClick={() => window.location.href = `/course-player/${enrollment.course_id}`}
+                            onClick={() => openCoursePlayer(enrollment.course_id)}
                             className="w-full bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+                            data-testid={`play-course-${enrollment.course_id}`}
                           >
                             <PlayIcon className="w-5 h-5 inline mr-2" />
                             {enrollment.progress_percentage > 0 ? 'Continue Learning' : 'Start Course'}
