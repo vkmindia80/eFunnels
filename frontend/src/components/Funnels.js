@@ -17,6 +17,7 @@ const Funnels = () => {
   const [loading, setLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [selectedFunnel, setSelectedFunnel] = useState(null);
   const [selectedPage, setSelectedPage] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
