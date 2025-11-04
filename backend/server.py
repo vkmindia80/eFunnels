@@ -16,7 +16,10 @@ from auth import (
     verify_google_token,
     ACCESS_TOKEN_EXPIRE_MINUTES
 )
-from database import users_collection
+from database import (
+    users_collection, contacts_collection, contact_activities_collection,
+    tags_collection, segments_collection
+)
 import uuid
 from typing import List
 
