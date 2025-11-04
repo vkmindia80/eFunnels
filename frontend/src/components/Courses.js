@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api';
-import { PlusIcon, BookOpenIcon, AcademicCapIcon, UserGroupIcon, PlayIcon, CheckCircleIcon, ClockIcon, TrashIcon, PencilIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, BookOpenIcon, AcademicCapIcon, UserGroupIcon, PlayIcon, CheckCircleIcon, ClockIcon, TrashIcon, PencilIcon, GlobeAltIcon } from '@heroicons/react/24/outline';
+import EnhancedCourseBuilder from './EnhancedCourseBuilder';
+import CoursePlayer from './CoursePlayer';
+import PublicCourseCatalog from './PublicCourseCatalog';
+import CertificateDisplay from './CertificateDisplay';
 
 const Courses = ({ user }) => {
   const [activeTab, setActiveTab] = useState('my-courses'); // my-courses, students, memberships
