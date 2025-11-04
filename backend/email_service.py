@@ -170,6 +170,75 @@ class EmailService:
                 'error': str(e)
             }
     
+    def _send_via_aws_ses(
+        self,
+        to_email: str,
+        subject: str,
+        html_content: str,
+        from_name: str,
+        from_email: str,
+        reply_to: Optional[str]
+    ) -> dict:
+        """Send email via AWS SES"""
+        try:
+            if not all([self.aws_access_key, self.aws_secret_key]):
+                raise EmailDeliveryError("AWS SES credentials not configured")
+            
+            # Create SES client
+            ses_client = boto3.client(
+                'ses',
+                aws_access_key_id=self.aws_access_key,
+                aws_secret_access_key=self.aws_secret_key,
+                region_name=self.aws_region
+            )
+            
+            # Build email
+            destination = {'ToAddresses': [to_email]}
+            message = {
+                'Subject': {'Data': subject, 'Charset': 'UTF-8'},
+                'Body': {
+                    'Html': {'Data': html_content, 'Charset': 'UTF-8'}
+                }
+            }
+            
+            source = f"{from_name} <{from_email}>"
+            
+            # Send email
+            kwargs = {
+                'Source': source,
+                'Destination': destination,
+                'Message': message
+            }
+            
+            if reply_to:
+                kwargs['ReplyToAddresses'] = [reply_to]
+            
+            response = ses_client.send_email(**kwargs)
+            
+            return {
+                'success': True,
+                'provider': 'aws_ses',
+                'message_id': response['MessageId'],
+                'error': None
+            }
+            
+        except ClientError as e:
+            logger.error(f"AWS SES error: {str(e)}")
+            return {
+                'success': False,
+                'provider': 'aws_ses',
+                'message_id': None,
+                'error': str(e)
+            }
+        except Exception as e:
+            logger.error(f"AWS SES error: {str(e)}")
+            return {
+                'success': False,
+                'provider': 'aws_ses',
+                'message_id': None,
+                'error': str(e)
+            }
+    
     def send_bulk_emails(
         self,
         recipients: List[dict],  # [{'email': str, 'data': dict}]
