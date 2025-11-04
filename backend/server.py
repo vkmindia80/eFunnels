@@ -4,6 +4,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from datetime import timedelta, datetime
 import io
 import csv
+import os
 import pandas as pd
 from email_service import EmailService, AIEmailGenerator, convert_blocks_to_html
 import asyncio
