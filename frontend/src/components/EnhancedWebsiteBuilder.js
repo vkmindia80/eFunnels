@@ -1881,9 +1881,9 @@ const BlockRenderer = ({ block }) => {
           <div className={`grid gap-6 ${style?.columns === 2 ? 'grid-cols-2' : style?.columns === 4 ? 'grid-cols-4' : 'grid-cols-3'}`}>
             {(content.features || [{ title: 'Feature 1' }, { title: 'Feature 2' }, { title: 'Feature 3' }]).map((feature, i) => (
               <div key={i} className="p-6 bg-white border border-gray-200 rounded-lg">
-                {feature.icon && <div className="text-4xl mb-4">{feature.icon}</div>}
-                <h3 className="font-bold text-lg mb-2">{feature.title}</h3>
-                <p className="text-gray-600">{feature.description}</p>
+                {feature?.icon && <div className="text-4xl mb-4">{feature.icon}</div>}
+                <h3 className="font-bold text-lg mb-2">{feature?.title || 'Feature'}</h3>
+                <p className="text-gray-600">{feature?.description || ''}</p>
               </div>
             ))}
           </div>
