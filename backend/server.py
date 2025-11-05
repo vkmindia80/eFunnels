@@ -11404,7 +11404,7 @@ async def get_assets(
         if asset_type:
             query["type"] = asset_type
         
-        assets = await assets_collection.find(query).to_list(length=100)
+        assets = await website_assets_collection.find(query).to_list(length=100)
         
         return {
             "success": True,
