@@ -5100,6 +5100,58 @@ async def get_course_analytics_summary(current_user: dict = Depends(get_current_
         "total_revenue": round(total_revenue_amount, 2)
     }
 
+@app.get("/api/courses/{course_id}/analytics")
+async def get_course_analytics(
+    course_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get analytics for a specific course"""
+    course = courses_collection.find_one({
+        "id": course_id,
+        "user_id": current_user['id']
+    })
+    
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    
+    total_enrollments = course_enrollments_collection.count_documents({
+        "course_id": course_id
+    })
+    
+    active_students = course_enrollments_collection.count_documents({
+        "course_id": course_id,
+        "status": "active"
+    })
+    
+    completed_students = course_enrollments_collection.count_documents({
+        "course_id": course_id,
+        "completed_date": {"$ne": None}
+    })
+    
+    completion_rate = (completed_students / total_enrollments * 100) if total_enrollments > 0 else 0
+    
+    # Average progress
+    enrollments = list(course_enrollments_collection.find({"course_id": course_id}))
+    avg_progress = sum(e.get('progress_percentage', 0) for e in enrollments) / len(enrollments) if enrollments else 0
+    
+    # Revenue for this course
+    revenue_result = course_enrollments_collection.aggregate([
+        {"$match": {"course_id": course_id}},
+        {"$group": {"_id": None, "total": {"$sum": "$payment_amount"}}}
+    ])
+    revenue = list(revenue_result)
+    total_revenue = revenue[0]['total'] if revenue else 0
+    
+    return {
+        "course_id": course_id,
+        "course_title": course.get('title'),
+        "total_enrollments": total_enrollments,
+        "active_students": active_students,
+        "completed_students": completed_students,
+        "completion_rate": round(completion_rate, 2),
+        "average_progress": round(avg_progress, 2),
+        "total_revenue": round(total_revenue, 2)
+    }
 
 
 if __name__ == "__main__":
