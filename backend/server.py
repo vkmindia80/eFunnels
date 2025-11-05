@@ -11422,7 +11422,7 @@ async def delete_asset(
 ):
     """Delete an asset"""
     try:
-        result = await assets_collection.delete_one({
+        result = await website_assets_collection.delete_one({
             "id": asset_id,
             "user_id": current_user["id"]
         })
