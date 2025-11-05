@@ -30,7 +30,6 @@ membership_tiers_collection = db['membership_tiers']
 membership_subscriptions_collection = db['membership_subscriptions']
 
 affiliates_collection = db['affiliates']
-blogs_collection = db['blogs']
 webinars_collection = db['webinars']
 workflows_collection = db['workflows']
 workflow_executions_collection = db['workflow_executions']
