@@ -390,10 +390,16 @@ const EnhancedWebsiteBuilder = () => {
             setShowPageModal(false);
             setCurrentPage(null);
           }}
-          onSave={() => {
+          onSave={(savedPage) => {
             fetchPages();
             setShowPageModal(false);
-            setCurrentPage(null);
+            // Automatically open page builder for new pages
+            if (savedPage) {
+              setCurrentPage(savedPage);
+              setShowPageBuilder(true);
+            } else {
+              setCurrentPage(null);
+            }
           }}
         />
       )}
