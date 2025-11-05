@@ -11383,7 +11383,7 @@ async def upload_asset(
             "tags": file.get("tags", [])
         }
         
-        await assets_collection.insert_one(asset)
+        await website_assets_collection.insert_one(asset)
         
         return {
             "success": True,
