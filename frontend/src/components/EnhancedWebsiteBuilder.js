@@ -1019,13 +1019,13 @@ const BlockPreview = ({ block }) => {
       return (
         <div style={containerStyle}>
           <h1 style={{ fontSize: style?.headingSize || '48px', margin: '0 0 16px', fontWeight: 'bold' }}>
-            {content.headline || 'Hero Headline'}
+            {content?.headline || 'Hero Headline'}
           </h1>
           <p style={{ fontSize: style?.subheadingSize || '20px', margin: '0 0 24px' }}>
-            {content.subheadline || 'Hero subheadline goes here'}
+            {content?.subheadline || 'Hero subheadline goes here'}
           </p>
           <button className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold">
-            {content.cta_text || 'Get Started'}
+            {content?.cta_text || 'Get Started'}
           </button>
         </div>
       );
