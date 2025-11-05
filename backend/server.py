@@ -9,6 +9,7 @@ import os
 import re
 import pandas as pd
 from email_service import EmailService, AIEmailGenerator, convert_blocks_to_html
+from webinar_email_service import webinar_email_service
 import asyncio
 from models import (
     UserCreate, UserLogin, User, Token, UserUpdate, GoogleLogin,
