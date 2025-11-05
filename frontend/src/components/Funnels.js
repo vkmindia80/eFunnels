@@ -221,28 +221,26 @@ const Funnels = () => {
 
   // Render different views
   if (activeTab === 'builder' && builderMode) {
-    return <PageBuilderView 
-      funnel={selectedFunnel}
+    return <WixPageBuilder 
       page={selectedPage}
-      blocks={pageBlocks}
-      selectedBlock={selectedBlock}
-      previewDevice={previewDevice}
-      showBlockLibrary={showBlockLibrary}
-      onBack={() => {
+      onClose={() => {
         setBuilderMode(null);
         setActiveTab('funnels');
         setSelectedBlock(null);
       }}
-      onSave={savePageContent}
-      onAddBlock={addBlock}
-      onUpdateBlock={updateBlock}
-      onDeleteBlock={deleteBlock}
-      onDuplicateBlock={duplicateBlock}
-      onDragEnd={onDragEnd}
-      onSelectBlock={setSelectedBlock}
-      onPreviewDeviceChange={setPreviewDevice}
-      onToggleBlockLibrary={() => setShowBlockLibrary(!showBlockLibrary)}
-      loading={loading}
+      onSave={async (updatedPage) => {
+        try {
+          await api.put(
+            `/api/funnels/${selectedFunnel.id}/pages/${selectedPage.id}`,
+            updatedPage
+          );
+          setBuilderMode(null);
+          setActiveTab('funnels');
+          alert('Page saved successfully!');
+        } catch (error) {
+          alert('Failed to save page: ' + (error.response?.data?.detail || error.message));
+        }
+      }}
     />;
   }
 
