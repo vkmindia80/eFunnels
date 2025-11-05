@@ -1034,15 +1034,15 @@ const BlockPreview = ({ block }) => {
     case 'rich_text':
       return (
         <div style={containerStyle}>
-          <div dangerouslySetInnerHTML={{ __html: content.text || 'Text content goes here' }} />
+          <div dangerouslySetInnerHTML={{ __html: (content?.text || content?.content || 'Text content goes here') }} />
         </div>
       );
     
     case 'image':
       return (
         <div style={containerStyle}>
-          {content.image_url ? (
-            <img src={content.image_url} alt={content.alt_text || ''} className="w-full rounded-lg" />
+          {content?.image_url ? (
+            <img src={content.image_url} alt={content?.alt_text || ''} className="w-full rounded-lg" />
           ) : (
             <div className="bg-gray-200 h-64 flex items-center justify-center rounded-lg">
               <ImageIcon className="text-gray-400" size={64} />
@@ -1061,7 +1061,7 @@ const BlockPreview = ({ block }) => {
               color: '#FFFFFF' 
             }}
           >
-            {content.text || 'Button Text'}
+            {content?.text || content?.content || 'Button Text'}
           </button>
         </div>
       );
