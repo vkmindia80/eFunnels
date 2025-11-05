@@ -461,98 +461,188 @@ const AIDesignAssistant = ({ onClose, onApply }) => {
 
               {result && activeFeature === 'website' && (
                 <div className="space-y-4">
-                  <div className="bg-white rounded-lg border border-gray-200 overflow-hidden max-h-96 overflow-y-auto">
-                    {/* Parse and display website structure */}
-                    {(() => {
-                      // Try to parse website_structure if it's a string
-                      let parsedData = result;
-                      if (result.website_structure && typeof result.website_structure === 'string') {
-                        try {
-                          // Extract JSON from markdown code block if present
-                          const jsonMatch = result.website_structure.match(/```json\n([\s\S]*?)\n```/) || 
-                                          result.website_structure.match(/```\n([\s\S]*?)\n```/);
-                          if (jsonMatch) {
-                            parsedData = JSON.parse(jsonMatch[1]);
-                          }
-                        } catch (e) {
-                          console.error('Failed to parse website_structure:', e);
+                  {/* Tabbed View: Visual + JSON */}
+                  {(() => {
+                    const [previewTab, setPreviewTab] = useState('visual');
+                    
+                    // Try to parse website_structure if it's a string
+                    let parsedData = result;
+                    if (result.website_structure && typeof result.website_structure === 'string') {
+                      try {
+                        const jsonMatch = result.website_structure.match(/```json\n([\s\S]*?)\n```/) || 
+                                        result.website_structure.match(/```\n([\s\S]*?)\n```/);
+                        if (jsonMatch) {
+                          parsedData = JSON.parse(jsonMatch[1]);
                         }
+                      } catch (e) {
+                        console.error('Failed to parse website_structure:', e);
                       }
-                      
-                      // Display website info
-                      const websiteData = parsedData.website || parsedData;
-                      const pages = websiteData.pages || [];
-                      
-                      return (
-                        <div className="p-4">
-                          <h4 className="font-bold text-gray-900 mb-4 text-lg">
-                            🌐 {websiteData.name || result.business_info?.business_type || 'Website'} Structure
-                          </h4>
-                          
-                          {/* Home Page */}
-                          {websiteData.home_page && (
-                            <div className="mb-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-600 rounded-lg p-4">
-                              <div className="flex items-center gap-2 mb-2">
-                                <span className="bg-blue-600 text-white px-2 py-1 rounded text-xs font-bold">HOME</span>
-                                <h5 className="font-bold text-gray-900">{websiteData.home_page.page_title || 'Home Page'}</h5>
+                    }
+                    
+                    const websiteData = parsedData.website || parsedData;
+                    const pages = websiteData.pages || [];
+                    
+                    return (
+                      <>
+                        {/* Tab Buttons */}
+                        <div className="flex gap-2 border-b border-gray-200">
+                          <button
+                            onClick={() => setPreviewTab('visual')}
+                            className={`px-4 py-2 font-medium border-b-2 transition ${
+                              previewTab === 'visual' 
+                                ? 'border-blue-600 text-blue-600' 
+                                : 'border-transparent text-gray-600 hover:text-gray-900'
+                            }`}
+                          >
+                            Visual Preview
+                          </button>
+                          <button
+                            onClick={() => setPreviewTab('json')}
+                            className={`px-4 py-2 font-medium border-b-2 transition ${
+                              previewTab === 'json' 
+                                ? 'border-blue-600 text-blue-600' 
+                                : 'border-transparent text-gray-600 hover:text-gray-900'
+                            }`}
+                          >
+                            Structure (JSON)
+                          </button>
+                        </div>
+
+                        {/* Content Area */}
+                        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden max-h-96 overflow-y-auto">
+                          {previewTab === 'visual' ? (
+                            /* Visual Preview - Rendered Website Mockup */
+                            <div className="p-4 bg-gray-50">
+                              <div className="bg-white shadow-lg rounded-lg overflow-hidden">
+                                {/* Website Header */}
+                                <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-4">
+                                  <h3 className="text-xl font-bold">
+                                    {websiteData.name || result.business_info?.business_type || 'Your Website'}
+                                  </h3>
+                                  <div className="flex gap-4 mt-2 text-sm">
+                                    <span>Home</span>
+                                    {pages.slice(0, 3).map((page, idx) => (
+                                      <span key={idx}>{page.page_title || page.title || `Page ${idx + 1}`}</span>
+                                    ))}
+                                  </div>
+                                </div>
+                                
+                                {/* Hero Section */}
+                                {websiteData.home_page?.hero && (
+                                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 px-6 py-12 text-center">
+                                    <h1 className="text-3xl font-bold text-gray-900 mb-4">
+                                      {websiteData.home_page.hero.headline}
+                                    </h1>
+                                    <p className="text-lg text-gray-600 mb-6">
+                                      {websiteData.home_page.hero.subheadline}
+                                    </p>
+                                    <div className="flex gap-3 justify-center">
+                                      <div className="bg-blue-600 text-white px-6 py-2 rounded-lg text-sm font-semibold">
+                                        {websiteData.home_page.hero.cta_text || 'Get Started'}
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                {/* Sections Preview */}
+                                {websiteData.home_page?.sections && (
+                                  <div className="p-6 space-y-6">
+                                    {websiteData.home_page.sections.slice(0, 3).map((section, idx) => (
+                                      <div key={idx} className="border border-gray-200 rounded-lg p-4 bg-white">
+                                        <h3 className="font-bold text-gray-900 mb-2">
+                                          {section.title || section.type || `Section ${idx + 1}`}
+                                        </h3>
+                                        <p className="text-sm text-gray-600">
+                                          {section.content?.substring(0, 100) || 'Section content...'}
+                                        </p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                                
+                                {/* Pages Count */}
+                                <div className="bg-gray-100 px-6 py-4 border-t border-gray-200">
+                                  <p className="text-sm text-gray-600">
+                                    📄 <strong>{pages.length + 1}</strong> pages | 
+                                    🎨 <strong>{websiteData.home_page?.sections?.length || 0}</strong> sections | 
+                                    ✨ <strong>AI Generated</strong>
+                                  </p>
+                                </div>
                               </div>
-                              {websiteData.home_page.hero && (
-                                <div className="mt-2 pl-4 border-l-2 border-blue-300">
-                                  <p className="text-sm font-semibold text-gray-800">{websiteData.home_page.hero.headline}</p>
-                                  <p className="text-xs text-gray-600 mt-1">{websiteData.home_page.hero.subheadline}</p>
+                            </div>
+                          ) : (
+                            /* JSON Structure View */
+                            <div className="p-4">
+                              <h4 className="font-bold text-gray-900 mb-4 text-lg">
+                                🌐 {websiteData.name || result.business_info?.business_type || 'Website'} Structure
+                              </h4>
+                              
+                              {/* Home Page */}
+                              {websiteData.home_page && (
+                                <div className="mb-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-600 rounded-lg p-4">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <span className="bg-blue-600 text-white px-2 py-1 rounded text-xs font-bold">HOME</span>
+                                    <h5 className="font-bold text-gray-900">{websiteData.home_page.page_title || 'Home Page'}</h5>
+                                  </div>
+                                  {websiteData.home_page.hero && (
+                                    <div className="mt-2 pl-4 border-l-2 border-blue-300">
+                                      <p className="text-sm font-semibold text-gray-800">{websiteData.home_page.hero.headline}</p>
+                                      <p className="text-xs text-gray-600 mt-1">{websiteData.home_page.hero.subheadline}</p>
+                                    </div>
+                                  )}
+                                  {websiteData.home_page.sections && (
+                                    <div className="mt-3 grid grid-cols-2 gap-2">
+                                      {websiteData.home_page.sections.map((section, idx) => (
+                                        <div key={idx} className="text-xs bg-white border border-blue-200 rounded px-2 py-1">
+                                          {section.title || section.type || `Section ${idx + 1}`}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
                                 </div>
                               )}
-                              {websiteData.home_page.sections && (
-                                <div className="mt-3 grid grid-cols-2 gap-2">
-                                  {websiteData.home_page.sections.map((section, idx) => (
-                                    <div key={idx} className="text-xs bg-white border border-blue-200 rounded px-2 py-1">
-                                      {section.title || section.type || `Section ${idx + 1}`}
+                              
+                              {/* Other Pages */}
+                              {pages.length > 0 && (
+                                <div className="space-y-3">
+                                  <h5 className="font-semibold text-gray-700 text-sm">Additional Pages:</h5>
+                                  {pages.map((page, index) => (
+                                    <div key={index} className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                                      <div className="flex items-center gap-2 mb-2">
+                                        <span className="bg-purple-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold">
+                                          {index + 1}
+                                        </span>
+                                        <h6 className="font-semibold text-gray-900">{page.page_title || page.title || `Page ${index + 1}`}</h6>
+                                      </div>
+                                      {page.url && <p className="text-xs text-gray-600 ml-8">URL: {page.url}</p>}
+                                      {page.content && <p className="text-xs text-gray-600 ml-8 mt-1">{page.content.substring(0, 100)}...</p>}
                                     </div>
                                   ))}
                                 </div>
                               )}
-                            </div>
-                          )}
-                          
-                          {/* Other Pages */}
-                          {pages.length > 0 && (
-                            <div className="space-y-3">
-                              <h5 className="font-semibold text-gray-700 text-sm">Additional Pages:</h5>
-                              {pages.map((page, index) => (
-                                <div key={index} className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-                                  <div className="flex items-center gap-2 mb-2">
-                                    <span className="bg-purple-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold">
-                                      {index + 1}
-                                    </span>
-                                    <h6 className="font-semibold text-gray-900">{page.page_title || page.title || `Page ${index + 1}`}</h6>
-                                  </div>
-                                  {page.url && <p className="text-xs text-gray-600 ml-8">URL: {page.url}</p>}
-                                  {page.content && <p className="text-xs text-gray-600 ml-8 mt-1">{page.content.substring(0, 100)}...</p>}
+                              
+                              {/* Fallback: Show raw structure */}
+                              {!websiteData.home_page && pages.length === 0 && result.website_structure && (
+                                <div className="bg-gray-50 p-3 rounded text-xs">
+                                  <p className="font-semibold text-gray-700 mb-2">AI Generated Structure:</p>
+                                  <pre className="whitespace-pre-wrap text-gray-600 max-h-64 overflow-auto">
+                                    {JSON.stringify(parsedData, null, 2)}
+                                  </pre>
                                 </div>
-                              ))}
-                            </div>
-                          )}
-                          
-                          {/* Fallback: Show raw structure in a readable way */}
-                          {!websiteData.home_page && pages.length === 0 && result.website_structure && (
-                            <div className="bg-gray-50 p-3 rounded text-xs">
-                              <p className="font-semibold text-gray-700 mb-2">AI Generated Structure:</p>
-                              <pre className="whitespace-pre-wrap text-gray-600 max-h-64 overflow-auto">
-                                {result.website_structure.substring(0, 800)}...
-                              </pre>
+                              )}
                             </div>
                           )}
                         </div>
-                      );
-                    })()}
-                  </div>
-                  
-                  <button
-                    onClick={() => onApply && onApply(result)}
-                    className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition"
-                  >
-                    Apply to Page
-                  </button>
+                        
+                        <button
+                          onClick={() => onApply && onApply(result)}
+                          className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition"
+                        >
+                          Apply to Page
+                        </button>
+                      </>
+                    );
+                  })()}
                 </div>
               )}
 
