@@ -826,7 +826,7 @@ class CourseEnrollment(CourseEnrollmentBase):
 class CourseProgressBase(BaseModel):
     lesson_id: str
     
-class CourseProgressCreate(CourseProgressBase):
+class CourseProgressCreate(BaseModel):
     time_spent: Optional[int] = 0  # Minutes
     quiz_score: Optional[float] = None
     quiz_passed: Optional[bool] = None
