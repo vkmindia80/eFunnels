@@ -1037,18 +1037,30 @@ const PageModal = ({ page, onClose, onSave }) => {
     seo_description: '',
     seo_keywords: ''
   });
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
+    setSaving(true);
+    
     try {
+      const dataToSubmit = {
+        ...formData,
+        content: formData.content || { blocks: [] } // Add default content structure
+      };
+      
       if (page) {
-        await api.put(`/api/website/pages/${page.id}`, formData);
+        await api.put(`/api/website/pages/${page.id}`, dataToSubmit);
       } else {
-        await api.post('/api/website/pages', formData);
+        await api.post('/api/website/pages', dataToSubmit);
       }
       onSave();
     } catch (error) {
-      alert(error.response?.data?.detail || 'Failed to save page');
+      const errorMessage = error.response?.data?.detail || 'Failed to save page. Please try again.';
+      setError(typeof errorMessage === 'string' ? errorMessage : JSON.stringify(errorMessage));
+      setSaving(false);
     }
   };
 
