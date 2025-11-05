@@ -29,7 +29,15 @@ certificates_collection = db['certificates']
 membership_tiers_collection = db['membership_tiers']
 membership_subscriptions_collection = db['membership_subscriptions']
 
+# Affiliate collections (Phase 10)
+affiliate_programs_collection = db['affiliate_programs']
 affiliates_collection = db['affiliates']
+affiliate_links_collection = db['affiliate_links']
+affiliate_clicks_collection = db['affiliate_clicks']
+affiliate_conversions_collection = db['affiliate_conversions']
+affiliate_commissions_collection = db['affiliate_commissions']
+affiliate_payouts_collection = db['affiliate_payouts']
+affiliate_resources_collection = db['affiliate_resources']
 
 # Webinar collections (Phase 9)
 webinars_collection = db['webinars']
