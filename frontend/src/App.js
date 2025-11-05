@@ -16,6 +16,8 @@ import Funnels from './components/Funnels';
 import Forms from './components/Forms';
 import WorkflowAutomation from './components/WorkflowAutomation';
 import Courses from './components/Courses';
+import Blog from './components/Blog';
+import WebsiteBuilder from './components/WebsiteBuilder';
 
 // Demo credentials banner component
 const DemoCredentialsBanner = ({ onFillCredentials }) => {
