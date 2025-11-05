@@ -17,7 +17,7 @@ import Forms from './components/Forms';
 import WorkflowAutomation from './components/WorkflowAutomation';
 import Courses from './components/Courses';
 import Blog from './components/Blog';
-import WebsiteBuilder from './components/WebsiteBuilder';
+import EnhancedWebsiteBuilder from './components/EnhancedWebsiteBuilder';
 import Webinars from './components/Webinars';
 import PublicWebinarCatalog from './components/PublicWebinarCatalog';
 import AffiliateManagement from './components/AffiliateManagement';
