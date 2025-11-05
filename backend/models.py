@@ -1591,3 +1591,449 @@ class PublicAffiliateRegistrationRequest(AffiliateBase):
     program_id: str
     agree_to_terms: bool = True
 
+
+# ============================================
+# PHASE 11: PAYMENT & E-COMMERCE MODELS
+# ============================================
+
+# Product Category Models
+class ProductCategoryBase(BaseModel):
+    name: str
+    slug: str
+    description: Optional[str] = None
+    parent_id: Optional[str] = None
+    image_url: Optional[str] = None
+    display_order: int = 0
+
+class ProductCategoryCreate(ProductCategoryBase):
+    pass
+
+class ProductCategoryUpdate(BaseModel):
+    name: Optional[str] = None
+    slug: Optional[str] = None
+    description: Optional[str] = None
+    parent_id: Optional[str] = None
+    image_url: Optional[str] = None
+    display_order: Optional[int] = None
+
+class ProductCategory(ProductCategoryBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    product_count: int = 0
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+# Product Models
+class ProductBase(BaseModel):
+    name: str
+    slug: str
+    description: Optional[str] = None
+    short_description: Optional[str] = None
+    product_type: str  # physical, digital, service, subscription
+    pricing_type: str  # one_time, subscription, payment_plan
+    price: float
+    compare_at_price: Optional[float] = None
+    cost: Optional[float] = None
+    currency: str = "USD"
+    
+    # Subscription fields
+    billing_period: Optional[str] = None  # monthly, yearly, weekly
+    billing_interval: Optional[int] = 1
+    trial_period_days: Optional[int] = 0
+    
+    # Inventory
+    track_inventory: bool = False
+    inventory_quantity: Optional[int] = None
+    low_stock_threshold: Optional[int] = 5
+    
+    # Product details
+    sku: Optional[str] = None
+    barcode: Optional[str] = None
+    weight: Optional[float] = None
+    weight_unit: str = "kg"
+    
+    # Media
+    images: List[str] = []
+    featured_image: Optional[str] = None
+    video_url: Optional[str] = None
+    
+    # Organization
+    category_id: Optional[str] = None
+    tags: List[str] = []
+    
+    # SEO
+    seo_title: Optional[str] = None
+    seo_description: Optional[str] = None
+    seo_keywords: List[str] = []
+    
+    # Shipping
+    requires_shipping: bool = False
+    shipping_weight: Optional[float] = None
+    
+    # Digital product
+    download_url: Optional[str] = None
+    download_limit: Optional[int] = None
+    
+    # Status
+    status: str = "draft"  # draft, active, archived
+    is_featured: bool = False
+
+class ProductCreate(ProductBase):
+    pass
+
+class ProductUpdate(BaseModel):
+    name: Optional[str] = None
+    slug: Optional[str] = None
+    description: Optional[str] = None
+    short_description: Optional[str] = None
+    product_type: Optional[str] = None
+    pricing_type: Optional[str] = None
+    price: Optional[float] = None
+    compare_at_price: Optional[float] = None
+    cost: Optional[float] = None
+    billing_period: Optional[str] = None
+    billing_interval: Optional[int] = None
+    trial_period_days: Optional[int] = None
+    track_inventory: Optional[bool] = None
+    inventory_quantity: Optional[int] = None
+    low_stock_threshold: Optional[int] = None
+    sku: Optional[str] = None
+    images: Optional[List[str]] = None
+    featured_image: Optional[str] = None
+    video_url: Optional[str] = None
+    category_id: Optional[str] = None
+    tags: Optional[List[str]] = None
+    seo_title: Optional[str] = None
+    seo_description: Optional[str] = None
+    seo_keywords: Optional[List[str]] = None
+    requires_shipping: Optional[bool] = None
+    shipping_weight: Optional[float] = None
+    download_url: Optional[str] = None
+    download_limit: Optional[int] = None
+    status: Optional[str] = None
+    is_featured: Optional[bool] = None
+
+class Product(ProductBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    sales_count: int = 0
+    revenue: float = 0
+    views: int = 0
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+# Product Variant Models
+class ProductVariantBase(BaseModel):
+    product_id: str
+    name: str
+    sku: Optional[str] = None
+    price: Optional[float] = None
+    compare_at_price: Optional[float] = None
+    inventory_quantity: Optional[int] = None
+    image_url: Optional[str] = None
+    options: dict = {}  # e.g., {"size": "L", "color": "Red"}
+
+class ProductVariantCreate(ProductVariantBase):
+    pass
+
+class ProductVariantUpdate(BaseModel):
+    name: Optional[str] = None
+    sku: Optional[str] = None
+    price: Optional[float] = None
+    compare_at_price: Optional[float] = None
+    inventory_quantity: Optional[int] = None
+    image_url: Optional[str] = None
+    options: Optional[dict] = None
+
+class ProductVariant(ProductVariantBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+# Shopping Cart Models
+class CartItem(BaseModel):
+    product_id: str
+    variant_id: Optional[str] = None
+    quantity: int = 1
+    price: float
+    product_name: str
+    product_image: Optional[str] = None
+
+class ShoppingCartBase(BaseModel):
+    items: List[CartItem] = []
+    subtotal: float = 0
+    tax: float = 0
+    shipping: float = 0
+    discount: float = 0
+    total: float = 0
+    coupon_code: Optional[str] = None
+
+class ShoppingCartCreate(ShoppingCartBase):
+    pass
+
+class ShoppingCartUpdate(BaseModel):
+    items: Optional[List[CartItem]] = None
+    coupon_code: Optional[str] = None
+
+class ShoppingCart(ShoppingCartBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: Optional[str] = None
+    session_id: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+# Coupon Models
+class CouponBase(BaseModel):
+    code: str
+    discount_type: str  # percentage, fixed
+    discount_value: float
+    minimum_purchase: Optional[float] = None
+    maximum_discount: Optional[float] = None
+    usage_limit: Optional[int] = None
+    usage_limit_per_customer: Optional[int] = 1
+    applicable_products: List[str] = []  # empty = all products
+    applicable_categories: List[str] = []
+    start_date: Optional[datetime] = None
+    expires_at: Optional[datetime] = None
+    status: str = "active"  # active, inactive, expired
+
+class CouponCreate(CouponBase):
+    pass
+
+class CouponUpdate(BaseModel):
+    discount_type: Optional[str] = None
+    discount_value: Optional[float] = None
+    minimum_purchase: Optional[float] = None
+    maximum_discount: Optional[float] = None
+    usage_limit: Optional[int] = None
+    usage_limit_per_customer: Optional[int] = None
+    applicable_products: Optional[List[str]] = None
+    applicable_categories: Optional[List[str]] = None
+    start_date: Optional[datetime] = None
+    expires_at: Optional[datetime] = None
+    status: Optional[str] = None
+
+class Coupon(CouponBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    usage_count: int = 0
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+# Order Models
+class OrderItemBase(BaseModel):
+    product_id: str
+    product_name: str
+    variant_id: Optional[str] = None
+    variant_name: Optional[str] = None
+    quantity: int
+    price: float
+    subtotal: float
+    tax: float = 0
+    total: float
+    product_type: str
+    download_url: Optional[str] = None
+
+class OrderItemCreate(OrderItemBase):
+    pass
+
+class OrderItem(OrderItemBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    order_id: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class OrderBase(BaseModel):
+    customer_name: str
+    customer_email: str
+    customer_phone: Optional[str] = None
+    
+    # Billing address
+    billing_address_line1: str
+    billing_address_line2: Optional[str] = None
+    billing_city: str
+    billing_state: str
+    billing_postal_code: str
+    billing_country: str
+    
+    # Shipping address
+    shipping_same_as_billing: bool = True
+    shipping_address_line1: Optional[str] = None
+    shipping_address_line2: Optional[str] = None
+    shipping_city: Optional[str] = None
+    shipping_state: Optional[str] = None
+    shipping_postal_code: Optional[str] = None
+    shipping_country: Optional[str] = None
+    
+    # Order details
+    items: List[OrderItemCreate] = []
+    subtotal: float
+    tax: float = 0
+    shipping_cost: float = 0
+    discount: float = 0
+    total: float
+    currency: str = "USD"
+    
+    # Coupon
+    coupon_code: Optional[str] = None
+    coupon_discount: float = 0
+    
+    # Payment
+    payment_method: str  # mock, stripe, paypal
+    payment_status: str = "pending"  # pending, paid, failed, refunded
+    
+    # Order status
+    status: str = "pending"  # pending, processing, completed, cancelled, refunded
+    
+    # Notes
+    customer_notes: Optional[str] = None
+    admin_notes: Optional[str] = None
+
+class OrderCreate(OrderBase):
+    pass
+
+class OrderUpdate(BaseModel):
+    status: Optional[str] = None
+    payment_status: Optional[str] = None
+    admin_notes: Optional[str] = None
+    shipping_tracking_number: Optional[str] = None
+    shipping_carrier: Optional[str] = None
+
+class Order(OrderBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    order_number: str
+    user_id: str  # Store owner
+    customer_id: Optional[str] = None  # Registered customer user_id
+    contact_id: Optional[str] = None  # CRM contact
+    
+    # Fulfillment
+    is_fulfilled: bool = False
+    fulfilled_at: Optional[datetime] = None
+    shipping_tracking_number: Optional[str] = None
+    shipping_carrier: Optional[str] = None
+    
+    # Dates
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    paid_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+    cancelled_at: Optional[datetime] = None
+    
+    # Affiliate tracking
+    affiliate_id: Optional[str] = None
+    affiliate_commission: Optional[float] = None
+
+# Subscription Models
+class SubscriptionBase(BaseModel):
+    product_id: str
+    product_name: str
+    customer_name: str
+    customer_email: str
+    billing_period: str  # monthly, yearly, weekly
+    billing_amount: float
+    currency: str = "USD"
+    next_billing_date: datetime
+    status: str = "active"  # active, paused, cancelled, expired
+
+class SubscriptionCreate(SubscriptionBase):
+    pass
+
+class SubscriptionUpdate(BaseModel):
+    status: Optional[str] = None
+    billing_amount: Optional[float] = None
+    next_billing_date: Optional[datetime] = None
+    pause_until: Optional[datetime] = None
+
+class Subscription(SubscriptionBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str  # Store owner
+    customer_id: Optional[str] = None
+    contact_id: Optional[str] = None
+    billing_cycle: int = 0
+    total_revenue: float = 0
+    failed_payments: int = 0
+    last_payment_date: Optional[datetime] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    cancelled_at: Optional[datetime] = None
+    pause_until: Optional[datetime] = None
+
+# Invoice Models
+class InvoiceBase(BaseModel):
+    order_id: Optional[str] = None
+    subscription_id: Optional[str] = None
+    customer_name: str
+    customer_email: str
+    customer_address: str
+    items: List[dict] = []
+    subtotal: float
+    tax: float
+    discount: float
+    total: float
+    currency: str = "USD"
+    due_date: Optional[datetime] = None
+    notes: Optional[str] = None
+
+class InvoiceCreate(InvoiceBase):
+    pass
+
+class Invoice(InvoiceBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    invoice_number: str
+    user_id: str
+    status: str = "draft"  # draft, sent, paid, cancelled
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    sent_at: Optional[datetime] = None
+    paid_at: Optional[datetime] = None
+
+# Payment Transaction Models
+class PaymentTransactionBase(BaseModel):
+    order_id: Optional[str] = None
+    subscription_id: Optional[str] = None
+    amount: float
+    currency: str = "USD"
+    payment_method: str  # mock, stripe, paypal
+    payment_provider: str  # mock, stripe, paypal
+    status: str = "pending"  # pending, completed, failed, refunded
+    transaction_id: Optional[str] = None
+    provider_response: Optional[dict] = None
+    error_message: Optional[str] = None
+
+class PaymentTransactionCreate(PaymentTransactionBase):
+    pass
+
+class PaymentTransaction(PaymentTransactionBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    customer_email: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    completed_at: Optional[datetime] = None
+
+# Checkout Request Models
+class CheckoutRequest(BaseModel):
+    cart_id: Optional[str] = None
+    items: List[CartItem] = []
+    customer_name: str
+    customer_email: str
+    customer_phone: Optional[str] = None
+    billing_address: dict
+    shipping_address: Optional[dict] = None
+    payment_method: str = "mock"
+    coupon_code: Optional[str] = None
+    customer_notes: Optional[str] = None
+
+# Analytics Models
+class PaymentAnalytics(BaseModel):
+    total_revenue: float
+    total_orders: int
+    total_subscriptions: int
+    active_subscriptions: int
+    average_order_value: float
+    total_products: int
+    total_customers: int
+    revenue_by_period: dict = {}
+    top_products: List[dict] = []
+    recent_orders: List[dict] = []
+
