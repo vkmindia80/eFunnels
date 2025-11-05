@@ -6300,6 +6300,969 @@ async def generate_rss_feed(
     return JSONResponse(content=rss_xml, media_type="application/rss+xml")
 
 
+# ==================== WEBINAR ROUTES (PHASE 9) ====================
+
+@app.get("/api/webinars")
+async def list_webinars(
+    current_user: dict = Depends(get_current_user),
+    status: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 20
+):
+    """List user's webinars"""
+    query = {"user_id": current_user["id"]}
+    if status:
+        query["status"] = status
+    
+    webinars = list(webinars_collection.find(query).sort("scheduled_at", -1).skip(skip).limit(limit))
+    total = webinars_collection.count_documents(query)
+    
+    return {
+        "webinars": webinars,
+        "total": total,
+        "skip": skip,
+        "limit": limit
+    }
+
+@app.post("/api/webinars", status_code=status.HTTP_201_CREATED)
+async def create_webinar(
+    webinar: WebinarCreate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Create a new webinar"""
+    webinar_dict = webinar.model_dump()
+    webinar_dict['id'] = str(uuid.uuid4())
+    webinar_dict['user_id'] = current_user['id']
+    webinar_dict['status'] = 'draft'
+    webinar_dict['registration_count'] = 0
+    webinar_dict['attendee_count'] = 0
+    webinar_dict['created_at'] = datetime.utcnow()
+    webinar_dict['updated_at'] = datetime.utcnow()
+    
+    webinars_collection.insert_one(webinar_dict)
+    
+    return webinar_dict
+
+@app.get("/api/webinars/{webinar_id}")
+async def get_webinar(
+    webinar_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get webinar details"""
+    webinar = webinars_collection.find_one({
+        "id": webinar_id,
+        "user_id": current_user["id"]
+    })
+    
+    if not webinar:
+        raise HTTPException(status_code=404, detail="Webinar not found")
+    
+    return webinar
+
+@app.put("/api/webinars/{webinar_id}")
+async def update_webinar(
+    webinar_id: str,
+    webinar_update: WebinarUpdate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Update webinar"""
+    existing = webinars_collection.find_one({
+        "id": webinar_id,
+        "user_id": current_user["id"]
+    })
+    
+    if not existing:
+        raise HTTPException(status_code=404, detail="Webinar not found")
+    
+    update_data = {k: v for k, v in webinar_update.model_dump().items() if v is not None}
+    update_data['updated_at'] = datetime.utcnow()
+    
+    webinars_collection.update_one(
+        {"id": webinar_id},
+        {"$set": update_data}
+    )
+    
+    updated = webinars_collection.find_one({"id": webinar_id})
+    return updated
+
+@app.delete("/api/webinars/{webinar_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_webinar(
+    webinar_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Delete webinar"""
+    result = webinars_collection.delete_one({
+        "id": webinar_id,
+        "user_id": current_user["id"]
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Webinar not found")
+    
+    # Also delete related data
+    webinar_registrations_collection.delete_many({"webinar_id": webinar_id})
+    webinar_chat_messages_collection.delete_many({"webinar_id": webinar_id})
+    webinar_qa_collection.delete_many({"webinar_id": webinar_id})
+    webinar_polls_collection.delete_many({"webinar_id": webinar_id})
+    
+    return None
+
+@app.post("/api/webinars/{webinar_id}/publish")
+async def publish_webinar(
+    webinar_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Publish webinar (makes it scheduled)"""
+    webinar = webinars_collection.find_one({
+        "id": webinar_id,
+        "user_id": current_user["id"]
+    })
+    
+    if not webinar:
+        raise HTTPException(status_code=404, detail="Webinar not found")
+    
+    webinars_collection.update_one(
+        {"id": webinar_id},
+        {"$set": {"status": "scheduled", "updated_at": datetime.utcnow()}}
+    )
+    
+    # Send confirmation emails to registered users if reminders enabled
+    if webinar.get('send_reminders', True):
+        registrations = list(webinar_registrations_collection.find({"webinar_id": webinar_id}))
+        
+        # TODO: Schedule reminder emails via email system
+        # This would integrate with Phase 3 email system
+        
+    return {"message": "Webinar published successfully"}
+
+@app.post("/api/webinars/{webinar_id}/start")
+async def start_webinar(
+    webinar_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Start webinar (change status to live)"""
+    webinar = webinars_collection.find_one({
+        "id": webinar_id,
+        "user_id": current_user["id"]
+    })
+    
+    if not webinar:
+        raise HTTPException(status_code=404, detail="Webinar not found")
+    
+    webinars_collection.update_one(
+        {"id": webinar_id},
+        {"$set": {
+            "status": "live",
+            "started_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        }}
+    )
+    
+    return {"message": "Webinar started"}
+
+@app.post("/api/webinars/{webinar_id}/end")
+async def end_webinar(
+    webinar_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """End webinar"""
+    webinar = webinars_collection.find_one({
+        "id": webinar_id,
+        "user_id": current_user["id"]
+    })
+    
+    if not webinar:
+        raise HTTPException(status_code=404, detail="Webinar not found")
+    
+    webinars_collection.update_one(
+        {"id": webinar_id},
+        {"$set": {
+            "status": "ended",
+            "ended_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        }}
+    )
+    
+    return {"message": "Webinar ended"}
+
+# ==================== WEBINAR REGISTRATION ROUTES ====================
+
+@app.get("/api/webinars/public/list")
+async def list_public_webinars(
+    skip: int = 0,
+    limit: int = 20
+):
+    """Public endpoint to list upcoming webinars"""
+    query = {
+        "status": {"$in": ["scheduled", "live"]},
+        "scheduled_at": {"$gte": datetime.utcnow()}
+    }
+    
+    webinars = list(webinars_collection.find(query).sort("scheduled_at", 1).skip(skip).limit(limit))
+    total = webinars_collection.count_documents(query)
+    
+    return {
+        "webinars": webinars,
+        "total": total
+    }
+
+@app.get("/api/webinars/{webinar_id}/public/preview")
+async def get_webinar_public(webinar_id: str):
+    """Public endpoint to view webinar details"""
+    webinar = webinars_collection.find_one({"id": webinar_id})
+    
+    if not webinar:
+        raise HTTPException(status_code=404, detail="Webinar not found")
+    
+    return webinar
+
+@app.post("/api/webinars/{webinar_id}/register", status_code=status.HTTP_201_CREATED)
+async def register_for_webinar(
+    webinar_id: str,
+    registration: PublicWebinarRegistrationRequest,
+    background_tasks: BackgroundTasks
+):
+    """Public endpoint for webinar registration"""
+    webinar = webinars_collection.find_one({"id": webinar_id})
+    
+    if not webinar:
+        raise HTTPException(status_code=404, detail="Webinar not found")
+    
+    # Check if already registered
+    existing = webinar_registrations_collection.find_one({
+        "webinar_id": webinar_id,
+        "email": registration.email
+    })
+    
+    if existing:
+        raise HTTPException(status_code=400, detail="Already registered for this webinar")
+    
+    # Check max attendees
+    if webinar.get('max_attendees'):
+        current_count = webinars_collection.find_one({"id": webinar_id}).get('registration_count', 0)
+        if current_count >= webinar['max_attendees']:
+            raise HTTPException(status_code=400, detail="Webinar is full")
+    
+    # Create registration
+    registration_dict = registration.model_dump()
+    registration_dict['id'] = str(uuid.uuid4())
+    registration_dict['webinar_id'] = webinar_id
+    registration_dict['status'] = 'registered'
+    registration_dict['registered_at'] = datetime.utcnow()
+    registration_dict['watch_time_minutes'] = 0
+    
+    webinar_registrations_collection.insert_one(registration_dict)
+    
+    # Update registration count
+    webinars_collection.update_one(
+        {"id": webinar_id},
+        {"$inc": {"registration_count": 1}}
+    )
+    
+    # Create contact in CRM
+    user_id = webinar.get('user_id')
+    if user_id:
+        contact_data = {
+            'id': str(uuid.uuid4()),
+            'user_id': user_id,
+            'first_name': registration.first_name,
+            'last_name': registration.last_name,
+            'email': registration.email,
+            'phone': registration.phone or '',
+            'company': registration.company or '',
+            'source': f'Webinar Registration: {webinar.get("title", "")}',
+            'status': 'lead',
+            'score': 0,
+            'tags': ['webinar-registrant'],
+            'created_at': datetime.utcnow(),
+            'updated_at': datetime.utcnow()
+        }
+        
+        # Check if contact already exists
+        existing_contact = contacts_collection.find_one({
+            'user_id': user_id,
+            'email': registration.email
+        })
+        
+        if existing_contact:
+            # Update existing contact
+            contacts_collection.update_one(
+                {'id': existing_contact['id']},
+                {'$addToSet': {'tags': 'webinar-registrant'}}
+            )
+            registration_dict['contact_id'] = existing_contact['id']
+        else:
+            # Create new contact
+            contacts_collection.insert_one(contact_data)
+            registration_dict['contact_id'] = contact_data['id']
+        
+        # Update registration with contact_id
+        webinar_registrations_collection.update_one(
+            {"id": registration_dict['id']},
+            {"$set": {"contact_id": registration_dict.get('contact_id')}}
+        )
+    
+    # Send confirmation email
+    # TODO: Integrate with Phase 3 email system for confirmation email
+    
+    return registration_dict
+
+@app.get("/api/webinars/{webinar_id}/registrations")
+async def get_webinar_registrations(
+    webinar_id: str,
+    current_user: dict = Depends(get_current_user),
+    status: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 100
+):
+    """Get webinar registrations"""
+    webinar = webinars_collection.find_one({
+        "id": webinar_id,
+        "user_id": current_user["id"]
+    })
+    
+    if not webinar:
+        raise HTTPException(status_code=404, detail="Webinar not found")
+    
+    query = {"webinar_id": webinar_id}
+    if status:
+        query["status"] = status
+    
+    registrations = list(webinar_registrations_collection.find(query).sort("registered_at", -1).skip(skip).limit(limit))
+    total = webinar_registrations_collection.count_documents(query)
+    
+    return {
+        "registrations": registrations,
+        "total": total
+    }
+
+@app.get("/api/webinars/{webinar_id}/registrations/export")
+async def export_webinar_registrations(
+    webinar_id: str,
+    current_user: dict = Depends(get_current_user),
+    format: str = Query("csv", regex="^(csv|excel)$")
+):
+    """Export webinar registrations"""
+    webinar = webinars_collection.find_one({
+        "id": webinar_id,
+        "user_id": current_user["id"]
+    })
+    
+    if not webinar:
+        raise HTTPException(status_code=404, detail="Webinar not found")
+    
+    registrations = list(webinar_registrations_collection.find({"webinar_id": webinar_id}))
+    
+    if not registrations:
+        raise HTTPException(status_code=404, detail="No registrations found")
+    
+    # Convert to DataFrame
+    df_data = []
+    for reg in registrations:
+        df_data.append({
+            'First Name': reg.get('first_name', ''),
+            'Last Name': reg.get('last_name', ''),
+            'Email': reg.get('email', ''),
+            'Phone': reg.get('phone', ''),
+            'Company': reg.get('company', ''),
+            'Status': reg.get('status', ''),
+            'Registered At': reg.get('registered_at', '').isoformat() if reg.get('registered_at') else '',
+            'Attended At': reg.get('attended_at', '').isoformat() if reg.get('attended_at') else '',
+            'Watch Time (minutes)': reg.get('watch_time_minutes', 0)
+        })
+    
+    df = pd.DataFrame(df_data)
+    
+    if format == "csv":
+        output = io.StringIO()
+        df.to_csv(output, index=False)
+        output.seek(0)
+        return StreamingResponse(
+            iter([output.getvalue()]),
+            media_type="text/csv",
+            headers={"Content-Disposition": f"attachment; filename=webinar_registrations_{webinar_id}.csv"}
+        )
+    else:  # excel
+        output = io.BytesIO()
+        df.to_excel(output, index=False, engine='openpyxl')
+        output.seek(0)
+        return StreamingResponse(
+            output,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename=webinar_registrations_{webinar_id}.xlsx"}
+        )
+
+# ==================== WEBINAR CHAT ROUTES ====================
+
+@app.get("/api/webinars/{webinar_id}/chat")
+async def get_chat_messages(
+    webinar_id: str,
+    since: Optional[str] = None,
+    limit: int = 100
+):
+    """Get chat messages (public during live webinar)"""
+    query = {"webinar_id": webinar_id}
+    
+    if since:
+        try:
+            since_dt = datetime.fromisoformat(since.replace('Z', '+00:00'))
+            query["created_at"] = {"$gt": since_dt}
+        except:
+            pass
+    
+    messages = list(
+        webinar_chat_messages_collection.find(query)
+        .sort("created_at", -1)
+        .limit(limit)
+    )
+    
+    messages.reverse()  # Return in chronological order
+    
+    return {"messages": messages}
+
+@app.post("/api/webinars/{webinar_id}/chat", status_code=status.HTTP_201_CREATED)
+async def send_chat_message(
+    webinar_id: str,
+    message: WebinarChatMessageCreate
+):
+    """Send chat message (public during live webinar)"""
+    webinar = webinars_collection.find_one({"id": webinar_id})
+    
+    if not webinar:
+        raise HTTPException(status_code=404, detail="Webinar not found")
+    
+    if webinar.get('status') != 'live':
+        raise HTTPException(status_code=400, detail="Webinar is not live")
+    
+    message_dict = message.model_dump()
+    message_dict['id'] = str(uuid.uuid4())
+    message_dict['webinar_id'] = webinar_id
+    message_dict['is_host'] = False
+    message_dict['created_at'] = datetime.utcnow()
+    
+    webinar_chat_messages_collection.insert_one(message_dict)
+    
+    return message_dict
+
+@app.delete("/api/webinars/{webinar_id}/chat/{message_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_chat_message(
+    webinar_id: str,
+    message_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Delete chat message (host only)"""
+    webinar = webinars_collection.find_one({
+        "id": webinar_id,
+        "user_id": current_user["id"]
+    })
+    
+    if not webinar:
+        raise HTTPException(status_code=404, detail="Webinar not found or unauthorized")
+    
+    result = webinar_chat_messages_collection.delete_one({
+        "id": message_id,
+        "webinar_id": webinar_id
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Message not found")
+    
+    return None
+
+# ==================== WEBINAR Q&A ROUTES ====================
+
+@app.get("/api/webinars/{webinar_id}/qa")
+async def get_qa_questions(
+    webinar_id: str,
+    answered: Optional[bool] = None,
+    skip: int = 0,
+    limit: int = 100
+):
+    """Get Q&A questions"""
+    query = {"webinar_id": webinar_id}
+    
+    if answered is not None:
+        query["is_answered"] = answered
+    
+    questions = list(
+        webinar_qa_collection.find(query)
+        .sort([("is_featured", -1), ("upvotes", -1), ("created_at", -1)])
+        .skip(skip)
+        .limit(limit)
+    )
+    
+    total = webinar_qa_collection.count_documents(query)
+    
+    return {
+        "questions": questions,
+        "total": total
+    }
+
+@app.post("/api/webinars/{webinar_id}/qa", status_code=status.HTTP_201_CREATED)
+async def ask_question(
+    webinar_id: str,
+    qa: WebinarQACreate
+):
+    """Ask a question (public during live webinar)"""
+    webinar = webinars_collection.find_one({"id": webinar_id})
+    
+    if not webinar:
+        raise HTTPException(status_code=404, detail="Webinar not found")
+    
+    qa_dict = qa.model_dump()
+    qa_dict['id'] = str(uuid.uuid4())
+    qa_dict['webinar_id'] = webinar_id
+    qa_dict['is_answered'] = False
+    qa_dict['is_featured'] = False
+    qa_dict['upvotes'] = 0
+    qa_dict['created_at'] = datetime.utcnow()
+    
+    webinar_qa_collection.insert_one(qa_dict)
+    
+    return qa_dict
+
+@app.put("/api/webinars/{webinar_id}/qa/{question_id}/answer")
+async def answer_question(
+    webinar_id: str,
+    question_id: str,
+    answer_text: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Answer a Q&A question (host only)"""
+    webinar = webinars_collection.find_one({
+        "id": webinar_id,
+        "user_id": current_user["id"]
+    })
+    
+    if not webinar:
+        raise HTTPException(status_code=404, detail="Webinar not found or unauthorized")
+    
+    result = webinar_qa_collection.update_one(
+        {"id": question_id, "webinar_id": webinar_id},
+        {"$set": {
+            "answer": answer_text,
+            "answered_by": current_user.get('full_name', 'Host'),
+            "is_answered": True,
+            "answered_at": datetime.utcnow()
+        }}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Question not found")
+    
+    updated = webinar_qa_collection.find_one({"id": question_id})
+    return updated
+
+@app.post("/api/webinars/{webinar_id}/qa/{question_id}/upvote")
+async def upvote_question(
+    webinar_id: str,
+    question_id: str
+):
+    """Upvote a question"""
+    result = webinar_qa_collection.update_one(
+        {"id": question_id, "webinar_id": webinar_id},
+        {"$inc": {"upvotes": 1}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Question not found")
+    
+    updated = webinar_qa_collection.find_one({"id": question_id})
+    return updated
+
+@app.put("/api/webinars/{webinar_id}/qa/{question_id}/feature")
+async def feature_question(
+    webinar_id: str,
+    question_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Feature a question (host only)"""
+    webinar = webinars_collection.find_one({
+        "id": webinar_id,
+        "user_id": current_user["id"]
+    })
+    
+    if not webinar:
+        raise HTTPException(status_code=404, detail="Webinar not found or unauthorized")
+    
+    result = webinar_qa_collection.update_one(
+        {"id": question_id, "webinar_id": webinar_id},
+        {"$set": {"is_featured": True}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Question not found")
+    
+    updated = webinar_qa_collection.find_one({"id": question_id})
+    return updated
+
+# ==================== WEBINAR POLLS ROUTES ====================
+
+@app.get("/api/webinars/{webinar_id}/polls")
+async def get_polls(
+    webinar_id: str,
+    active_only: bool = False
+):
+    """Get webinar polls"""
+    query = {"webinar_id": webinar_id}
+    
+    if active_only:
+        query["is_active"] = True
+    
+    polls = list(webinar_polls_collection.find(query).sort("created_at", -1))
+    
+    return {"polls": polls}
+
+@app.post("/api/webinars/{webinar_id}/polls", status_code=status.HTTP_201_CREATED)
+async def create_poll(
+    webinar_id: str,
+    poll: WebinarPollCreate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Create a poll (host only)"""
+    webinar = webinars_collection.find_one({
+        "id": webinar_id,
+        "user_id": current_user["id"]
+    })
+    
+    if not webinar:
+        raise HTTPException(status_code=404, detail="Webinar not found or unauthorized")
+    
+    poll_dict = poll.model_dump()
+    poll_dict['id'] = str(uuid.uuid4())
+    poll_dict['webinar_id'] = webinar_id
+    poll_dict['is_active'] = True
+    poll_dict['total_votes'] = 0
+    poll_dict['votes'] = {str(i): 0 for i in range(len(poll.options))}
+    poll_dict['created_at'] = datetime.utcnow()
+    
+    webinar_polls_collection.insert_one(poll_dict)
+    
+    return poll_dict
+
+@app.post("/api/webinars/{webinar_id}/polls/{poll_id}/vote")
+async def vote_on_poll(
+    webinar_id: str,
+    poll_id: str,
+    vote: WebinarPollVote
+):
+    """Vote on a poll"""
+    poll = webinar_polls_collection.find_one({
+        "id": poll_id,
+        "webinar_id": webinar_id
+    })
+    
+    if not poll:
+        raise HTTPException(status_code=404, detail="Poll not found")
+    
+    if not poll.get('is_active', False):
+        raise HTTPException(status_code=400, detail="Poll is not active")
+    
+    # Update votes
+    votes = poll.get('votes', {})
+    for idx in vote.option_indices:
+        key = str(idx)
+        if key in votes:
+            votes[key] = votes.get(key, 0) + 1
+    
+    webinar_polls_collection.update_one(
+        {"id": poll_id},
+        {
+            "$set": {"votes": votes},
+            "$inc": {"total_votes": 1}
+        }
+    )
+    
+    updated = webinar_polls_collection.find_one({"id": poll_id})
+    return updated
+
+@app.put("/api/webinars/{webinar_id}/polls/{poll_id}")
+async def update_poll(
+    webinar_id: str,
+    poll_id: str,
+    poll_update: WebinarPollUpdate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Update poll (host only)"""
+    webinar = webinars_collection.find_one({
+        "id": webinar_id,
+        "user_id": current_user["id"]
+    })
+    
+    if not webinar:
+        raise HTTPException(status_code=404, detail="Webinar not found or unauthorized")
+    
+    update_data = {k: v for k, v in poll_update.model_dump().items() if v is not None}
+    
+    if update_data:
+        webinar_polls_collection.update_one(
+            {"id": poll_id, "webinar_id": webinar_id},
+            {"$set": update_data}
+        )
+    
+    updated = webinar_polls_collection.find_one({"id": poll_id})
+    return updated
+
+@app.delete("/api/webinars/{webinar_id}/polls/{poll_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_poll(
+    webinar_id: str,
+    poll_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Delete poll (host only)"""
+    webinar = webinars_collection.find_one({
+        "id": webinar_id,
+        "user_id": current_user["id"]
+    })
+    
+    if not webinar:
+        raise HTTPException(status_code=404, detail="Webinar not found or unauthorized")
+    
+    result = webinar_polls_collection.delete_one({
+        "id": poll_id,
+        "webinar_id": webinar_id
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Poll not found")
+    
+    return None
+
+# ==================== WEBINAR RECORDINGS ROUTES ====================
+
+@app.get("/api/webinars/{webinar_id}/recordings")
+async def get_recordings(
+    webinar_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get webinar recordings"""
+    webinar = webinars_collection.find_one({
+        "id": webinar_id,
+        "user_id": current_user["id"]
+    })
+    
+    if not webinar:
+        raise HTTPException(status_code=404, detail="Webinar not found or unauthorized")
+    
+    recordings = list(webinar_recordings_collection.find({"webinar_id": webinar_id}).sort("created_at", -1))
+    
+    return {"recordings": recordings}
+
+@app.post("/api/webinars/{webinar_id}/recordings", status_code=status.HTTP_201_CREATED)
+async def add_recording(
+    webinar_id: str,
+    recording: WebinarRecordingCreate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Add webinar recording"""
+    webinar = webinars_collection.find_one({
+        "id": webinar_id,
+        "user_id": current_user["id"]
+    })
+    
+    if not webinar:
+        raise HTTPException(status_code=404, detail="Webinar not found or unauthorized")
+    
+    recording_dict = recording.model_dump()
+    recording_dict['id'] = str(uuid.uuid4())
+    recording_dict['webinar_id'] = webinar_id
+    recording_dict['is_public'] = False
+    recording_dict['view_count'] = 0
+    recording_dict['created_at'] = datetime.utcnow()
+    recording_dict['updated_at'] = datetime.utcnow()
+    
+    webinar_recordings_collection.insert_one(recording_dict)
+    
+    return recording_dict
+
+@app.put("/api/webinars/{webinar_id}/recordings/{recording_id}")
+async def update_recording(
+    webinar_id: str,
+    recording_id: str,
+    recording_update: WebinarRecordingUpdate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Update recording"""
+    webinar = webinars_collection.find_one({
+        "id": webinar_id,
+        "user_id": current_user["id"]
+    })
+    
+    if not webinar:
+        raise HTTPException(status_code=404, detail="Webinar not found or unauthorized")
+    
+    update_data = {k: v for k, v in recording_update.model_dump().items() if v is not None}
+    update_data['updated_at'] = datetime.utcnow()
+    
+    webinar_recordings_collection.update_one(
+        {"id": recording_id, "webinar_id": webinar_id},
+        {"$set": update_data}
+    )
+    
+    updated = webinar_recordings_collection.find_one({"id": recording_id})
+    return updated
+
+@app.delete("/api/webinars/{webinar_id}/recordings/{recording_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_recording(
+    webinar_id: str,
+    recording_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Delete recording"""
+    webinar = webinars_collection.find_one({
+        "id": webinar_id,
+        "user_id": current_user["id"]
+    })
+    
+    if not webinar:
+        raise HTTPException(status_code=404, detail="Webinar not found or unauthorized")
+    
+    result = webinar_recordings_collection.delete_one({
+        "id": recording_id,
+        "webinar_id": webinar_id
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Recording not found")
+    
+    return None
+
+@app.get("/api/webinars/{webinar_id}/recordings/{recording_id}/public")
+async def get_public_recording(
+    webinar_id: str,
+    recording_id: str
+):
+    """Get public recording (for replay viewing)"""
+    recording = webinar_recordings_collection.find_one({
+        "id": recording_id,
+        "webinar_id": webinar_id,
+        "is_public": True
+    })
+    
+    if not recording:
+        raise HTTPException(status_code=404, detail="Recording not found or not public")
+    
+    # Increment view count
+    webinar_recordings_collection.update_one(
+        {"id": recording_id},
+        {"$inc": {"view_count": 1}}
+    )
+    
+    return recording
+
+# ==================== WEBINAR ANALYTICS ROUTES ====================
+
+@app.get("/api/webinars/analytics/summary")
+async def get_webinar_analytics(
+    current_user: dict = Depends(get_current_user)
+):
+    """Get webinar analytics summary"""
+    user_id = current_user["id"]
+    
+    total_webinars = webinars_collection.count_documents({"user_id": user_id})
+    
+    upcoming_webinars = webinars_collection.count_documents({
+        "user_id": user_id,
+        "status": "scheduled",
+        "scheduled_at": {"$gte": datetime.utcnow()}
+    })
+    
+    completed_webinars = webinars_collection.count_documents({
+        "user_id": user_id,
+        "status": "ended"
+    })
+    
+    # Get total registrations
+    user_webinar_ids = [w['id'] for w in webinars_collection.find({"user_id": user_id}, {"id": 1})]
+    total_registrations = webinar_registrations_collection.count_documents({
+        "webinar_id": {"$in": user_webinar_ids}
+    })
+    
+    total_attendees = webinar_registrations_collection.count_documents({
+        "webinar_id": {"$in": user_webinar_ids},
+        "status": "attended"
+    })
+    
+    # Calculate average attendance rate
+    average_attendance_rate = 0.0
+    if total_registrations > 0:
+        average_attendance_rate = (total_attendees / total_registrations) * 100
+    
+    # Get chat and Q&A stats
+    total_chat_messages = webinar_chat_messages_collection.count_documents({
+        "webinar_id": {"$in": user_webinar_ids}
+    })
+    
+    total_questions = webinar_qa_collection.count_documents({
+        "webinar_id": {"$in": user_webinar_ids}
+    })
+    
+    return WebinarAnalytics(
+        total_webinars=total_webinars,
+        upcoming_webinars=upcoming_webinars,
+        completed_webinars=completed_webinars,
+        total_registrations=total_registrations,
+        total_attendees=total_attendees,
+        average_attendance_rate=round(average_attendance_rate, 2),
+        total_chat_messages=total_chat_messages,
+        total_questions=total_questions
+    )
+
+@app.get("/api/webinars/{webinar_id}/analytics")
+async def get_webinar_specific_analytics(
+    webinar_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get analytics for a specific webinar"""
+    webinar = webinars_collection.find_one({
+        "id": webinar_id,
+        "user_id": current_user["id"]
+    })
+    
+    if not webinar:
+        raise HTTPException(status_code=404, detail="Webinar not found")
+    
+    # Registration stats
+    total_registrations = webinar_registrations_collection.count_documents({"webinar_id": webinar_id})
+    attended = webinar_registrations_collection.count_documents({"webinar_id": webinar_id, "status": "attended"})
+    no_show = webinar_registrations_collection.count_documents({"webinar_id": webinar_id, "status": "no_show"})
+    
+    # Engagement stats
+    chat_messages = webinar_chat_messages_collection.count_documents({"webinar_id": webinar_id})
+    total_questions = webinar_qa_collection.count_documents({"webinar_id": webinar_id})
+    answered_questions = webinar_qa_collection.count_documents({"webinar_id": webinar_id, "is_answered": True})
+    total_polls = webinar_polls_collection.count_documents({"webinar_id": webinar_id})
+    
+    # Average watch time
+    registrations = list(webinar_registrations_collection.find({"webinar_id": webinar_id, "status": "attended"}))
+    avg_watch_time = 0
+    if registrations:
+        total_watch_time = sum(r.get('watch_time_minutes', 0) for r in registrations)
+        avg_watch_time = total_watch_time / len(registrations) if len(registrations) > 0 else 0
+    
+    attendance_rate = (attended / total_registrations * 100) if total_registrations > 0 else 0
+    
+    return {
+        "webinar_id": webinar_id,
+        "title": webinar.get('title'),
+        "status": webinar.get('status'),
+        "scheduled_at": webinar.get('scheduled_at'),
+        "registrations": {
+            "total": total_registrations,
+            "attended": attended,
+            "no_show": no_show,
+            "attendance_rate": round(attendance_rate, 2)
+        },
+        "engagement": {
+            "chat_messages": chat_messages,
+            "total_questions": total_questions,
+            "answered_questions": answered_questions,
+            "total_polls": total_polls,
+            "average_watch_time_minutes": round(avg_watch_time, 2)
+        }
+    }
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
