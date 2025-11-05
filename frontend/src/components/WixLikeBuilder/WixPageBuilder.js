@@ -22,6 +22,8 @@ const WixPageBuilder = ({ page, onSave, onClose }) => {
   const [historyIndex, setHistoryIndex] = useState(0);
   const [hoveredBlockId, setHoveredBlockId] = useState(null);
   const [draggedOverIndex, setDraggedOverIndex] = useState(null);
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
+  const [pageStatus, setPageStatus] = useState(page?.status || 'draft');
   
   const canvasRef = useRef(null);
 
