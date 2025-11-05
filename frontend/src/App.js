@@ -1244,6 +1244,7 @@ const Dashboard = ({ user, onLogout }) => {
     { id: 'courses', name: 'Courses', icon: BookOpen },
     { id: 'webinars', name: 'Webinars', icon: Video },
     { id: 'blog', name: 'Blog', icon: FileText },
+    { id: 'website', name: 'Website', icon: Layout },
     { id: 'forms', name: 'Forms', icon: MessageSquare },
     { id: 'affiliates', name: 'Affiliates', icon: Award },
     { id: 'workflows', name: 'Automations', icon: Zap },
