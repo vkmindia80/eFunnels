@@ -208,6 +208,16 @@ const Webinars = () => {
           Upcoming
         </button>
         <button
+          onClick={() => setActiveTab('recordings')}
+          className={`pb-3 px-4 font-medium transition ${
+            activeTab === 'recordings'
+              ? 'border-b-2 border-blue-600 text-blue-600'
+              : 'text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          Recordings
+        </button>
+        <button
           onClick={() => setActiveTab('analytics')}
           className={`pb-3 px-4 font-medium transition ${
             activeTab === 'analytics'
