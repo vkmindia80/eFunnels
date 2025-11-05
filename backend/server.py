@@ -5161,6 +5161,1034 @@ async def get_course_analytics(
         "active_students": active_students,
         "completed_students": completed_students,
         "completion_rate": round(completion_rate, 2),
+
+
+# ==================== PHASE 8: BLOG & WEBSITE BUILDER ROUTES ====================
+
+# Helper function to generate slugs
+import re
+
+def generate_slug(text: str) -> str:
+    """Generate URL-friendly slug from text"""
+    text = text.lower().strip()
+    text = re.sub(r'[^\w\s-]', '', text)
+    text = re.sub(r'[-\s]+', '-', text)
+    return text[:100]  # Limit slug length
+
+
+# ==================== BLOG POST ROUTES ====================
+
+@app.get("/api/blog/posts")
+async def list_blog_posts(
+    current_user: User = Depends(get_current_user),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1, le=100),
+    status: Optional[str] = Query(None),
+    category_id: Optional[str] = Query(None),
+    search: Optional[str] = Query(None)
+):
+    """List blog posts with pagination and filters"""
+    query = {"user_id": current_user['id']}
+    
+    if status:
+        query['status'] = status
+    if category_id:
+        query['category_id'] = category_id
+    if search:
+        query['$or'] = [
+            {'title': {'$regex': search, '$options': 'i'}},
+            {'excerpt': {'$regex': search, '$options': 'i'}}
+        ]
+    
+    total = blog_posts_collection.count_documents(query)
+    posts = list(blog_posts_collection.find(query).sort('created_at', -1).skip(skip).limit(limit))
+    
+    for post in posts:
+        post['_id'] = str(post['_id'])
+    
+    return {
+        "posts": posts,
+        "total": total,
+        "skip": skip,
+        "limit": limit
+    }
+
+
+@app.post("/api/blog/posts", status_code=status.HTTP_201_CREATED)
+async def create_blog_post(
+    post_data: BlogPostCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Create a new blog post"""
+    post_dict = post_data.model_dump()
+    post_dict['id'] = str(uuid.uuid4())
+    post_dict['user_id'] = current_user['id']
+    
+    # Generate slug if not provided
+    if not post_dict.get('slug'):
+        post_dict['slug'] = generate_slug(post_data.title)
+    
+    # Ensure unique slug
+    existing = blog_posts_collection.find_one({
+        'user_id': current_user['id'],
+        'slug': post_dict['slug']
+    })
+    if existing:
+        post_dict['slug'] = f"{post_dict['slug']}-{str(uuid.uuid4())[:8]}"
+    
+    post_dict['created_at'] = datetime.utcnow()
+    post_dict['updated_at'] = datetime.utcnow()
+    post_dict['total_views'] = 0
+    post_dict['total_comments'] = 0
+    post_dict['average_reading_time'] = 0
+    
+    # Set published_at if status is published
+    if post_dict.get('status') == 'published':
+        post_dict['published_at'] = datetime.utcnow()
+    
+    blog_posts_collection.insert_one(post_dict)
+    post_dict.pop('_id', None)
+    
+    return post_dict
+
+
+@app.get("/api/blog/posts/{post_id}")
+async def get_blog_post(
+    post_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get a blog post by ID"""
+    post = blog_posts_collection.find_one({
+        'id': post_id,
+        'user_id': current_user['id']
+    })
+    
+    if not post:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Blog post not found"
+        )
+    
+    post['_id'] = str(post['_id'])
+    return post
+
+
+@app.put("/api/blog/posts/{post_id}")
+async def update_blog_post(
+    post_id: str,
+    post_data: BlogPostUpdate,
+    current_user: User = Depends(get_current_user)
+):
+    """Update a blog post"""
+    post = blog_posts_collection.find_one({
+        'id': post_id,
+        'user_id': current_user['id']
+    })
+    
+    if not post:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Blog post not found"
+        )
+    
+    update_data = post_data.model_dump(exclude_unset=True)
+    
+    # Update slug if title changed
+    if 'title' in update_data and 'slug' not in update_data:
+        update_data['slug'] = generate_slug(update_data['title'])
+    
+    # Set published_at if status changed to published
+    if update_data.get('status') == 'published' and post.get('status') != 'published':
+        update_data['published_at'] = datetime.utcnow()
+    
+    update_data['updated_at'] = datetime.utcnow()
+    
+    blog_posts_collection.update_one(
+        {'id': post_id, 'user_id': current_user['id']},
+        {'$set': update_data}
+    )
+    
+    updated_post = blog_posts_collection.find_one({'id': post_id})
+    updated_post['_id'] = str(updated_post['_id'])
+    
+    return updated_post
+
+
+@app.delete("/api/blog/posts/{post_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_blog_post(
+    post_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Delete a blog post"""
+    result = blog_posts_collection.delete_one({
+        'id': post_id,
+        'user_id': current_user['id']
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Blog post not found"
+        )
+    
+    # Also delete associated comments and views
+    blog_comments_collection.delete_many({'post_id': post_id})
+    blog_post_views_collection.delete_many({'post_id': post_id})
+    
+    return {"message": "Blog post deleted"}
+
+
+# ==================== BLOG CATEGORY ROUTES ====================
+
+@app.get("/api/blog/categories")
+async def list_blog_categories(
+    current_user: User = Depends(get_current_user)
+):
+    """List all blog categories"""
+    categories = list(blog_categories_collection.find({'user_id': current_user['id']}))
+    
+    for category in categories:
+        category['_id'] = str(category['_id'])
+    
+    return {"categories": categories}
+
+
+@app.post("/api/blog/categories", status_code=status.HTTP_201_CREATED)
+async def create_blog_category(
+    category_data: BlogCategoryCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Create a new blog category"""
+    category_dict = category_data.model_dump()
+    category_dict['id'] = str(uuid.uuid4())
+    category_dict['user_id'] = current_user['id']
+    
+    # Generate slug if not provided
+    if not category_dict.get('slug'):
+        category_dict['slug'] = generate_slug(category_data.name)
+    
+    category_dict['created_at'] = datetime.utcnow()
+    category_dict['updated_at'] = datetime.utcnow()
+    category_dict['post_count'] = 0
+    
+    blog_categories_collection.insert_one(category_dict)
+    category_dict.pop('_id', None)
+    
+    return category_dict
+
+
+@app.put("/api/blog/categories/{category_id}")
+async def update_blog_category(
+    category_id: str,
+    category_data: BlogCategoryUpdate,
+    current_user: User = Depends(get_current_user)
+):
+    """Update a blog category"""
+    update_data = category_data.model_dump(exclude_unset=True)
+    update_data['updated_at'] = datetime.utcnow()
+    
+    result = blog_categories_collection.update_one(
+        {'id': category_id, 'user_id': current_user['id']},
+        {'$set': update_data}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Category not found"
+        )
+    
+    updated_category = blog_categories_collection.find_one({'id': category_id})
+    updated_category['_id'] = str(updated_category['_id'])
+    
+    return updated_category
+
+
+@app.delete("/api/blog/categories/{category_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_blog_category(
+    category_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Delete a blog category"""
+    result = blog_categories_collection.delete_one({
+        'id': category_id,
+        'user_id': current_user['id']
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Category not found"
+        )
+    
+    return {"message": "Category deleted"}
+
+
+# ==================== BLOG TAG ROUTES ====================
+
+@app.get("/api/blog/tags")
+async def list_blog_tags(
+    current_user: User = Depends(get_current_user)
+):
+    """List all blog tags"""
+    tags = list(blog_tags_collection.find({'user_id': current_user['id']}))
+    
+    for tag in tags:
+        tag['_id'] = str(tag['_id'])
+    
+    return {"tags": tags}
+
+
+@app.post("/api/blog/tags", status_code=status.HTTP_201_CREATED)
+async def create_blog_tag(
+    tag_data: BlogTagCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Create a new blog tag"""
+    tag_dict = tag_data.model_dump()
+    tag_dict['id'] = str(uuid.uuid4())
+    tag_dict['user_id'] = current_user['id']
+    
+    # Generate slug if not provided
+    if not tag_dict.get('slug'):
+        tag_dict['slug'] = generate_slug(tag_data.name)
+    
+    tag_dict['created_at'] = datetime.utcnow()
+    tag_dict['post_count'] = 0
+    
+    blog_tags_collection.insert_one(tag_dict)
+    tag_dict.pop('_id', None)
+    
+    return tag_dict
+
+
+@app.delete("/api/blog/tags/{tag_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_blog_tag(
+    tag_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Delete a blog tag"""
+    result = blog_tags_collection.delete_one({
+        'id': tag_id,
+        'user_id': current_user['id']
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Tag not found"
+        )
+    
+    return {"message": "Tag deleted"}
+
+
+# ==================== BLOG COMMENT ROUTES ====================
+
+@app.get("/api/blog/posts/{post_id}/comments")
+async def list_blog_comments(
+    post_id: str,
+    current_user: User = Depends(get_current_user),
+    status_filter: Optional[str] = Query(None)
+):
+    """List comments for a blog post"""
+    query = {
+        'post_id': post_id,
+        'user_id': current_user['id']
+    }
+    
+    if status_filter:
+        query['status'] = status_filter
+    
+    comments = list(blog_comments_collection.find(query).sort('created_at', -1))
+    
+    for comment in comments:
+        comment['_id'] = str(comment['_id'])
+    
+    return {"comments": comments}
+
+
+@app.put("/api/blog/comments/{comment_id}/approve")
+async def approve_blog_comment(
+    comment_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Approve a blog comment"""
+    result = blog_comments_collection.update_one(
+        {'id': comment_id, 'user_id': current_user['id']},
+        {
+            '$set': {
+                'status': 'approved',
+                'approved_at': datetime.utcnow()
+            }
+        }
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Comment not found"
+        )
+    
+    return {"message": "Comment approved"}
+
+
+@app.delete("/api/blog/comments/{comment_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_blog_comment(
+    comment_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Delete a blog comment"""
+    result = blog_comments_collection.delete_one({
+        'id': comment_id,
+        'user_id': current_user['id']
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Comment not found"
+        )
+    
+    return {"message": "Comment deleted"}
+
+
+# ==================== WEBSITE PAGE ROUTES ====================
+
+@app.get("/api/website/pages")
+async def list_website_pages(
+    current_user: User = Depends(get_current_user),
+    status: Optional[str] = Query(None)
+):
+    """List website pages"""
+    query = {"user_id": current_user['id']}
+    
+    if status:
+        query['status'] = status
+    
+    pages = list(website_pages_collection.find(query).sort('order', 1))
+    
+    for page in pages:
+        page['_id'] = str(page['_id'])
+    
+    return {"pages": pages}
+
+
+@app.post("/api/website/pages", status_code=status.HTTP_201_CREATED)
+async def create_website_page(
+    page_data: WebsitePageCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Create a new website page"""
+    page_dict = page_data.model_dump()
+    page_dict['id'] = str(uuid.uuid4())
+    page_dict['user_id'] = current_user['id']
+    
+    # Generate slug if not provided
+    if not page_dict.get('slug'):
+        page_dict['slug'] = generate_slug(page_data.title)
+    
+    # Ensure unique slug
+    existing = website_pages_collection.find_one({
+        'user_id': current_user['id'],
+        'slug': page_dict['slug']
+    })
+    if existing:
+        page_dict['slug'] = f"{page_dict['slug']}-{str(uuid.uuid4())[:8]}"
+    
+    page_dict['created_at'] = datetime.utcnow()
+    page_dict['updated_at'] = datetime.utcnow()
+    page_dict['total_views'] = 0
+    page_dict['status'] = 'draft'
+    page_dict['order'] = 0
+    
+    website_pages_collection.insert_one(page_dict)
+    page_dict.pop('_id', None)
+    
+    return page_dict
+
+
+@app.get("/api/website/pages/{page_id}")
+async def get_website_page(
+    page_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get a website page by ID"""
+    page = website_pages_collection.find_one({
+        'id': page_id,
+        'user_id': current_user['id']
+    })
+    
+    if not page:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Page not found"
+        )
+    
+    page['_id'] = str(page['_id'])
+    return page
+
+
+@app.put("/api/website/pages/{page_id}")
+async def update_website_page(
+    page_id: str,
+    page_data: WebsitePageUpdate,
+    current_user: User = Depends(get_current_user)
+):
+    """Update a website page"""
+    update_data = page_data.model_dump(exclude_unset=True)
+    update_data['updated_at'] = datetime.utcnow()
+    
+    # Set published_at if status changed to published
+    if update_data.get('status') == 'published':
+        page = website_pages_collection.find_one({'id': page_id})
+        if page and page.get('status') != 'published':
+            update_data['published_at'] = datetime.utcnow()
+    
+    result = website_pages_collection.update_one(
+        {'id': page_id, 'user_id': current_user['id']},
+        {'$set': update_data}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Page not found"
+        )
+    
+    updated_page = website_pages_collection.find_one({'id': page_id})
+    updated_page['_id'] = str(updated_page['_id'])
+    
+    return updated_page
+
+
+@app.delete("/api/website/pages/{page_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_website_page(
+    page_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Delete a website page"""
+    result = website_pages_collection.delete_one({
+        'id': page_id,
+        'user_id': current_user['id']
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Page not found"
+        )
+    
+    # Also delete associated views
+    website_page_views_collection.delete_many({'page_id': page_id})
+    
+    return {"message": "Page deleted"}
+
+
+# ==================== WEBSITE THEME ROUTES ====================
+
+@app.get("/api/website/themes")
+async def list_website_themes(
+    current_user: User = Depends(get_current_user)
+):
+    """List website themes"""
+    themes = list(website_themes_collection.find({'user_id': current_user['id']}))
+    
+    for theme in themes:
+        theme['_id'] = str(theme['_id'])
+    
+    return {"themes": themes}
+
+
+@app.get("/api/website/themes/active")
+async def get_active_theme(
+    current_user: User = Depends(get_current_user)
+):
+    """Get the active theme"""
+    theme = website_themes_collection.find_one({
+        'user_id': current_user['id'],
+        'is_active': True
+    })
+    
+    if not theme:
+        # Return default theme if none active
+        return {
+            "id": "default",
+            "name": "Default Theme",
+            "primary_color": "#3B82F6",
+            "secondary_color": "#10B981",
+            "accent_color": "#F59E0B",
+            "background_color": "#FFFFFF",
+            "text_color": "#111827",
+            "heading_font": "Inter",
+            "body_font": "Inter",
+            "is_active": True
+        }
+    
+    theme['_id'] = str(theme['_id'])
+    return theme
+
+
+@app.post("/api/website/themes", status_code=status.HTTP_201_CREATED)
+async def create_website_theme(
+    theme_data: WebsiteThemeCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Create a new website theme"""
+    theme_dict = theme_data.model_dump()
+    theme_dict['id'] = str(uuid.uuid4())
+    theme_dict['user_id'] = current_user['id']
+    theme_dict['is_active'] = False
+    theme_dict['created_at'] = datetime.utcnow()
+    theme_dict['updated_at'] = datetime.utcnow()
+    
+    website_themes_collection.insert_one(theme_dict)
+    theme_dict.pop('_id', None)
+    
+    return theme_dict
+
+
+@app.put("/api/website/themes/{theme_id}")
+async def update_website_theme(
+    theme_id: str,
+    theme_data: WebsiteThemeUpdate,
+    current_user: User = Depends(get_current_user)
+):
+    """Update a website theme"""
+    update_data = theme_data.model_dump(exclude_unset=True)
+    update_data['updated_at'] = datetime.utcnow()
+    
+    result = website_themes_collection.update_one(
+        {'id': theme_id, 'user_id': current_user['id']},
+        {'$set': update_data}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Theme not found"
+        )
+    
+    updated_theme = website_themes_collection.find_one({'id': theme_id})
+    updated_theme['_id'] = str(updated_theme['_id'])
+    
+    return updated_theme
+
+
+@app.post("/api/website/themes/{theme_id}/activate")
+async def activate_website_theme(
+    theme_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Activate a website theme (deactivates others)"""
+    # Deactivate all themes first
+    website_themes_collection.update_many(
+        {'user_id': current_user['id']},
+        {'$set': {'is_active': False}}
+    )
+    
+    # Activate the selected theme
+    result = website_themes_collection.update_one(
+        {'id': theme_id, 'user_id': current_user['id']},
+        {'$set': {'is_active': True, 'updated_at': datetime.utcnow()}}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Theme not found"
+        )
+    
+    return {"message": "Theme activated"}
+
+
+@app.delete("/api/website/themes/{theme_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_website_theme(
+    theme_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Delete a website theme"""
+    theme = website_themes_collection.find_one({
+        'id': theme_id,
+        'user_id': current_user['id']
+    })
+    
+    if not theme:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Theme not found"
+        )
+    
+    if theme.get('is_active'):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot delete active theme"
+        )
+    
+    website_themes_collection.delete_one({'id': theme_id})
+    
+    return {"message": "Theme deleted"}
+
+
+# ==================== NAVIGATION MENU ROUTES ====================
+
+@app.get("/api/website/menus")
+async def list_navigation_menus(
+    current_user: User = Depends(get_current_user)
+):
+    """List navigation menus"""
+    menus = list(navigation_menus_collection.find({'user_id': current_user['id']}))
+    
+    for menu in menus:
+        menu['_id'] = str(menu['_id'])
+    
+    return {"menus": menus}
+
+
+@app.post("/api/website/menus", status_code=status.HTTP_201_CREATED)
+async def create_navigation_menu(
+    menu_data: NavigationMenuCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Create a new navigation menu"""
+    menu_dict = menu_data.model_dump()
+    menu_dict['id'] = str(uuid.uuid4())
+    menu_dict['user_id'] = current_user['id']
+    menu_dict['created_at'] = datetime.utcnow()
+    menu_dict['updated_at'] = datetime.utcnow()
+    
+    navigation_menus_collection.insert_one(menu_dict)
+    menu_dict.pop('_id', None)
+    
+    return menu_dict
+
+
+@app.put("/api/website/menus/{menu_id}")
+async def update_navigation_menu(
+    menu_id: str,
+    menu_data: NavigationMenuUpdate,
+    current_user: User = Depends(get_current_user)
+):
+    """Update a navigation menu"""
+    update_data = menu_data.model_dump(exclude_unset=True)
+    update_data['updated_at'] = datetime.utcnow()
+    
+    result = navigation_menus_collection.update_one(
+        {'id': menu_id, 'user_id': current_user['id']},
+        {'$set': update_data}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Menu not found"
+        )
+    
+    updated_menu = navigation_menus_collection.find_one({'id': menu_id})
+    updated_menu['_id'] = str(updated_menu['_id'])
+    
+    return updated_menu
+
+
+@app.delete("/api/website/menus/{menu_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_navigation_menu(
+    menu_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Delete a navigation menu"""
+    result = navigation_menus_collection.delete_one({
+        'id': menu_id,
+        'user_id': current_user['id']
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Menu not found"
+        )
+    
+    return {"message": "Menu deleted"}
+
+
+# ==================== PUBLIC BLOG & WEBSITE ROUTES ====================
+
+@app.get("/api/public/blog/posts")
+async def public_list_blog_posts(
+    user_id: str = Query(...),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1, le=100),
+    category_id: Optional[str] = Query(None),
+    tag: Optional[str] = Query(None),
+    search: Optional[str] = Query(None)
+):
+    """Public endpoint to list published blog posts"""
+    query = {
+        'user_id': user_id,
+        'status': 'published'
+    }
+    
+    if category_id:
+        query['category_id'] = category_id
+    if tag:
+        query['tags'] = tag
+    if search:
+        query['$or'] = [
+            {'title': {'$regex': search, '$options': 'i'}},
+            {'excerpt': {'$regex': search, '$options': 'i'}},
+            {'content': {'$regex': search, '$options': 'i'}}
+        ]
+    
+    total = blog_posts_collection.count_documents(query)
+    posts = list(blog_posts_collection.find(query).sort('published_at', -1).skip(skip).limit(limit))
+    
+    for post in posts:
+        post['_id'] = str(post['_id'])
+    
+    return {
+        "posts": posts,
+        "total": total,
+        "skip": skip,
+        "limit": limit
+    }
+
+
+@app.get("/api/public/blog/posts/{slug}")
+async def public_get_blog_post(
+    slug: str,
+    user_id: str = Query(...)
+):
+    """Public endpoint to get a published blog post by slug"""
+    post = blog_posts_collection.find_one({
+        'slug': slug,
+        'user_id': user_id,
+        'status': 'published'
+    })
+    
+    if not post:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Blog post not found"
+        )
+    
+    # Track view
+    view_data = {
+        'id': str(uuid.uuid4()),
+        'post_id': post['id'],
+        'user_id': user_id,
+        'created_at': datetime.utcnow()
+    }
+    blog_post_views_collection.insert_one(view_data)
+    
+    # Increment view count
+    blog_posts_collection.update_one(
+        {'id': post['id']},
+        {'$inc': {'total_views': 1}}
+    )
+    
+    post['_id'] = str(post['_id'])
+    return post
+
+
+@app.post("/api/public/blog/posts/{post_id}/comments", status_code=status.HTTP_201_CREATED)
+async def public_create_blog_comment(
+    post_id: str,
+    comment_data: PublicBlogCommentRequest
+):
+    """Public endpoint to create a blog comment"""
+    # Get the blog post to find the owner
+    post = blog_posts_collection.find_one({'id': post_id, 'status': 'published'})
+    
+    if not post:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Blog post not found"
+        )
+    
+    if not post.get('enable_comments', True):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Comments are disabled for this post"
+        )
+    
+    comment_dict = comment_data.model_dump()
+    comment_dict['id'] = str(uuid.uuid4())
+    comment_dict['post_id'] = post_id
+    comment_dict['user_id'] = post['user_id']
+    comment_dict['status'] = 'pending'  # Requires approval
+    comment_dict['created_at'] = datetime.utcnow()
+    
+    blog_comments_collection.insert_one(comment_dict)
+    
+    # Increment comment count
+    blog_posts_collection.update_one(
+        {'id': post_id},
+        {'$inc': {'total_comments': 1}}
+    )
+    
+    comment_dict.pop('_id', None)
+    
+    return comment_dict
+
+
+@app.get("/api/public/website/pages/{slug}")
+async def public_get_website_page(
+    slug: str,
+    user_id: str = Query(...)
+):
+    """Public endpoint to get a published website page by slug"""
+    page = website_pages_collection.find_one({
+        'slug': slug,
+        'user_id': user_id,
+        'status': 'published'
+    })
+    
+    if not page:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Page not found"
+        )
+    
+    # Track view
+    view_data = {
+        'id': str(uuid.uuid4()),
+        'page_id': page['id'],
+        'user_id': user_id,
+        'created_at': datetime.utcnow()
+    }
+    website_page_views_collection.insert_one(view_data)
+    
+    # Increment view count
+    website_pages_collection.update_one(
+        {'id': page['id']},
+        {'$inc': {'total_views': 1}}
+    )
+    
+    page['_id'] = str(page['_id'])
+    return page
+
+
+# ==================== BLOG & WEBSITE ANALYTICS ROUTES ====================
+
+@app.get("/api/blog/analytics/summary")
+async def get_blog_analytics(
+    current_user: User = Depends(get_current_user)
+):
+    """Get blog analytics summary"""
+    total_posts = blog_posts_collection.count_documents({'user_id': current_user['id']})
+    published_posts = blog_posts_collection.count_documents({
+        'user_id': current_user['id'],
+        'status': 'published'
+    })
+    total_categories = blog_categories_collection.count_documents({'user_id': current_user['id']})
+    total_tags = blog_tags_collection.count_documents({'user_id': current_user['id']})
+    
+    # Total views
+    total_views_result = blog_posts_collection.aggregate([
+        {"$match": {"user_id": current_user['id']}},
+        {"$group": {"_id": None, "total": {"$sum": "$total_views"}}}
+    ])
+    views_list = list(total_views_result)
+    total_views = views_list[0]['total'] if views_list else 0
+    
+    # Total comments
+    total_comments = blog_comments_collection.count_documents({'user_id': current_user['id']})
+    pending_comments = blog_comments_collection.count_documents({
+        'user_id': current_user['id'],
+        'status': 'pending'
+    })
+    
+    return {
+        "total_posts": total_posts,
+        "published_posts": published_posts,
+        "draft_posts": total_posts - published_posts,
+        "total_categories": total_categories,
+        "total_tags": total_tags,
+        "total_views": total_views,
+        "total_comments": total_comments,
+        "pending_comments": pending_comments
+    }
+
+
+@app.get("/api/website/analytics/summary")
+async def get_website_analytics(
+    current_user: User = Depends(get_current_user)
+):
+    """Get website analytics summary"""
+    total_pages = website_pages_collection.count_documents({'user_id': current_user['id']})
+    published_pages = website_pages_collection.count_documents({
+        'user_id': current_user['id'],
+        'status': 'published'
+    })
+    total_themes = website_themes_collection.count_documents({'user_id': current_user['id']})
+    total_menus = navigation_menus_collection.count_documents({'user_id': current_user['id']})
+    
+    # Total views
+    total_views_result = website_pages_collection.aggregate([
+        {"$match": {"user_id": current_user['id']}},
+        {"$group": {"_id": None, "total": {"$sum": "$total_views"}}}
+    ])
+    views_list = list(total_views_result)
+    total_views = views_list[0]['total'] if views_list else 0
+    
+    return {
+        "total_pages": total_pages,
+        "published_pages": published_pages,
+        "draft_pages": total_pages - published_pages,
+        "total_themes": total_themes,
+        "total_menus": total_menus,
+        "total_views": total_views
+    }
+
+
+# ==================== RSS FEED ROUTE ====================
+
+@app.get("/api/public/blog/rss")
+async def generate_rss_feed(
+    user_id: str = Query(...)
+):
+    """Generate RSS feed for blog posts"""
+    # Get user info
+    user = users_collection.find_one({'id': user_id})
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    # Get published posts
+    posts = list(blog_posts_collection.find({
+        'user_id': user_id,
+        'status': 'published'
+    }).sort('published_at', -1).limit(20))
+    
+    # Generate RSS XML
+    rss_items = []
+    for post in posts:
+        item = f"""
+        <item>
+            <title>{post.get('title', '')}</title>
+            <link>https://yourblog.com/blog/{post.get('slug', '')}</link>
+            <description>{post.get('excerpt', '')}</description>
+            <pubDate>{post.get('published_at', '').strftime('%a, %d %b %Y %H:%M:%S GMT') if post.get('published_at') else ''}</pubDate>
+            <guid>https://yourblog.com/blog/{post.get('slug', '')}</guid>
+        </item>
+        """
+        rss_items.append(item)
+    
+    rss_xml = f"""<?xml version="1.0" encoding="UTF-8" ?>
+    <rss version="2.0">
+        <channel>
+            <title>{user.get('full_name', '')}'s Blog</title>
+            <link>https://yourblog.com</link>
+            <description>Latest blog posts</description>
+            <language>en-us</language>
+            {''.join(rss_items)}
+        </channel>
+    </rss>
+    """
+    
+    return JSONResponse(content=rss_xml, media_type="application/rss+xml")
+
+
         "average_progress": round(avg_progress, 2),
         "total_revenue": round(total_revenue, 2)
     }
