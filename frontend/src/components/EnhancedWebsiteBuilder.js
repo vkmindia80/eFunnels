@@ -218,8 +218,25 @@ const EnhancedWebsiteBuilder = () => {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              navigator.clipboard.writeText(`${window.location.origin}/${page.slug}`);
-                              alert('URL copied to clipboard!');
+                              const url = `${window.location.origin}/${page.slug}`;
+                              
+                              // Fallback method for clipboard copy that works in all browsers
+                              const textarea = document.createElement('textarea');
+                              textarea.value = url;
+                              textarea.style.position = 'fixed';
+                              textarea.style.opacity = '0';
+                              document.body.appendChild(textarea);
+                              textarea.select();
+                              
+                              try {
+                                document.execCommand('copy');
+                                alert('✅ URL copied to clipboard!');
+                              } catch (err) {
+                                // If even execCommand fails, show the URL in a prompt
+                                prompt('Copy this URL:', url);
+                              } finally {
+                                document.body.removeChild(textarea);
+                              }
                             }}
                             className="text-gray-400 hover:text-gray-600 flex-shrink-0"
                             title="Copy URL"
