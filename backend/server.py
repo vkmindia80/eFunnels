@@ -79,7 +79,10 @@ from database import (
     website_pages_collection, website_themes_collection, navigation_menus_collection,
     website_page_views_collection,
     webinars_collection, webinar_registrations_collection, webinar_chat_messages_collection,
-    webinar_qa_collection, webinar_polls_collection, webinar_recordings_collection
+    webinar_qa_collection, webinar_polls_collection, webinar_recordings_collection,
+    affiliate_programs_collection, affiliates_collection, affiliate_links_collection,
+    affiliate_clicks_collection, affiliate_conversions_collection, affiliate_commissions_collection,
+    affiliate_payouts_collection, affiliate_resources_collection
 )
 import uuid
 from typing import List
