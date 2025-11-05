@@ -43,7 +43,16 @@ from models import (
     PublicWebinarRegistrationRequest, WebinarChatMessageCreate, WebinarChatMessage,
     WebinarQACreate, WebinarQA, WebinarPollCreate, WebinarPollUpdate, WebinarPoll,
     WebinarPollVote, WebinarRecordingCreate, WebinarRecordingUpdate, WebinarRecording,
-    WebinarAnalytics
+    WebinarAnalytics,
+    AffiliateProgramCreate, AffiliateProgramUpdate, AffiliateProgram,
+    AffiliateCreate, AffiliateUpdate, Affiliate, PublicAffiliateRegistrationRequest,
+    AffiliateLinkCreate, AffiliateLink,
+    AffiliateClickCreate, AffiliateClick,
+    AffiliateConversionCreate, AffiliateConversion,
+    AffiliateCommissionCreate, AffiliateCommission,
+    AffiliatePayoutCreate, AffiliatePayoutUpdate, AffiliatePayout,
+    AffiliateResourceCreate, AffiliateResourceUpdate, AffiliateResource,
+    AffiliateAnalytics
 )
 from auth import (
     get_password_hash, 
