@@ -333,7 +333,6 @@ const WixPageBuilder = ({ page, onSave, onClose }) => {
                                     <Trash2 size={16} />
                                   </button>
                                 </div>
-                              )}
 
                               {/* Block Content with Inline Editing */}
                               {isEditing === block.id ? (
