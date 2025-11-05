@@ -4191,6 +4191,31 @@ async def create_lesson(
     
     return lesson_dict
 
+@app.get("/api/courses/{course_id}/modules/{module_id}/lessons")
+async def get_module_lessons(
+    course_id: str,
+    module_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get all lessons for a module"""
+    module = course_modules_collection.find_one({
+        "id": module_id,
+        "course_id": course_id,
+        "user_id": current_user['id']
+    })
+    
+    if not module:
+        raise HTTPException(status_code=404, detail="Module not found")
+    
+    lessons = list(course_lessons_collection.find({
+        "module_id": module_id
+    }).sort("order", 1))
+    
+    for lesson in lessons:
+        lesson.pop('_id', None)
+    
+    return lessons
+
 @app.get("/api/courses/{course_id}/modules/{module_id}/lessons/{lesson_id}")
 async def get_lesson(
     course_id: str,
