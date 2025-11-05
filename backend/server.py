@@ -7366,6 +7366,1246 @@ async def send_test_reminder(
     return result
 
 
+# ==================== AFFILIATE MANAGEMENT ROUTES (PHASE 10) ====================
+
+# Helper function to generate unique affiliate code
+def generate_affiliate_code(first_name: str, last_name: str) -> str:
+    """Generate unique affiliate code"""
+    import random
+    import string
+    base = f"{first_name[:3]}{last_name[:3]}".upper()
+    suffix = ''.join(random.choices(string.digits, k=4))
+    code = f"{base}{suffix}"
+    
+    # Ensure uniqueness
+    while affiliates_collection.find_one({"affiliate_code": code}):
+        suffix = ''.join(random.choices(string.digits, k=4))
+        code = f"{base}{suffix}"
+    
+    return code
+
+# Helper function to generate short code for links
+def generate_short_code() -> str:
+    """Generate unique short code for affiliate links"""
+    import random
+    import string
+    code = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
+    
+    # Ensure uniqueness
+    while affiliate_links_collection.find_one({"short_code": code}):
+        code = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
+    
+    return code
+
+# Helper function to calculate commission
+def calculate_commission(program: dict, order_amount: float, affiliate_sales_count: int = 0) -> float:
+    """Calculate commission based on program rules"""
+    commission_type = program.get("commission_type", "percentage")
+    
+    if commission_type == "percentage":
+        return order_amount * (program.get("commission_value", 0) / 100)
+    elif commission_type == "fixed":
+        return program.get("commission_value", 0)
+    elif commission_type == "tiered":
+        # Find the appropriate tier
+        tiers = program.get("commission_tiers", [])
+        for tier in tiers:
+            min_sales = tier.get("min_sales", 0)
+            max_sales = tier.get("max_sales", float('inf'))
+            if min_sales <= affiliate_sales_count <= max_sales:
+                return order_amount * (tier.get("value", 0) / 100)
+        # Default to base commission if no tier matches
+        return order_amount * (program.get("commission_value", 0) / 100)
+    
+    return 0.0
+
+# ==================== AFFILIATE PROGRAM ROUTES ====================
+
+@app.get("/api/affiliate-programs")
+async def list_affiliate_programs(
+    current_user: dict = Depends(get_current_user)
+):
+    """List all affiliate programs for current user"""
+    programs = list(affiliate_programs_collection.find({"user_id": current_user["id"]}))
+    
+    # Convert ObjectId to string and format dates
+    for program in programs:
+        program["_id"] = str(program["_id"])
+        if "created_at" in program:
+            program["created_at"] = program["created_at"].isoformat()
+        if "updated_at" in program:
+            program["updated_at"] = program["updated_at"].isoformat()
+    
+    return {"programs": programs, "total": len(programs)}
+
+@app.post("/api/affiliate-programs")
+async def create_affiliate_program(
+    program: AffiliateProgramCreate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Create new affiliate program"""
+    program_dict = program.dict()
+    program_dict["id"] = str(uuid.uuid4())
+    program_dict["user_id"] = current_user["id"]
+    program_dict["is_active"] = True
+    program_dict["total_affiliates"] = 0
+    program_dict["total_clicks"] = 0
+    program_dict["total_conversions"] = 0
+    program_dict["total_revenue"] = 0.0
+    program_dict["total_commissions"] = 0.0
+    program_dict["created_at"] = datetime.utcnow()
+    program_dict["updated_at"] = datetime.utcnow()
+    
+    affiliate_programs_collection.insert_one(program_dict)
+    
+    program_dict["_id"] = str(program_dict["_id"])
+    program_dict["created_at"] = program_dict["created_at"].isoformat()
+    program_dict["updated_at"] = program_dict["updated_at"].isoformat()
+    
+    return program_dict
+
+@app.get("/api/affiliate-programs/{program_id}")
+async def get_affiliate_program(
+    program_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get affiliate program details"""
+    program = affiliate_programs_collection.find_one({
+        "id": program_id,
+        "user_id": current_user["id"]
+    })
+    
+    if not program:
+        raise HTTPException(status_code=404, detail="Program not found")
+    
+    program["_id"] = str(program["_id"])
+    if "created_at" in program:
+        program["created_at"] = program["created_at"].isoformat()
+    if "updated_at" in program:
+        program["updated_at"] = program["updated_at"].isoformat()
+    
+    return program
+
+@app.put("/api/affiliate-programs/{program_id}")
+async def update_affiliate_program(
+    program_id: str,
+    program_update: AffiliateProgramUpdate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Update affiliate program"""
+    existing_program = affiliate_programs_collection.find_one({
+        "id": program_id,
+        "user_id": current_user["id"]
+    })
+    
+    if not existing_program:
+        raise HTTPException(status_code=404, detail="Program not found")
+    
+    update_data = {k: v for k, v in program_update.dict().items() if v is not None}
+    update_data["updated_at"] = datetime.utcnow()
+    
+    affiliate_programs_collection.update_one(
+        {"id": program_id},
+        {"$set": update_data}
+    )
+    
+    updated_program = affiliate_programs_collection.find_one({"id": program_id})
+    updated_program["_id"] = str(updated_program["_id"])
+    if "created_at" in updated_program:
+        updated_program["created_at"] = updated_program["created_at"].isoformat()
+    if "updated_at" in updated_program:
+        updated_program["updated_at"] = updated_program["updated_at"].isoformat()
+    
+    return updated_program
+
+@app.delete("/api/affiliate-programs/{program_id}")
+async def delete_affiliate_program(
+    program_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Delete affiliate program"""
+    result = affiliate_programs_collection.delete_one({
+        "id": program_id,
+        "user_id": current_user["id"]
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Program not found")
+    
+    return {"message": "Program deleted successfully"}
+
+# ==================== AFFILIATE ROUTES ====================
+
+@app.post("/api/affiliates/register")
+async def register_affiliate(registration: PublicAffiliateRegistrationRequest):
+    """Public affiliate registration endpoint"""
+    # Check if program exists and is active
+    program = affiliate_programs_collection.find_one({
+        "id": registration.program_id,
+        "is_active": True
+    })
+    
+    if not program:
+        raise HTTPException(status_code=404, detail="Program not found")
+    
+    # Check if affiliate already exists
+    existing_affiliate = affiliates_collection.find_one({
+        "program_id": registration.program_id,
+        "email": registration.email
+    })
+    
+    if existing_affiliate:
+        raise HTTPException(status_code=400, detail="Affiliate already registered for this program")
+    
+    # Generate unique affiliate code
+    affiliate_code = generate_affiliate_code(registration.first_name, registration.last_name)
+    
+    # Determine initial status based on program settings
+    approval_required = program.get("approval_required", True)
+    initial_status = "pending" if approval_required else "approved"
+    
+    # Create affiliate
+    affiliate_dict = registration.dict()
+    affiliate_dict["id"] = str(uuid.uuid4())
+    affiliate_dict["affiliate_code"] = affiliate_code
+    affiliate_dict["status"] = initial_status
+    affiliate_dict["user_id"] = None
+    affiliate_dict["contact_id"] = None
+    affiliate_dict["total_clicks"] = 0
+    affiliate_dict["total_conversions"] = 0
+    affiliate_dict["total_revenue"] = 0.0
+    affiliate_dict["total_commissions"] = 0.0
+    affiliate_dict["pending_commissions"] = 0.0
+    affiliate_dict["paid_commissions"] = 0.0
+    affiliate_dict["created_at"] = datetime.utcnow()
+    affiliate_dict["updated_at"] = datetime.utcnow()
+    
+    if not approval_required:
+        affiliate_dict["approved_at"] = datetime.utcnow()
+        affiliate_dict["approved_by"] = "auto"
+    
+    affiliates_collection.insert_one(affiliate_dict)
+    
+    # Update program stats
+    affiliate_programs_collection.update_one(
+        {"id": registration.program_id},
+        {"$inc": {"total_affiliates": 1}}
+    )
+    
+    # Auto-create contact in CRM
+    try:
+        contact_data = {
+            "id": str(uuid.uuid4()),
+            "user_id": program["user_id"],
+            "first_name": registration.first_name,
+            "last_name": registration.last_name,
+            "email": registration.email,
+            "phone": registration.phone,
+            "company": registration.company,
+            "source": "affiliate_registration",
+            "status": "lead",
+            "score": 0,
+            "custom_fields": {"affiliate_code": affiliate_code},
+            "tags": ["affiliate"],
+            "segments": [],
+            "last_contacted": None,
+            "engagement_count": 0,
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        }
+        
+        contacts_collection.insert_one(contact_data)
+        
+        # Update affiliate with contact_id
+        affiliates_collection.update_one(
+            {"id": affiliate_dict["id"]},
+            {"$set": {"contact_id": contact_data["id"]}}
+        )
+    except Exception as e:
+        print(f"Error creating contact: {e}")
+    
+    affiliate_dict["_id"] = str(affiliate_dict["_id"])
+    affiliate_dict["created_at"] = affiliate_dict["created_at"].isoformat()
+    affiliate_dict["updated_at"] = affiliate_dict["updated_at"].isoformat()
+    
+    return {
+        "message": "Registration successful" if not approval_required else "Registration pending approval",
+        "affiliate": affiliate_dict,
+        "status": initial_status
+    }
+
+@app.get("/api/affiliates")
+async def list_affiliates(
+    program_id: Optional[str] = None,
+    status: Optional[str] = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """List affiliates with optional filters"""
+    query = {}
+    
+    # If program_id provided, verify ownership
+    if program_id:
+        program = affiliate_programs_collection.find_one({
+            "id": program_id,
+            "user_id": current_user["id"]
+        })
+        if not program:
+            raise HTTPException(status_code=404, detail="Program not found")
+        query["program_id"] = program_id
+    else:
+        # Get all programs owned by user
+        user_programs = list(affiliate_programs_collection.find({"user_id": current_user["id"]}))
+        program_ids = [p["id"] for p in user_programs]
+        query["program_id"] = {"$in": program_ids}
+    
+    if status:
+        query["status"] = status
+    
+    affiliates = list(affiliates_collection.find(query))
+    
+    # Format response
+    for affiliate in affiliates:
+        affiliate["_id"] = str(affiliate["_id"])
+        if "created_at" in affiliate:
+            affiliate["created_at"] = affiliate["created_at"].isoformat()
+        if "updated_at" in affiliate:
+            affiliate["updated_at"] = affiliate["updated_at"].isoformat()
+        if "approved_at" in affiliate and affiliate["approved_at"]:
+            affiliate["approved_at"] = affiliate["approved_at"].isoformat()
+    
+    return {"affiliates": affiliates, "total": len(affiliates)}
+
+@app.get("/api/affiliates/{affiliate_id}")
+async def get_affiliate(
+    affiliate_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get affiliate details"""
+    affiliate = affiliates_collection.find_one({"id": affiliate_id})
+    
+    if not affiliate:
+        raise HTTPException(status_code=404, detail="Affiliate not found")
+    
+    # Verify ownership
+    program = affiliate_programs_collection.find_one({
+        "id": affiliate["program_id"],
+        "user_id": current_user["id"]
+    })
+    
+    if not program:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    affiliate["_id"] = str(affiliate["_id"])
+    if "created_at" in affiliate:
+        affiliate["created_at"] = affiliate["created_at"].isoformat()
+    if "updated_at" in affiliate:
+        affiliate["updated_at"] = affiliate["updated_at"].isoformat()
+    if "approved_at" in affiliate and affiliate["approved_at"]:
+        affiliate["approved_at"] = affiliate["approved_at"].isoformat()
+    
+    return affiliate
+
+@app.put("/api/affiliates/{affiliate_id}")
+async def update_affiliate(
+    affiliate_id: str,
+    affiliate_update: AffiliateUpdate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Update affiliate details"""
+    affiliate = affiliates_collection.find_one({"id": affiliate_id})
+    
+    if not affiliate:
+        raise HTTPException(status_code=404, detail="Affiliate not found")
+    
+    # Verify ownership
+    program = affiliate_programs_collection.find_one({
+        "id": affiliate["program_id"],
+        "user_id": current_user["id"]
+    })
+    
+    if not program:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    update_data = {k: v for k, v in affiliate_update.dict().items() if v is not None}
+    update_data["updated_at"] = datetime.utcnow()
+    
+    affiliates_collection.update_one(
+        {"id": affiliate_id},
+        {"$set": update_data}
+    )
+    
+    updated_affiliate = affiliates_collection.find_one({"id": affiliate_id})
+    updated_affiliate["_id"] = str(updated_affiliate["_id"])
+    if "created_at" in updated_affiliate:
+        updated_affiliate["created_at"] = updated_affiliate["created_at"].isoformat()
+    if "updated_at" in updated_affiliate:
+        updated_affiliate["updated_at"] = updated_affiliate["updated_at"].isoformat()
+    
+    return updated_affiliate
+
+@app.post("/api/affiliates/{affiliate_id}/approve")
+async def approve_affiliate(
+    affiliate_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Approve affiliate"""
+    affiliate = affiliates_collection.find_one({"id": affiliate_id})
+    
+    if not affiliate:
+        raise HTTPException(status_code=404, detail="Affiliate not found")
+    
+    # Verify ownership
+    program = affiliate_programs_collection.find_one({
+        "id": affiliate["program_id"],
+        "user_id": current_user["id"]
+    })
+    
+    if not program:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    affiliates_collection.update_one(
+        {"id": affiliate_id},
+        {
+            "$set": {
+                "status": "approved",
+                "approved_at": datetime.utcnow(),
+                "approved_by": current_user["id"],
+                "updated_at": datetime.utcnow()
+            }
+        }
+    )
+    
+    # TODO: Send approval email
+    
+    return {"message": "Affiliate approved successfully"}
+
+@app.post("/api/affiliates/{affiliate_id}/reject")
+async def reject_affiliate(
+    affiliate_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Reject affiliate"""
+    affiliate = affiliates_collection.find_one({"id": affiliate_id})
+    
+    if not affiliate:
+        raise HTTPException(status_code=404, detail="Affiliate not found")
+    
+    # Verify ownership
+    program = affiliate_programs_collection.find_one({
+        "id": affiliate["program_id"],
+        "user_id": current_user["id"]
+    })
+    
+    if not program:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    affiliates_collection.update_one(
+        {"id": affiliate_id},
+        {
+            "$set": {
+                "status": "rejected",
+                "updated_at": datetime.utcnow()
+            }
+        }
+    )
+    
+    # TODO: Send rejection email
+    
+    return {"message": "Affiliate rejected"}
+
+# ==================== AFFILIATE LINK ROUTES ====================
+
+@app.post("/api/affiliate-links")
+async def create_affiliate_link(
+    link: AffiliateLinkCreate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Create affiliate tracking link"""
+    # Verify affiliate exists and belongs to user's program
+    affiliate = affiliates_collection.find_one({"id": link.affiliate_id})
+    
+    if not affiliate:
+        raise HTTPException(status_code=404, detail="Affiliate not found")
+    
+    program = affiliate_programs_collection.find_one({
+        "id": affiliate["program_id"],
+        "user_id": current_user["id"]
+    })
+    
+    if not program:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Check if link already exists
+    existing_link = affiliate_links_collection.find_one({
+        "affiliate_id": link.affiliate_id,
+        "product_type": link.product_type,
+        "product_id": link.product_id
+    })
+    
+    if existing_link:
+        existing_link["_id"] = str(existing_link["_id"])
+        if "created_at" in existing_link:
+            existing_link["created_at"] = existing_link["created_at"].isoformat()
+        return existing_link
+    
+    # Generate short code
+    short_code = generate_short_code()
+    
+    # Create link
+    link_dict = link.dict()
+    link_dict["id"] = str(uuid.uuid4())
+    link_dict["program_id"] = affiliate["program_id"]
+    link_dict["short_code"] = short_code
+    link_dict["link_url"] = f"/aff/{short_code}"
+    link_dict["clicks"] = 0
+    link_dict["conversions"] = 0
+    link_dict["revenue"] = 0.0
+    link_dict["created_at"] = datetime.utcnow()
+    
+    affiliate_links_collection.insert_one(link_dict)
+    
+    link_dict["_id"] = str(link_dict["_id"])
+    link_dict["created_at"] = link_dict["created_at"].isoformat()
+    
+    return link_dict
+
+@app.get("/api/affiliate-links")
+async def list_affiliate_links(
+    affiliate_id: Optional[str] = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """List affiliate links"""
+    query = {}
+    
+    if affiliate_id:
+        # Verify affiliate belongs to user's program
+        affiliate = affiliates_collection.find_one({"id": affiliate_id})
+        if not affiliate:
+            raise HTTPException(status_code=404, detail="Affiliate not found")
+        
+        program = affiliate_programs_collection.find_one({
+            "id": affiliate["program_id"],
+            "user_id": current_user["id"]
+        })
+        
+        if not program:
+            raise HTTPException(status_code=403, detail="Access denied")
+        
+        query["affiliate_id"] = affiliate_id
+    else:
+        # Get all links for user's programs
+        user_programs = list(affiliate_programs_collection.find({"user_id": current_user["id"]}))
+        program_ids = [p["id"] for p in user_programs]
+        query["program_id"] = {"$in": program_ids}
+    
+    links = list(affiliate_links_collection.find(query))
+    
+    for link in links:
+        link["_id"] = str(link["_id"])
+        if "created_at" in link:
+            link["created_at"] = link["created_at"].isoformat()
+    
+    return {"links": links, "total": len(links)}
+
+@app.post("/api/affiliate-links/{short_code}/track-click")
+async def track_affiliate_click(
+    short_code: str,
+    ip_address: Optional[str] = None,
+    user_agent: Optional[str] = None,
+    referrer: Optional[str] = None
+):
+    """Track affiliate link click (public endpoint)"""
+    # Find link
+    link = affiliate_links_collection.find_one({"short_code": short_code})
+    
+    if not link:
+        raise HTTPException(status_code=404, detail="Link not found")
+    
+    # Record click
+    click_dict = {
+        "id": str(uuid.uuid4()),
+        "link_id": link["id"],
+        "affiliate_id": link["affiliate_id"],
+        "program_id": link["program_id"],
+        "ip_address": ip_address,
+        "user_agent": user_agent,
+        "referrer": referrer,
+        "clicked_at": datetime.utcnow(),
+        "converted": False,
+        "conversion_id": None
+    }
+    
+    affiliate_clicks_collection.insert_one(click_dict)
+    
+    # Update counters
+    affiliate_links_collection.update_one(
+        {"id": link["id"]},
+        {"$inc": {"clicks": 1}}
+    )
+    
+    affiliates_collection.update_one(
+        {"id": link["affiliate_id"]},
+        {"$inc": {"total_clicks": 1}}
+    )
+    
+    affiliate_programs_collection.update_one(
+        {"id": link["program_id"]},
+        {"$inc": {"total_clicks": 1}}
+    )
+    
+    return {
+        "redirect_url": f"/{link['product_type']}/{link['product_id']}",
+        "click_id": click_dict["id"]
+    }
+
+# ==================== AFFILIATE CONVERSION ROUTES ====================
+
+@app.post("/api/affiliate-conversions")
+async def create_affiliate_conversion(
+    conversion: AffiliateConversionCreate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Record affiliate conversion"""
+    # Verify affiliate and program
+    affiliate = affiliates_collection.find_one({"id": conversion.affiliate_id})
+    
+    if not affiliate:
+        raise HTTPException(status_code=404, detail="Affiliate not found")
+    
+    program = affiliate_programs_collection.find_one({
+        "id": conversion.program_id,
+        "user_id": current_user["id"]
+    })
+    
+    if not program:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Calculate commission
+    affiliate_sales_count = affiliate.get("total_conversions", 0)
+    commission_amount = calculate_commission(program, conversion.order_amount, affiliate_sales_count)
+    
+    # Create conversion
+    conversion_dict = conversion.dict()
+    conversion_dict["id"] = str(uuid.uuid4())
+    conversion_dict["commission_amount"] = commission_amount
+    conversion_dict["converted_at"] = datetime.utcnow()
+    conversion_dict["commission_id"] = None
+    
+    affiliate_conversions_collection.insert_one(conversion_dict)
+    
+    # Create commission
+    commission_dict = {
+        "id": str(uuid.uuid4()),
+        "affiliate_id": conversion.affiliate_id,
+        "program_id": conversion.program_id,
+        "conversion_id": conversion_dict["id"],
+        "commission_amount": commission_amount,
+        "commission_type": program.get("commission_type", "percentage"),
+        "status": "pending",
+        "payout_id": None,
+        "created_at": datetime.utcnow(),
+        "approved_at": None,
+        "paid_at": None
+    }
+    
+    affiliate_commissions_collection.insert_one(commission_dict)
+    
+    # Update conversion with commission_id
+    affiliate_conversions_collection.update_one(
+        {"id": conversion_dict["id"]},
+        {"$set": {"commission_id": commission_dict["id"]}}
+    )
+    
+    # Update counters
+    affiliates_collection.update_one(
+        {"id": conversion.affiliate_id},
+        {
+            "$inc": {
+                "total_conversions": 1,
+                "total_revenue": conversion.order_amount,
+                "total_commissions": commission_amount,
+                "pending_commissions": commission_amount
+            }
+        }
+    )
+    
+    affiliate_programs_collection.update_one(
+        {"id": conversion.program_id},
+        {
+            "$inc": {
+                "total_conversions": 1,
+                "total_revenue": conversion.order_amount,
+                "total_commissions": commission_amount
+            }
+        }
+    )
+    
+    # Update click if provided
+    if conversion.click_id:
+        affiliate_clicks_collection.update_one(
+            {"id": conversion.click_id},
+            {
+                "$set": {
+                    "converted": True,
+                    "conversion_id": conversion_dict["id"]
+                }
+            }
+        )
+    
+    conversion_dict["_id"] = str(conversion_dict["_id"])
+    conversion_dict["converted_at"] = conversion_dict["converted_at"].isoformat()
+    
+    return conversion_dict
+
+@app.get("/api/affiliate-conversions")
+async def list_affiliate_conversions(
+    affiliate_id: Optional[str] = None,
+    program_id: Optional[str] = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """List affiliate conversions"""
+    query = {}
+    
+    if program_id:
+        program = affiliate_programs_collection.find_one({
+            "id": program_id,
+            "user_id": current_user["id"]
+        })
+        if not program:
+            raise HTTPException(status_code=404, detail="Program not found")
+        query["program_id"] = program_id
+    else:
+        # Get all programs owned by user
+        user_programs = list(affiliate_programs_collection.find({"user_id": current_user["id"]}))
+        program_ids = [p["id"] for p in user_programs]
+        query["program_id"] = {"$in": program_ids}
+    
+    if affiliate_id:
+        query["affiliate_id"] = affiliate_id
+    
+    conversions = list(affiliate_conversions_collection.find(query))
+    
+    for conversion in conversions:
+        conversion["_id"] = str(conversion["_id"])
+        if "converted_at" in conversion:
+            conversion["converted_at"] = conversion["converted_at"].isoformat()
+    
+    return {"conversions": conversions, "total": len(conversions)}
+
+# ==================== AFFILIATE COMMISSION ROUTES ====================
+
+@app.get("/api/affiliate-commissions")
+async def list_affiliate_commissions(
+    affiliate_id: Optional[str] = None,
+    status: Optional[str] = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """List affiliate commissions"""
+    query = {}
+    
+    # Get all programs owned by user
+    user_programs = list(affiliate_programs_collection.find({"user_id": current_user["id"]}))
+    program_ids = [p["id"] for p in user_programs]
+    query["program_id"] = {"$in": program_ids}
+    
+    if affiliate_id:
+        query["affiliate_id"] = affiliate_id
+    
+    if status:
+        query["status"] = status
+    
+    commissions = list(affiliate_commissions_collection.find(query))
+    
+    for commission in commissions:
+        commission["_id"] = str(commission["_id"])
+        if "created_at" in commission:
+            commission["created_at"] = commission["created_at"].isoformat()
+        if "approved_at" in commission and commission["approved_at"]:
+            commission["approved_at"] = commission["approved_at"].isoformat()
+        if "paid_at" in commission and commission["paid_at"]:
+            commission["paid_at"] = commission["paid_at"].isoformat()
+    
+    return {"commissions": commissions, "total": len(commissions)}
+
+@app.post("/api/affiliate-commissions/{commission_id}/approve")
+async def approve_commission(
+    commission_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Approve commission"""
+    commission = affiliate_commissions_collection.find_one({"id": commission_id})
+    
+    if not commission:
+        raise HTTPException(status_code=404, detail="Commission not found")
+    
+    # Verify ownership
+    program = affiliate_programs_collection.find_one({
+        "id": commission["program_id"],
+        "user_id": current_user["id"]
+    })
+    
+    if not program:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    affiliate_commissions_collection.update_one(
+        {"id": commission_id},
+        {
+            "$set": {
+                "status": "approved",
+                "approved_at": datetime.utcnow()
+            }
+        }
+    )
+    
+    return {"message": "Commission approved"}
+
+# ==================== AFFILIATE PAYOUT ROUTES ====================
+
+@app.post("/api/affiliate-payouts")
+async def create_affiliate_payout(
+    payout: AffiliatePayoutCreate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Create affiliate payout"""
+    # Verify affiliate
+    affiliate = affiliates_collection.find_one({"id": payout.affiliate_id})
+    
+    if not affiliate:
+        raise HTTPException(status_code=404, detail="Affiliate not found")
+    
+    # Verify ownership
+    program = affiliate_programs_collection.find_one({
+        "id": affiliate["program_id"],
+        "user_id": current_user["id"]
+    })
+    
+    if not program:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Verify commissions exist and are approved
+    commissions = list(affiliate_commissions_collection.find({
+        "id": {"$in": payout.commission_ids},
+        "status": "approved",
+        "payout_id": None
+    }))
+    
+    if len(commissions) != len(payout.commission_ids):
+        raise HTTPException(status_code=400, detail="Some commissions are not available for payout")
+    
+    # Create payout
+    payout_dict = payout.dict()
+    payout_dict["id"] = str(uuid.uuid4())
+    payout_dict["program_id"] = affiliate["program_id"]
+    payout_dict["status"] = "pending"
+    payout_dict["transaction_id"] = None
+    payout_dict["created_at"] = datetime.utcnow()
+    payout_dict["processed_at"] = None
+    payout_dict["completed_at"] = None
+    
+    affiliate_payouts_collection.insert_one(payout_dict)
+    
+    # Update commissions
+    affiliate_commissions_collection.update_many(
+        {"id": {"$in": payout.commission_ids}},
+        {"$set": {"payout_id": payout_dict["id"]}}
+    )
+    
+    # Update affiliate
+    affiliates_collection.update_one(
+        {"id": payout.affiliate_id},
+        {
+            "$inc": {
+                "pending_commissions": -payout.amount
+            }
+        }
+    )
+    
+    payout_dict["_id"] = str(payout_dict["_id"])
+    payout_dict["created_at"] = payout_dict["created_at"].isoformat()
+    
+    return payout_dict
+
+@app.get("/api/affiliate-payouts")
+async def list_affiliate_payouts(
+    affiliate_id: Optional[str] = None,
+    status: Optional[str] = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """List affiliate payouts"""
+    query = {}
+    
+    # Get all programs owned by user
+    user_programs = list(affiliate_programs_collection.find({"user_id": current_user["id"]}))
+    program_ids = [p["id"] for p in user_programs]
+    query["program_id"] = {"$in": program_ids}
+    
+    if affiliate_id:
+        query["affiliate_id"] = affiliate_id
+    
+    if status:
+        query["status"] = status
+    
+    payouts = list(affiliate_payouts_collection.find(query))
+    
+    for payout in payouts:
+        payout["_id"] = str(payout["_id"])
+        if "created_at" in payout:
+            payout["created_at"] = payout["created_at"].isoformat()
+        if "processed_at" in payout and payout["processed_at"]:
+            payout["processed_at"] = payout["processed_at"].isoformat()
+        if "completed_at" in payout and payout["completed_at"]:
+            payout["completed_at"] = payout["completed_at"].isoformat()
+    
+    return {"payouts": payouts, "total": len(payouts)}
+
+@app.put("/api/affiliate-payouts/{payout_id}")
+async def update_payout(
+    payout_id: str,
+    payout_update: AffiliatePayoutUpdate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Update payout status"""
+    payout = affiliate_payouts_collection.find_one({"id": payout_id})
+    
+    if not payout:
+        raise HTTPException(status_code=404, detail="Payout not found")
+    
+    # Verify ownership
+    program = affiliate_programs_collection.find_one({
+        "id": payout["program_id"],
+        "user_id": current_user["id"]
+    })
+    
+    if not program:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    update_data = {k: v for k, v in payout_update.dict().items() if v is not None}
+    
+    # Handle status transitions
+    if "status" in update_data:
+        if update_data["status"] == "processing":
+            update_data["processed_at"] = datetime.utcnow()
+        elif update_data["status"] == "completed":
+            update_data["completed_at"] = datetime.utcnow()
+            
+            # Update commissions and affiliate
+            affiliate_commissions_collection.update_many(
+                {"payout_id": payout_id},
+                {
+                    "$set": {
+                        "status": "paid",
+                        "paid_at": datetime.utcnow()
+                    }
+                }
+            )
+            
+            affiliates_collection.update_one(
+                {"id": payout["affiliate_id"]},
+                {
+                    "$inc": {
+                        "paid_commissions": payout["amount"]
+                    }
+                }
+            )
+    
+    affiliate_payouts_collection.update_one(
+        {"id": payout_id},
+        {"$set": update_data}
+    )
+    
+    updated_payout = affiliate_payouts_collection.find_one({"id": payout_id})
+    updated_payout["_id"] = str(updated_payout["_id"])
+    if "created_at" in updated_payout:
+        updated_payout["created_at"] = updated_payout["created_at"].isoformat()
+    if "processed_at" in updated_payout and updated_payout["processed_at"]:
+        updated_payout["processed_at"] = updated_payout["processed_at"].isoformat()
+    if "completed_at" in updated_payout and updated_payout["completed_at"]:
+        updated_payout["completed_at"] = updated_payout["completed_at"].isoformat()
+    
+    return updated_payout
+
+# ==================== AFFILIATE RESOURCE ROUTES ====================
+
+@app.post("/api/affiliate-resources")
+async def create_affiliate_resource(
+    resource: AffiliateResourceCreate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Create affiliate resource"""
+    # Verify program ownership
+    program = affiliate_programs_collection.find_one({
+        "id": resource.program_id,
+        "user_id": current_user["id"]
+    })
+    
+    if not program:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    resource_dict = resource.dict()
+    resource_dict["id"] = str(uuid.uuid4())
+    resource_dict["user_id"] = current_user["id"]
+    resource_dict["downloads"] = 0
+    resource_dict["created_at"] = datetime.utcnow()
+    resource_dict["updated_at"] = datetime.utcnow()
+    
+    affiliate_resources_collection.insert_one(resource_dict)
+    
+    resource_dict["_id"] = str(resource_dict["_id"])
+    resource_dict["created_at"] = resource_dict["created_at"].isoformat()
+    resource_dict["updated_at"] = resource_dict["updated_at"].isoformat()
+    
+    return resource_dict
+
+@app.get("/api/affiliate-resources")
+async def list_affiliate_resources(
+    program_id: Optional[str] = None,
+    resource_type: Optional[str] = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """List affiliate resources"""
+    query = {}
+    
+    if program_id:
+        program = affiliate_programs_collection.find_one({
+            "id": program_id,
+            "user_id": current_user["id"]
+        })
+        if not program:
+            raise HTTPException(status_code=404, detail="Program not found")
+        query["program_id"] = program_id
+    else:
+        # Get all programs owned by user
+        user_programs = list(affiliate_programs_collection.find({"user_id": current_user["id"]}))
+        program_ids = [p["id"] for p in user_programs]
+        query["program_id"] = {"$in": program_ids}
+    
+    if resource_type:
+        query["resource_type"] = resource_type
+    
+    resources = list(affiliate_resources_collection.find(query))
+    
+    for resource in resources:
+        resource["_id"] = str(resource["_id"])
+        if "created_at" in resource:
+            resource["created_at"] = resource["created_at"].isoformat()
+        if "updated_at" in resource:
+            resource["updated_at"] = resource["updated_at"].isoformat()
+    
+    return {"resources": resources, "total": len(resources)}
+
+@app.put("/api/affiliate-resources/{resource_id}")
+async def update_affiliate_resource(
+    resource_id: str,
+    resource_update: AffiliateResourceUpdate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Update affiliate resource"""
+    resource = affiliate_resources_collection.find_one({"id": resource_id})
+    
+    if not resource:
+        raise HTTPException(status_code=404, detail="Resource not found")
+    
+    # Verify ownership
+    program = affiliate_programs_collection.find_one({
+        "id": resource["program_id"],
+        "user_id": current_user["id"]
+    })
+    
+    if not program:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    update_data = {k: v for k, v in resource_update.dict().items() if v is not None}
+    update_data["updated_at"] = datetime.utcnow()
+    
+    affiliate_resources_collection.update_one(
+        {"id": resource_id},
+        {"$set": update_data}
+    )
+    
+    updated_resource = affiliate_resources_collection.find_one({"id": resource_id})
+    updated_resource["_id"] = str(updated_resource["_id"])
+    if "created_at" in updated_resource:
+        updated_resource["created_at"] = updated_resource["created_at"].isoformat()
+    if "updated_at" in updated_resource:
+        updated_resource["updated_at"] = updated_resource["updated_at"].isoformat()
+    
+    return updated_resource
+
+@app.delete("/api/affiliate-resources/{resource_id}")
+async def delete_affiliate_resource(
+    resource_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Delete affiliate resource"""
+    resource = affiliate_resources_collection.find_one({"id": resource_id})
+    
+    if not resource:
+        raise HTTPException(status_code=404, detail="Resource not found")
+    
+    # Verify ownership
+    program = affiliate_programs_collection.find_one({
+        "id": resource["program_id"],
+        "user_id": current_user["id"]
+    })
+    
+    if not program:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    affiliate_resources_collection.delete_one({"id": resource_id})
+    
+    return {"message": "Resource deleted successfully"}
+
+# ==================== AFFILIATE ANALYTICS ROUTES ====================
+
+@app.get("/api/affiliate-analytics/summary")
+async def get_affiliate_analytics_summary(
+    program_id: Optional[str] = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get affiliate program analytics summary"""
+    query = {}
+    
+    if program_id:
+        program = affiliate_programs_collection.find_one({
+            "id": program_id,
+            "user_id": current_user["id"]
+        })
+        if not program:
+            raise HTTPException(status_code=404, detail="Program not found")
+        query["program_id"] = program_id
+    else:
+        # Get all programs owned by user
+        user_programs = list(affiliate_programs_collection.find({"user_id": current_user["id"]}))
+        program_ids = [p["id"] for p in user_programs]
+        query["program_id"] = {"$in": program_ids}
+    
+    # Get counts
+    total_affiliates = affiliates_collection.count_documents(query)
+    active_affiliates = affiliates_collection.count_documents({**query, "status": "approved"})
+    pending_affiliates = affiliates_collection.count_documents({**query, "status": "pending"})
+    
+    # Get totals
+    affiliates_list = list(affiliates_collection.find(query))
+    total_clicks = sum(a.get("total_clicks", 0) for a in affiliates_list)
+    total_conversions = sum(a.get("total_conversions", 0) for a in affiliates_list)
+    total_revenue = sum(a.get("total_revenue", 0.0) for a in affiliates_list)
+    total_commissions = sum(a.get("total_commissions", 0.0) for a in affiliates_list)
+    pending_commissions = sum(a.get("pending_commissions", 0.0) for a in affiliates_list)
+    paid_commissions = sum(a.get("paid_commissions", 0.0) for a in affiliates_list)
+    
+    # Calculate rates
+    conversion_rate = (total_conversions / total_clicks * 100) if total_clicks > 0 else 0
+    average_commission = (total_commissions / total_conversions) if total_conversions > 0 else 0
+    
+    return {
+        "total_affiliates": total_affiliates,
+        "active_affiliates": active_affiliates,
+        "pending_affiliates": pending_affiliates,
+        "total_clicks": total_clicks,
+        "total_conversions": total_conversions,
+        "total_revenue": round(total_revenue, 2),
+        "total_commissions": round(total_commissions, 2),
+        "pending_commissions": round(pending_commissions, 2),
+        "paid_commissions": round(paid_commissions, 2),
+        "conversion_rate": round(conversion_rate, 2),
+        "average_commission": round(average_commission, 2)
+    }
+
+@app.get("/api/affiliate-analytics/leaderboard")
+async def get_affiliate_leaderboard(
+    program_id: Optional[str] = None,
+    limit: int = 10,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get affiliate leaderboard"""
+    query = {}
+    
+    if program_id:
+        program = affiliate_programs_collection.find_one({
+            "id": program_id,
+            "user_id": current_user["id"]
+        })
+        if not program:
+            raise HTTPException(status_code=404, detail="Program not found")
+        query["program_id"] = program_id
+    else:
+        # Get all programs owned by user
+        user_programs = list(affiliate_programs_collection.find({"user_id": current_user["id"]}))
+        program_ids = [p["id"] for p in user_programs]
+        query["program_id"] = {"$in": program_ids}
+    
+    query["status"] = "approved"
+    
+    # Get top affiliates by revenue
+    affiliates = list(affiliates_collection.find(query).sort("total_revenue", -1).limit(limit))
+    
+    leaderboard = []
+    for i, affiliate in enumerate(affiliates, 1):
+        leaderboard.append({
+            "rank": i,
+            "affiliate_id": affiliate["id"],
+            "name": f"{affiliate['first_name']} {affiliate['last_name']}",
+            "email": affiliate["email"],
+            "total_clicks": affiliate.get("total_clicks", 0),
+            "total_conversions": affiliate.get("total_conversions", 0),
+            "total_revenue": round(affiliate.get("total_revenue", 0.0), 2),
+            "total_commissions": round(affiliate.get("total_commissions", 0.0), 2)
+        })
+    
+    return {"leaderboard": leaderboard}
+
+@app.get("/api/affiliates/{affiliate_id}/performance")
+async def get_affiliate_performance(
+    affiliate_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get detailed affiliate performance"""
+    affiliate = affiliates_collection.find_one({"id": affiliate_id})
+    
+    if not affiliate:
+        raise HTTPException(status_code=404, detail="Affiliate not found")
+    
+    # Verify ownership
+    program = affiliate_programs_collection.find_one({
+        "id": affiliate["program_id"],
+        "user_id": current_user["id"]
+    })
+    
+    if not program:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Get detailed stats
+    links = list(affiliate_links_collection.find({"affiliate_id": affiliate_id}))
+    conversions = list(affiliate_conversions_collection.find({"affiliate_id": affiliate_id}))
+    commissions = list(affiliate_commissions_collection.find({"affiliate_id": affiliate_id}))
+    
+    return {
+        "affiliate": {
+            "id": affiliate["id"],
+            "name": f"{affiliate['first_name']} {affiliate['last_name']}",
+            "email": affiliate["email"],
+            "status": affiliate["status"],
+            "joined_date": affiliate["created_at"].isoformat() if "created_at" in affiliate else None
+        },
+        "performance": {
+            "total_clicks": affiliate.get("total_clicks", 0),
+            "total_conversions": affiliate.get("total_conversions", 0),
+            "total_revenue": round(affiliate.get("total_revenue", 0.0), 2),
+            "total_commissions": round(affiliate.get("total_commissions", 0.0), 2),
+            "pending_commissions": round(affiliate.get("pending_commissions", 0.0), 2),
+            "paid_commissions": round(affiliate.get("paid_commissions", 0.0), 2),
+            "conversion_rate": round((affiliate.get("total_conversions", 0) / affiliate.get("total_clicks", 1) * 100), 2)
+        },
+        "links": len(links),
+        "recent_conversions": conversions[-10:],
+        "commission_breakdown": {
+            "pending": len([c for c in commissions if c["status"] == "pending"]),
+            "approved": len([c for c in commissions if c["status"] == "approved"]),
+            "paid": len([c for c in commissions if c["status"] == "paid"])
+        }
+    }
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
