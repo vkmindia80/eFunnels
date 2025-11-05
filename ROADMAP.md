@@ -1172,7 +1172,7 @@ POST   /api/ai/generate/blog-post               - Blog articles
 - [⏳] Integration into Products (In Progress)
 - [⏳] Integration into Workflows (In Progress)
 - [⏳] Integration into Affiliates (In Progress)
-- [⏳] Integration into Website Builder (In Progress)
+- [x] ✅ Integration into Website Builder (Complete)
 
 #### Template Library System (100% Complete):
 - [x] TemplateBrowser component created
