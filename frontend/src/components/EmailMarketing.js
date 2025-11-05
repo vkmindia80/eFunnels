@@ -13,6 +13,8 @@ import UniversalAIAssistant from './UniversalAIAssistant';
 // Email Marketing Main Page
 const EmailMarketingPage = () => {
   const [activeView, setActiveView] = useState('campaigns');
+  const [showTemplateBrowser, setShowTemplateBrowser] = useState(false);
+  const [templateCallback, setTemplateCallback] = useState(null);
   
   return (
     <div className="space-y-6">
@@ -24,27 +26,85 @@ const EmailMarketingPage = () => {
         </div>
         <div className="flex items-center gap-3">
           {activeView === 'campaigns' && (
-            <button 
-              onClick={() => setActiveView('create-campaign')}
-              className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:shadow-lg transition flex items-center gap-2"
-              data-testid="new-campaign-btn"
-            >
-              <Plus size={20} />
-              New Campaign
-            </button>
+            <>
+              <button 
+                onClick={() => {
+                  setTemplateCallback(() => (template) => {
+                    // Create campaign from template
+                    setActiveView('create-campaign');
+                  });
+                  setShowTemplateBrowser(true);
+                }}
+                className="bg-gradient-to-r from-purple-500 to-pink-600 text-white px-6 py-3 rounded-lg font-semibold hover:shadow-lg transition flex items-center gap-2"
+                data-testid="browse-templates-btn"
+              >
+                <Sparkles size={20} />
+                Browse Templates
+              </button>
+              <button 
+                onClick={() => setActiveView('create-campaign')}
+                className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:shadow-lg transition flex items-center gap-2"
+                data-testid="new-campaign-btn"
+              >
+                <Plus size={20} />
+                New Campaign
+              </button>
+            </>
           )}
           {activeView === 'templates' && (
-            <button 
-              onClick={() => setActiveView('create-template')}
-              className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:shadow-lg transition flex items-center gap-2"
-              data-testid="new-template-btn"
-            >
-              <Plus size={20} />
-              New Template
-            </button>
+            <>
+              <button 
+                onClick={() => {
+                  setTemplateCallback(() => (template) => {
+                    // Use template as base
+                    setActiveView('create-template');
+                  });
+                  setShowTemplateBrowser(true);
+                }}
+                className="bg-gradient-to-r from-purple-500 to-pink-600 text-white px-6 py-3 rounded-lg font-semibold hover:shadow-lg transition flex items-center gap-2"
+                data-testid="browse-templates-btn"
+              >
+                <Sparkles size={20} />
+                Browse Templates
+              </button>
+              <button 
+                onClick={() => setActiveView('create-template')}
+                className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:shadow-lg transition flex items-center gap-2"
+                data-testid="new-template-btn"
+              >
+                <Plus size={20} />
+                New Template
+              </button>
+            </>
           )}
         </div>
       </div>
+      
+      {/* Template Browser Modal */}
+      {showTemplateBrowser && (
+        <TemplateBrowser
+          module="email"
+          onSelectTemplate={(template) => {
+            if (templateCallback) {
+              templateCallback(template);
+            }
+            setShowTemplateBrowser(false);
+          }}
+          onClose={() => setShowTemplateBrowser(false)}
+        />
+      )}
+      
+      {/* AI Assistant - Available on all views */}
+      <UniversalAIAssistant
+        module="email"
+        context={{
+          view: activeView,
+          feature: 'email_marketing'
+        }}
+        onApplyContent={(content) => {
+          console.log('AI generated content:', content);
+        }}
+      />
 
       {/* Navigation Tabs */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
