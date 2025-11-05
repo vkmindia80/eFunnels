@@ -1833,7 +1833,7 @@ const BlockRenderer = ({ block }) => {
           <div 
             className="prose max-w-none"
             style={{ fontFamily: style?.bodyFont || 'inherit', fontSize: style?.fontSize || '16px' }}
-            dangerouslySetInnerHTML={{ __html: content.text || 'Your text content here' }} 
+            dangerouslySetInnerHTML={{ __html: (content?.text || content?.content || 'Your text content here') }} 
           />
         </div>
       );
