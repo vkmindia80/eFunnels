@@ -21,6 +21,7 @@ const AssetManager = ({ onClose, onSelect }) => {
 
   useEffect(() => {
     filterAssets();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [assets, activeType, searchQuery]);
 
   const fetchAssets = async () => {
