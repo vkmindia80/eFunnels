@@ -454,48 +454,90 @@ const AIDesignAssistant = ({ onClose, onApply }) => {
 
               {result && activeFeature === 'website' && (
                 <div className="space-y-4">
-                  <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                    {/* Website Structure Preview */}
-                    {result.pages && result.pages.length > 0 && (
-                      <div className="p-4 border-b border-gray-200">
-                        <h4 className="font-semibold text-gray-900 mb-3">Website Structure ({result.pages_count || result.pages.length} Pages)</h4>
-                        <div className="space-y-2">
-                          {result.pages.map((page, index) => (
-                            <div key={index} className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                              <div className="flex items-start gap-3">
-                                <div className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-sm">
-                                  {index + 1}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <h5 className="font-semibold text-gray-900 mb-1">{page.postTitle || page.title || `Page ${index + 1}`}</h5>
-                                  {page.postUrl && (
-                                    <p className="text-xs text-blue-600 mb-2">/{page.postUrl}</p>
-                                  )}
-                                  {page.sections && page.sections.length > 0 && (
-                                    <div className="text-xs text-gray-600 space-y-1">
-                                      <p className="font-medium">Sections ({page.sections.length}):</p>
-                                      {page.sections.map((section, sIdx) => (
-                                        <div key={sIdx} className="pl-3 border-l-2 border-blue-300">
-                                          {section.sectionTitle || section.title || `Section ${sIdx + 1}`}
-                                        </div>
-                                      ))}
-                                    </div>
-                                  )}
-                                </div>
+                  <div className="bg-white rounded-lg border border-gray-200 overflow-hidden max-h-96 overflow-y-auto">
+                    {/* Parse and display website structure */}
+                    {(() => {
+                      // Try to parse website_structure if it's a string
+                      let parsedData = result;
+                      if (result.website_structure && typeof result.website_structure === 'string') {
+                        try {
+                          // Extract JSON from markdown code block if present
+                          const jsonMatch = result.website_structure.match(/```json\n([\s\S]*?)\n```/) || 
+                                          result.website_structure.match(/```\n([\s\S]*?)\n```/);
+                          if (jsonMatch) {
+                            parsedData = JSON.parse(jsonMatch[1]);
+                          }
+                        } catch (e) {
+                          console.error('Failed to parse website_structure:', e);
+                        }
+                      }
+                      
+                      // Display website info
+                      const websiteData = parsedData.website || parsedData;
+                      const pages = websiteData.pages || [];
+                      
+                      return (
+                        <div className="p-4">
+                          <h4 className="font-bold text-gray-900 mb-4 text-lg">
+                            🌐 {websiteData.name || result.business_info?.business_type || 'Website'} Structure
+                          </h4>
+                          
+                          {/* Home Page */}
+                          {websiteData.home_page && (
+                            <div className="mb-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-600 rounded-lg p-4">
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className="bg-blue-600 text-white px-2 py-1 rounded text-xs font-bold">HOME</span>
+                                <h5 className="font-bold text-gray-900">{websiteData.home_page.page_title || 'Home Page'}</h5>
                               </div>
+                              {websiteData.home_page.hero && (
+                                <div className="mt-2 pl-4 border-l-2 border-blue-300">
+                                  <p className="text-sm font-semibold text-gray-800">{websiteData.home_page.hero.headline}</p>
+                                  <p className="text-xs text-gray-600 mt-1">{websiteData.home_page.hero.subheadline}</p>
+                                </div>
+                              )}
+                              {websiteData.home_page.sections && (
+                                <div className="mt-3 grid grid-cols-2 gap-2">
+                                  {websiteData.home_page.sections.map((section, idx) => (
+                                    <div key={idx} className="text-xs bg-white border border-blue-200 rounded px-2 py-1">
+                                      {section.title || section.type || `Section ${idx + 1}`}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
                             </div>
-                          ))}
+                          )}
+                          
+                          {/* Other Pages */}
+                          {pages.length > 0 && (
+                            <div className="space-y-3">
+                              <h5 className="font-semibold text-gray-700 text-sm">Additional Pages:</h5>
+                              {pages.map((page, index) => (
+                                <div key={index} className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <span className="bg-purple-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold">
+                                      {index + 1}
+                                    </span>
+                                    <h6 className="font-semibold text-gray-900">{page.page_title || page.title || `Page ${index + 1}`}</h6>
+                                  </div>
+                                  {page.url && <p className="text-xs text-gray-600 ml-8">URL: {page.url}</p>}
+                                  {page.content && <p className="text-xs text-gray-600 ml-8 mt-1">{page.content.substring(0, 100)}...</p>}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          
+                          {/* Fallback: Show raw structure in a readable way */}
+                          {!websiteData.home_page && pages.length === 0 && result.website_structure && (
+                            <div className="bg-gray-50 p-3 rounded text-xs">
+                              <p className="font-semibold text-gray-700 mb-2">AI Generated Structure:</p>
+                              <pre className="whitespace-pre-wrap text-gray-600 max-h-64 overflow-auto">
+                                {result.website_structure.substring(0, 800)}...
+                              </pre>
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    )}
-                    
-                    {/* Description */}
-                    {result.description && (
-                      <div className="p-4 bg-gray-50">
-                        <h4 className="font-semibold text-gray-900 mb-2">Description</h4>
-                        <p className="text-sm text-gray-700 whitespace-pre-wrap">{result.description}</p>
-                      </div>
-                    )}
+                      );
+                    })()}
                   </div>
                   
                   <button
