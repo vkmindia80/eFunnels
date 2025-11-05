@@ -9918,6 +9918,603 @@ async def get_payment_analytics(current_user: dict = Depends(get_current_user)):
     }
 
 
+
+# ==================== PHASE 12: UNIFIED ANALYTICS DASHBOARD ====================
+
+@app.get("/api/analytics/dashboard/overview")
+async def get_analytics_dashboard_overview(
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Get comprehensive analytics overview across all platform features
+    Aggregates data from all modules for unified dashboard
+    """
+    try:
+        # Parse dates
+        if start_date and end_date:
+            start = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
+            end = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+            date_filter = {"created_at": {"$gte": start, "$lte": end}}
+        else:
+            # Default: Last 30 days
+            end = datetime.utcnow()
+            start = end - timedelta(days=30)
+            date_filter = {"created_at": {"$gte": start, "$lte": end}}
+        
+        user_filter = {"user_id": current_user["user_id"]}
+        combined_filter = {**user_filter, **date_filter}
+        
+        # === CONTACTS & CRM ===
+        total_contacts = await contacts_collection.count_documents(user_filter)
+        new_contacts = await contacts_collection.count_documents(combined_filter)
+        active_contacts = await contacts_collection.count_documents({
+            **user_filter,
+            "status": "active"
+        })
+        
+        # === EMAIL MARKETING ===
+        total_campaigns = await email_campaigns_collection.count_documents(user_filter)
+        sent_campaigns = await email_campaigns_collection.count_documents({
+            **user_filter,
+            "status": "sent"
+        })
+        email_logs = await email_logs_collection.find(combined_filter).to_list(None)
+        total_emails_sent = len(email_logs)
+        delivered_emails = len([log for log in email_logs if log.get("status") == "delivered"])
+        opened_emails = len([log for log in email_logs if log.get("opened", False)])
+        clicked_emails = len([log for log in email_logs if log.get("clicked", False)])
+        
+        email_open_rate = (opened_emails / delivered_emails * 100) if delivered_emails > 0 else 0
+        email_click_rate = (clicked_emails / delivered_emails * 100) if delivered_emails > 0 else 0
+        
+        # === SALES FUNNELS ===
+        total_funnels = await funnels_collection.count_documents(user_filter)
+        active_funnels = await funnels_collection.count_documents({
+            **user_filter,
+            "status": "published"
+        })
+        funnel_visits = await funnel_visits_collection.count_documents(combined_filter)
+        funnel_conversions = await funnel_conversions_collection.count_documents(combined_filter)
+        funnel_conversion_rate = (funnel_conversions / funnel_visits * 100) if funnel_visits > 0 else 0
+        
+        # === COURSES & LEARNING ===
+        total_courses = await courses_collection.count_documents(user_filter)
+        published_courses = await courses_collection.count_documents({
+            **user_filter,
+            "status": "published"
+        })
+        total_enrollments = await course_enrollments_collection.count_documents(combined_filter)
+        active_students = await course_enrollments_collection.distinct("contact_id", combined_filter)
+        certificates_issued = await certificates_collection.count_documents(combined_filter)
+        
+        # === WEBINARS ===
+        total_webinars = await webinars_collection.count_documents(user_filter)
+        upcoming_webinars = await webinars_collection.count_documents({
+            **user_filter,
+            "scheduled_at": {"$gte": datetime.utcnow()}
+        })
+        webinar_registrations = await webinar_registrations_collection.count_documents(combined_filter)
+        webinar_attendees = await webinar_registrations_collection.count_documents({
+            **combined_filter,
+            "attended": True
+        })
+        webinar_attendance_rate = (webinar_attendees / webinar_registrations * 100) if webinar_registrations > 0 else 0
+        
+        # === FORMS & SURVEYS ===
+        total_forms = await forms_collection.count_documents(user_filter)
+        form_submissions = await form_submissions_collection.count_documents(combined_filter)
+        total_surveys = await surveys_collection.count_documents(user_filter)
+        survey_responses = await survey_responses_collection.count_documents(combined_filter)
+        
+        # === WORKFLOWS & AUTOMATION ===
+        total_workflows = await workflows_collection.count_documents(user_filter)
+        active_workflows = await workflows_collection.count_documents({
+            **user_filter,
+            "status": "active"
+        })
+        workflow_executions = await workflow_executions_collection.count_documents(combined_filter)
+        successful_executions = await workflow_executions_collection.count_documents({
+            **combined_filter,
+            "status": "completed"
+        })
+        
+        # === BLOG & CONTENT ===
+        total_blog_posts = await blog_posts_collection.count_documents(user_filter)
+        published_posts = await blog_posts_collection.count_documents({
+            **user_filter,
+            "status": "published"
+        })
+        blog_views = await blog_post_views_collection.count_documents(combined_filter)
+        blog_comments = await blog_comments_collection.count_documents(combined_filter)
+        
+        # === AFFILIATE PROGRAM ===
+        total_affiliates = await affiliates_collection.count_documents(user_filter)
+        active_affiliates = await affiliates_collection.count_documents({
+            **user_filter,
+            "status": "approved"
+        })
+        affiliate_clicks = await affiliate_clicks_collection.count_documents(combined_filter)
+        affiliate_conversions_count = await affiliate_conversions_collection.count_documents(combined_filter)
+        
+        commissions = await affiliate_commissions_collection.find(combined_filter).to_list(None)
+        total_commissions = sum(c.get("amount", 0) for c in commissions)
+        
+        # === E-COMMERCE & PAYMENTS ===
+        total_products = await products_collection.count_documents(user_filter)
+        active_products = await products_collection.count_documents({
+            **user_filter,
+            "status": "active"
+        })
+        
+        orders = await orders_collection.find(combined_filter).to_list(None)
+        total_orders = len(orders)
+        completed_orders = len([o for o in orders if o.get("status") == "completed"])
+        
+        total_revenue = sum(o.get("total", 0) for o in orders if o.get("status") == "completed")
+        average_order_value = (total_revenue / completed_orders) if completed_orders > 0 else 0
+        
+        total_subscriptions = await subscriptions_collection.count_documents(user_filter)
+        active_subscriptions_count = await subscriptions_collection.count_documents({
+            **user_filter,
+            "status": "active"
+        })
+        
+        # === CALCULATE GROWTH TRENDS ===
+        # Previous period comparison
+        previous_start = start - (end - start)
+        previous_filter = {
+            **user_filter,
+            "created_at": {"$gte": previous_start, "$lt": start}
+        }
+        
+        prev_contacts = await contacts_collection.count_documents(previous_filter)
+        prev_revenue_orders = await orders_collection.find(previous_filter).to_list(None)
+        prev_revenue = sum(o.get("total", 0) for o in prev_revenue_orders if o.get("status") == "completed")
+        
+        contacts_growth = ((new_contacts - prev_contacts) / prev_contacts * 100) if prev_contacts > 0 else 0
+        revenue_growth = ((total_revenue - prev_revenue) / prev_revenue * 100) if prev_revenue > 0 else 0
+        
+        # === REVENUE BY DAY (for charts) ===
+        revenue_by_day = []
+        current_date = start
+        while current_date <= end:
+            next_date = current_date + timedelta(days=1)
+            day_orders = await orders_collection.find({
+                **user_filter,
+                "created_at": {"$gte": current_date, "$lt": next_date},
+                "status": "completed"
+            }).to_list(None)
+            day_revenue = sum(o.get("total", 0) for o in day_orders)
+            
+            revenue_by_day.append({
+                "date": current_date.strftime("%Y-%m-%d"),
+                "revenue": round(day_revenue, 2),
+                "orders": len(day_orders)
+            })
+            current_date = next_date
+        
+        # === TOP PERFORMING ITEMS ===
+        # Top courses by enrollment
+        top_courses_pipeline = [
+            {"$match": combined_filter},
+            {"$group": {"_id": "$course_id", "count": {"$sum": 1}}},
+            {"$sort": {"count": -1}},
+            {"$limit": 5}
+        ]
+        top_course_ids = await course_enrollments_collection.aggregate(top_courses_pipeline).to_list(5)
+        
+        top_courses = []
+        for item in top_course_ids:
+            course = await courses_collection.find_one({"course_id": item["_id"]})
+            if course:
+                top_courses.append({
+                    "name": course.get("title", "Unknown"),
+                    "enrollments": item["count"]
+                })
+        
+        return {
+            # Overview Metrics
+            "total_revenue": round(total_revenue, 2),
+            "revenue_growth": round(revenue_growth, 2),
+            "total_contacts": total_contacts,
+            "new_contacts": new_contacts,
+            "contacts_growth": round(contacts_growth, 2),
+            "active_contacts": active_contacts,
+            
+            # Email Marketing
+            "email_marketing": {
+                "total_campaigns": total_campaigns,
+                "sent_campaigns": sent_campaigns,
+                "total_emails_sent": total_emails_sent,
+                "open_rate": round(email_open_rate, 2),
+                "click_rate": round(email_click_rate, 2),
+                "delivered": delivered_emails,
+                "opened": opened_emails,
+                "clicked": clicked_emails
+            },
+            
+            # Sales Funnels
+            "funnels": {
+                "total_funnels": total_funnels,
+                "active_funnels": active_funnels,
+                "total_visits": funnel_visits,
+                "conversions": funnel_conversions,
+                "conversion_rate": round(funnel_conversion_rate, 2)
+            },
+            
+            # Courses
+            "courses": {
+                "total_courses": total_courses,
+                "published_courses": published_courses,
+                "total_enrollments": total_enrollments,
+                "active_students": len(active_students),
+                "certificates_issued": certificates_issued
+            },
+            
+            # Webinars
+            "webinars": {
+                "total_webinars": total_webinars,
+                "upcoming_webinars": upcoming_webinars,
+                "registrations": webinar_registrations,
+                "attendees": webinar_attendees,
+                "attendance_rate": round(webinar_attendance_rate, 2)
+            },
+            
+            # Forms & Surveys
+            "forms_surveys": {
+                "total_forms": total_forms,
+                "form_submissions": form_submissions,
+                "total_surveys": total_surveys,
+                "survey_responses": survey_responses
+            },
+            
+            # Automation
+            "automation": {
+                "total_workflows": total_workflows,
+                "active_workflows": active_workflows,
+                "executions": workflow_executions,
+                "successful_executions": successful_executions,
+                "success_rate": round((successful_executions / workflow_executions * 100) if workflow_executions > 0 else 0, 2)
+            },
+            
+            # Blog & Content
+            "blog": {
+                "total_posts": total_blog_posts,
+                "published_posts": published_posts,
+                "total_views": blog_views,
+                "total_comments": blog_comments
+            },
+            
+            # Affiliates
+            "affiliates": {
+                "total_affiliates": total_affiliates,
+                "active_affiliates": active_affiliates,
+                "clicks": affiliate_clicks,
+                "conversions": affiliate_conversions_count,
+                "total_commissions": round(total_commissions, 2),
+                "conversion_rate": round((affiliate_conversions_count / affiliate_clicks * 100) if affiliate_clicks > 0 else 0, 2)
+            },
+            
+            # E-commerce
+            "ecommerce": {
+                "total_products": total_products,
+                "active_products": active_products,
+                "total_orders": total_orders,
+                "completed_orders": completed_orders,
+                "average_order_value": round(average_order_value, 2),
+                "total_subscriptions": total_subscriptions,
+                "active_subscriptions": active_subscriptions_count
+            },
+            
+            # Charts Data
+            "revenue_by_day": revenue_by_day,
+            "top_courses": top_courses,
+            
+            # Date Range
+            "date_range": {
+                "start": start.isoformat(),
+                "end": end.isoformat()
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch analytics: {str(e)}")
+
+
+@app.get("/api/analytics/revenue/detailed")
+async def get_detailed_revenue_analytics(
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
+    group_by: str = Query("day", regex="^(day|week|month)$"),
+    current_user: dict = Depends(get_current_user)
+):
+    """Get detailed revenue analytics with grouping options"""
+    try:
+        if start_date and end_date:
+            start = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
+            end = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+        else:
+            end = datetime.utcnow()
+            start = end - timedelta(days=30)
+        
+        user_filter = {"user_id": current_user["user_id"]}
+        
+        # Get all completed orders in date range
+        orders = await orders_collection.find({
+            **user_filter,
+            "created_at": {"$gte": start, "$lte": end},
+            "status": "completed"
+        }).to_list(None)
+        
+        # Group revenue by time period
+        revenue_data = {}
+        for order in orders:
+            order_date = order.get("created_at")
+            if not order_date:
+                continue
+                
+            if group_by == "day":
+                key = order_date.strftime("%Y-%m-%d")
+            elif group_by == "week":
+                key = order_date.strftime("%Y-W%U")
+            else:  # month
+                key = order_date.strftime("%Y-%m")
+            
+            if key not in revenue_data:
+                revenue_data[key] = {
+                    "revenue": 0,
+                    "orders": 0,
+                    "period": key
+                }
+            
+            revenue_data[key]["revenue"] += order.get("total", 0)
+            revenue_data[key]["orders"] += 1
+        
+        # Convert to sorted list
+        revenue_list = sorted(revenue_data.values(), key=lambda x: x["period"])
+        
+        # Calculate totals
+        total_revenue = sum(item["revenue"] for item in revenue_list)
+        total_orders = sum(item["orders"] for item in revenue_list)
+        
+        return {
+            "revenue_data": [
+                {**item, "revenue": round(item["revenue"], 2)}
+                for item in revenue_list
+            ],
+            "total_revenue": round(total_revenue, 2),
+            "total_orders": total_orders,
+            "average_order_value": round(total_revenue / total_orders, 2) if total_orders > 0 else 0,
+            "group_by": group_by,
+            "date_range": {
+                "start": start.isoformat(),
+                "end": end.isoformat()
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch revenue analytics: {str(e)}")
+
+
+@app.get("/api/analytics/conversion/funnel")
+async def get_conversion_funnel_analytics(
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
+    current_user: dict = Depends(get_current_user)
+):
+    """Get conversion funnel analytics across all features"""
+    try:
+        if start_date and end_date:
+            start = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
+            end = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+        else:
+            end = datetime.utcnow()
+            start = end - timedelta(days=30)
+        
+        user_filter = {"user_id": current_user["user_id"]}
+        date_filter = {"created_at": {"$gte": start, "$lte": end}}
+        combined_filter = {**user_filter, **date_filter}
+        
+        # Build conversion funnel stages
+        stages = []
+        
+        # Stage 1: Visitors (Funnel visits)
+        visitors = await funnel_visits_collection.count_documents(combined_filter)
+        stages.append({"stage": "Visitors", "count": visitors, "percentage": 100})
+        
+        # Stage 2: Leads (Form submissions + Contact creation)
+        leads = await form_submissions_collection.count_documents(combined_filter)
+        lead_percentage = (leads / visitors * 100) if visitors > 0 else 0
+        stages.append({"stage": "Leads", "count": leads, "percentage": round(lead_percentage, 2)})
+        
+        # Stage 3: Engaged (Email opens or course views)
+        engaged_emails = await email_logs_collection.count_documents({
+            **combined_filter,
+            "opened": True
+        })
+        engaged_percentage = (engaged_emails / leads * 100) if leads > 0 else 0
+        stages.append({"stage": "Engaged", "count": engaged_emails, "percentage": round(engaged_percentage, 2)})
+        
+        # Stage 4: Qualified (Webinar registrations + Course enrollments)
+        webinar_regs = await webinar_registrations_collection.count_documents(combined_filter)
+        course_enrols = await course_enrollments_collection.count_documents(combined_filter)
+        qualified = webinar_regs + course_enrols
+        qualified_percentage = (qualified / engaged_emails * 100) if engaged_emails > 0 else 0
+        stages.append({"stage": "Qualified", "count": qualified, "percentage": round(qualified_percentage, 2)})
+        
+        # Stage 5: Customers (Completed orders)
+        customers = await orders_collection.count_documents({
+            **combined_filter,
+            "status": "completed"
+        })
+        customer_percentage = (customers / qualified * 100) if qualified > 0 else 0
+        stages.append({"stage": "Customers", "count": customers, "percentage": round(customer_percentage, 2)})
+        
+        # Overall conversion rate
+        overall_conversion = (customers / visitors * 100) if visitors > 0 else 0
+        
+        return {
+            "stages": stages,
+            "overall_conversion_rate": round(overall_conversion, 2),
+            "total_visitors": visitors,
+            "total_customers": customers,
+            "date_range": {
+                "start": start.isoformat(),
+                "end": end.isoformat()
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch conversion funnel: {str(e)}")
+
+
+@app.get("/api/analytics/engagement/metrics")
+async def get_engagement_metrics(
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
+    current_user: dict = Depends(get_current_user)
+):
+    """Get user engagement metrics across platform"""
+    try:
+        if start_date and end_date:
+            start = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
+            end = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+        else:
+            end = datetime.utcnow()
+            start = end - timedelta(days=30)
+        
+        user_filter = {"user_id": current_user["user_id"]}
+        date_filter = {"created_at": {"$gte": start, "$lte": end}}
+        combined_filter = {**user_filter, **date_filter}
+        
+        # Email engagement
+        email_logs = await email_logs_collection.find(combined_filter).to_list(None)
+        total_sent = len(email_logs)
+        total_opened = len([log for log in email_logs if log.get("opened", False)])
+        total_clicked = len([log for log in email_logs if log.get("clicked", False)])
+        
+        # Content engagement
+        blog_views = await blog_post_views_collection.count_documents(combined_filter)
+        blog_comments = await blog_comments_collection.count_documents(combined_filter)
+        
+        # Course engagement
+        course_progress = await course_progress_collection.find(combined_filter).to_list(None)
+        avg_progress = sum(p.get("progress_percentage", 0) for p in course_progress) / len(course_progress) if course_progress else 0
+        
+        # Webinar engagement
+        webinar_attendees = await webinar_registrations_collection.count_documents({
+            **combined_filter,
+            "attended": True
+        })
+        webinar_chat = await webinar_chat_messages_collection.count_documents(combined_filter)
+        webinar_qa = await webinar_qa_collection.count_documents(combined_filter)
+        
+        # Form engagement
+        form_views = await form_views_collection.count_documents(combined_filter)
+        form_submissions = await form_submissions_collection.count_documents(combined_filter)
+        form_conversion = (form_submissions / form_views * 100) if form_views > 0 else 0
+        
+        return {
+            "email_engagement": {
+                "total_sent": total_sent,
+                "total_opened": total_opened,
+                "total_clicked": total_clicked,
+                "open_rate": round((total_opened / total_sent * 100) if total_sent > 0 else 0, 2),
+                "click_rate": round((total_clicked / total_sent * 100) if total_sent > 0 else 0, 2)
+            },
+            "content_engagement": {
+                "blog_views": blog_views,
+                "blog_comments": blog_comments,
+                "comments_per_view": round(blog_comments / blog_views, 4) if blog_views > 0 else 0
+            },
+            "course_engagement": {
+                "active_learners": len(course_progress),
+                "average_progress": round(avg_progress, 2)
+            },
+            "webinar_engagement": {
+                "attendees": webinar_attendees,
+                "chat_messages": webinar_chat,
+                "qa_questions": webinar_qa
+            },
+            "form_engagement": {
+                "views": form_views,
+                "submissions": form_submissions,
+                "conversion_rate": round(form_conversion, 2)
+            },
+            "date_range": {
+                "start": start.isoformat(),
+                "end": end.isoformat()
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch engagement metrics: {str(e)}")
+
+
+@app.get("/api/analytics/export")
+async def export_analytics_report(
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
+    format: str = Query("csv", regex="^(csv|json)$"),
+    current_user: dict = Depends(get_current_user)
+):
+    """Export analytics report in CSV or JSON format"""
+    try:
+        # Get overview data
+        overview_data = await get_analytics_dashboard_overview(start_date, end_date, current_user)
+        
+        if format == "json":
+            return JSONResponse(content=overview_data)
+        
+        # CSV format
+        output = io.StringIO()
+        writer = csv.writer(output)
+        
+        # Write headers and data
+        writer.writerow(['Metric Category', 'Metric', 'Value'])
+        
+        # Revenue
+        writer.writerow(['Revenue', 'Total Revenue', f"${overview_data['total_revenue']}"])
+        writer.writerow(['Revenue', 'Revenue Growth', f"{overview_data['revenue_growth']}%"])
+        
+        # Contacts
+        writer.writerow(['Contacts', 'Total Contacts', overview_data['total_contacts']])
+        writer.writerow(['Contacts', 'New Contacts', overview_data['new_contacts']])
+        writer.writerow(['Contacts', 'Active Contacts', overview_data['active_contacts']])
+        
+        # Email Marketing
+        email = overview_data['email_marketing']
+        writer.writerow(['Email', 'Total Campaigns', email['total_campaigns']])
+        writer.writerow(['Email', 'Emails Sent', email['total_emails_sent']])
+        writer.writerow(['Email', 'Open Rate', f"{email['open_rate']}%"])
+        writer.writerow(['Email', 'Click Rate', f"{email['click_rate']}%"])
+        
+        # Funnels
+        funnels = overview_data['funnels']
+        writer.writerow(['Funnels', 'Total Funnels', funnels['total_funnels']])
+        writer.writerow(['Funnels', 'Total Visits', funnels['total_visits']])
+        writer.writerow(['Funnels', 'Conversions', funnels['conversions']])
+        writer.writerow(['Funnels', 'Conversion Rate', f"{funnels['conversion_rate']}%"])
+        
+        # E-commerce
+        ecommerce = overview_data['ecommerce']
+        writer.writerow(['E-commerce', 'Total Orders', ecommerce['total_orders']])
+        writer.writerow(['E-commerce', 'Completed Orders', ecommerce['completed_orders']])
+        writer.writerow(['E-commerce', 'Average Order Value', f"${ecommerce['average_order_value']}"])
+        
+        output.seek(0)
+        return StreamingResponse(
+            iter([output.getvalue()]),
+            media_type="text/csv",
+            headers={"Content-Disposition": f"attachment; filename=analytics_report_{datetime.utcnow().strftime('%Y%m%d')}.csv"}
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to export report: {str(e)}")
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
