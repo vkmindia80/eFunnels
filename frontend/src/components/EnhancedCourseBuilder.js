@@ -31,7 +31,7 @@ const EnhancedCourseBuilder = ({ course, onBack }) => {
 
   const fetchCourseDetails = async () => {
     try {
-      const response = await api.get(`/courses/${course.id}`);
+      const response = await api.get(`/api/courses/${course.id}`);
       setModules(response.data.modules || []);
       // Expand all modules by default
       const allModuleIds = new Set(response.data.modules?.map(m => m.id) || []);
