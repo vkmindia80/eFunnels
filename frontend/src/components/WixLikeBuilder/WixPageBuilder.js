@@ -160,25 +160,29 @@ const WixPageBuilder = ({ page, onSave, onClose }) => {
 
         {/* Center Controls */}
         <div className="flex items-center gap-2">
-          {/* Undo/Redo */}
-          <button
-            onClick={undo}
-            disabled={historyIndex === 0}
-            className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed"
-            title="Undo"
-          >
-            <Undo size={20} />
-          </button>
-          <button
-            onClick={redo}
-            disabled={historyIndex === history.length - 1}
-            className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed"
-            title="Redo"
-          >
-            <Redo size={20} />
-          </button>
+          {!isPreviewMode && (
+            <>
+              {/* Undo/Redo */}
+              <button
+                onClick={undo}
+                disabled={historyIndex === 0}
+                className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed"
+                title="Undo"
+              >
+                <Undo size={20} />
+              </button>
+              <button
+                onClick={redo}
+                disabled={historyIndex === history.length - 1}
+                className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed"
+                title="Redo"
+              >
+                <Redo size={20} />
+              </button>
 
-          <div className="w-px h-6 bg-gray-300 mx-2"></div>
+              <div className="w-px h-6 bg-gray-300 mx-2"></div>
+            </>
+          )}
 
           {/* Preview Mode Selector */}
           <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
@@ -205,18 +209,22 @@ const WixPageBuilder = ({ page, onSave, onClose }) => {
             </button>
           </div>
 
-          <div className="w-px h-6 bg-gray-300 mx-2"></div>
+          {!isPreviewMode && (
+            <>
+              <div className="w-px h-6 bg-gray-300 mx-2"></div>
 
-          {/* Block Library Toggle */}
-          <button
-            onClick={() => setShowBlockLibrary(!showBlockLibrary)}
-            className={`px-3 py-2 rounded-lg font-medium flex items-center gap-2 ${
-              showBlockLibrary ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-100'
-            }`}
-          >
-            <Plus size={20} />
-            Add Blocks
-          </button>
+              {/* Block Library Toggle */}
+              <button
+                onClick={() => setShowBlockLibrary(!showBlockLibrary)}
+                className={`px-3 py-2 rounded-lg font-medium flex items-center gap-2 ${
+                  showBlockLibrary ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                <Plus size={20} />
+                Add Blocks
+              </button>
+            </>
+          )}
         </div>
 
         {/* Right Actions */}
