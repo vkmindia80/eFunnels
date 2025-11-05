@@ -836,7 +836,7 @@ const OldCourseBuilder = ({ course, onBack }) => {
 
   const fetchCourseDetails = async () => {
     try {
-      const response = await api.get(`/courses/${course.id}`);
+      const response = await api.get(`/api/courses/${course.id}`);
       setModules(response.data.modules || []);
     } catch (error) {
       console.error('Error fetching course details:', error);
@@ -850,7 +850,7 @@ const OldCourseBuilder = ({ course, onBack }) => {
     if (!title) return;
 
     try {
-      await api.post(`/courses/${course.id}/modules`, {
+      await api.post(`/api/courses/${course.id}/modules`, {
         title,
         description: '',
         order: modules.length
@@ -867,7 +867,7 @@ const OldCourseBuilder = ({ course, onBack }) => {
     if (!title) return;
 
     try {
-      await api.post(`/courses/${course.id}/modules/${moduleId}/lessons`, {
+      await api.post(`/api/courses/${course.id}/modules/${moduleId}/lessons`, {
         title,
         description: '',
         content_type: 'text',
