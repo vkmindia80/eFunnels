@@ -914,3 +914,286 @@ class PublicEnrollmentRequest(BaseModel):
     payment_method: str = "mock"  # mock, stripe, paypal
     payment_token: Optional[str] = None
 
+
+
+# ==================== BLOG & WEBSITE BUILDER MODELS (PHASE 8) ====================
+
+# Blog Post Models
+class BlogPostBase(BaseModel):
+    title: str
+    slug: Optional[str] = None  # URL-friendly version of title
+    content: str  # HTML content (rich text)
+    excerpt: Optional[str] = None  # Short description
+    featured_image: Optional[str] = None
+    category_id: Optional[str] = None
+    tags: List[str] = []
+    
+class BlogPostCreate(BlogPostBase):
+    seo_title: Optional[str] = None
+    seo_description: Optional[str] = None
+    seo_keywords: Optional[str] = None
+    status: str = "draft"  # draft, published, scheduled
+    scheduled_at: Optional[datetime] = None
+    enable_comments: bool = True
+    
+class BlogPostUpdate(BaseModel):
+    title: Optional[str] = None
+    slug: Optional[str] = None
+    content: Optional[str] = None
+    excerpt: Optional[str] = None
+    featured_image: Optional[str] = None
+    category_id: Optional[str] = None
+    tags: Optional[List[str]] = None
+    seo_title: Optional[str] = None
+    seo_description: Optional[str] = None
+    seo_keywords: Optional[str] = None
+    status: Optional[str] = None
+    scheduled_at: Optional[datetime] = None
+    enable_comments: Optional[bool] = None
+    
+class BlogPost(BlogPostBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str  # Post author
+    status: str = "draft"  # draft, published, scheduled, archived
+    seo_title: Optional[str] = None
+    seo_description: Optional[str] = None
+    seo_keywords: Optional[str] = None
+    scheduled_at: Optional[datetime] = None
+    published_at: Optional[datetime] = None
+    enable_comments: bool = True
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    
+    # Analytics
+    total_views: int = 0
+    total_comments: int = 0
+    average_reading_time: int = 0  # Minutes
+
+
+# Blog Category Models
+class BlogCategoryBase(BaseModel):
+    name: str
+    slug: Optional[str] = None
+    description: Optional[str] = None
+    color: Optional[str] = "#3B82F6"
+    
+class BlogCategoryCreate(BlogCategoryBase):
+    parent_id: Optional[str] = None  # For hierarchical categories
+    
+class BlogCategoryUpdate(BaseModel):
+    name: Optional[str] = None
+    slug: Optional[str] = None
+    description: Optional[str] = None
+    color: Optional[str] = None
+    parent_id: Optional[str] = None
+    
+class BlogCategory(BlogCategoryBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    parent_id: Optional[str] = None
+    post_count: int = 0
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+# Blog Tag Models (similar to contact tags but for blog)
+class BlogTagBase(BaseModel):
+    name: str
+    slug: Optional[str] = None
+    color: Optional[str] = "#3B82F6"
+    
+class BlogTagCreate(BlogTagBase):
+    pass
+    
+class BlogTag(BlogTagBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    post_count: int = 0
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+# Blog Comment Models
+class BlogCommentBase(BaseModel):
+    post_id: str
+    content: str
+    author_name: str
+    author_email: EmailStr
+    
+class BlogCommentCreate(BlogCommentBase):
+    parent_id: Optional[str] = None  # For replies
+    
+class BlogComment(BlogCommentBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str  # Blog owner
+    parent_id: Optional[str] = None
+    status: str = "pending"  # pending, approved, spam, trash
+    author_ip: Optional[str] = None
+    author_user_agent: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    approved_at: Optional[datetime] = None
+
+
+# Website Page Models
+class WebsitePageBase(BaseModel):
+    title: str
+    slug: Optional[str] = None
+    content: dict  # JSON structure for page builder blocks (reuse funnel blocks)
+    
+class WebsitePageCreate(WebsitePageBase):
+    parent_id: Optional[str] = None  # For page hierarchy
+    template_id: Optional[str] = None
+    seo_title: Optional[str] = None
+    seo_description: Optional[str] = None
+    seo_keywords: Optional[str] = None
+    custom_css: Optional[str] = None
+    custom_js: Optional[str] = None
+    
+class WebsitePageUpdate(BaseModel):
+    title: Optional[str] = None
+    slug: Optional[str] = None
+    content: Optional[dict] = None
+    parent_id: Optional[str] = None
+    status: Optional[str] = None
+    seo_title: Optional[str] = None
+    seo_description: Optional[str] = None
+    seo_keywords: Optional[str] = None
+    custom_css: Optional[str] = None
+    custom_js: Optional[str] = None
+    order: Optional[int] = None
+    
+class WebsitePage(WebsitePageBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    parent_id: Optional[str] = None
+    status: str = "draft"  # draft, published, archived
+    seo_title: Optional[str] = None
+    seo_description: Optional[str] = None
+    seo_keywords: Optional[str] = None
+    custom_css: Optional[str] = None
+    custom_js: Optional[str] = None
+    order: int = 0
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    published_at: Optional[datetime] = None
+    
+    # Analytics
+    total_views: int = 0
+
+
+# Website Theme Models
+class WebsiteThemeBase(BaseModel):
+    name: str
+    primary_color: str = "#3B82F6"
+    secondary_color: str = "#10B981"
+    accent_color: str = "#F59E0B"
+    
+class WebsiteThemeCreate(WebsiteThemeBase):
+    background_color: str = "#FFFFFF"
+    text_color: str = "#111827"
+    heading_font: str = "Inter"
+    body_font: str = "Inter"
+    logo_url: Optional[str] = None
+    favicon_url: Optional[str] = None
+    custom_css: Optional[str] = None
+    
+class WebsiteThemeUpdate(BaseModel):
+    name: Optional[str] = None
+    primary_color: Optional[str] = None
+    secondary_color: Optional[str] = None
+    accent_color: Optional[str] = None
+    background_color: Optional[str] = None
+    text_color: Optional[str] = None
+    heading_font: Optional[str] = None
+    body_font: Optional[str] = None
+    logo_url: Optional[str] = None
+    favicon_url: Optional[str] = None
+    custom_css: Optional[str] = None
+    
+class WebsiteTheme(WebsiteThemeBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    background_color: str = "#FFFFFF"
+    text_color: str = "#111827"
+    heading_font: str = "Inter"
+    body_font: str = "Inter"
+    logo_url: Optional[str] = None
+    favicon_url: Optional[str] = None
+    custom_css: Optional[str] = None
+    is_active: bool = False  # Only one theme active at a time
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+# Navigation Menu Models
+class NavigationMenuItemBase(BaseModel):
+    label: str
+    url: Optional[str] = None
+    page_id: Optional[str] = None  # Link to website page
+    post_id: Optional[str] = None  # Link to blog post
+    link_type: str = "custom"  # custom, page, post, category
+    
+class NavigationMenuItemCreate(NavigationMenuItemBase):
+    parent_id: Optional[str] = None  # For nested menus
+    order: int = 0
+    open_in_new_tab: bool = False
+    css_classes: Optional[str] = None
+    
+class NavigationMenuItem(NavigationMenuItemBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    parent_id: Optional[str] = None
+    order: int = 0
+    open_in_new_tab: bool = False
+    css_classes: Optional[str] = None
+
+
+class NavigationMenuBase(BaseModel):
+    name: str
+    location: str = "header"  # header, footer, sidebar
+    
+class NavigationMenuCreate(NavigationMenuBase):
+    items: List[NavigationMenuItemCreate] = []
+    
+class NavigationMenuUpdate(BaseModel):
+    name: Optional[str] = None
+    location: Optional[str] = None
+    items: Optional[List[dict]] = None
+    
+class NavigationMenu(NavigationMenuBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    items: List[dict] = []  # Menu items with hierarchy
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+# Blog Analytics Models
+class BlogPostView(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    post_id: str
+    user_id: str  # Post author
+    visitor_ip: Optional[str] = None
+    visitor_country: Optional[str] = None
+    referrer: Optional[str] = None
+    user_agent: Optional[str] = None
+    reading_time: Optional[int] = None  # Seconds spent on page
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class WebsitePageView(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    page_id: str
+    user_id: str
+    visitor_ip: Optional[str] = None
+    visitor_country: Optional[str] = None
+    referrer: Optional[str] = None
+    user_agent: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+# Public API Request Models
+class PublicBlogCommentRequest(BaseModel):
+    content: str
+    author_name: str
+    author_email: EmailStr
+    parent_id: Optional[str] = None
+    
