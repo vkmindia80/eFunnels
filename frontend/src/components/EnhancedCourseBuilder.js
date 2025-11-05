@@ -118,9 +118,9 @@ const EnhancedCourseBuilder = ({ course, onBack }) => {
   const saveModule = async (moduleData) => {
     try {
       if (editingModule) {
-        await api.put(`/courses/${course.id}/modules/${editingModule.id}`, moduleData);
+        await api.put(`/api/courses/${course.id}/modules/${editingModule.id}`, moduleData);
       } else {
-        await api.post(`/courses/${course.id}/modules`, {
+        await api.post(`/api/courses/${course.id}/modules`, {
           ...moduleData,
           order: modules.length
         });
@@ -138,7 +138,7 @@ const EnhancedCourseBuilder = ({ course, onBack }) => {
     if (!window.confirm('Delete this module and all its lessons?')) return;
     
     try {
-      await api.delete(`/courses/${course.id}/modules/${moduleId}`);
+      await api.delete(`/api/courses/${course.id}/modules/${moduleId}`);
       fetchCourseDetails();
     } catch (error) {
       console.error('Error deleting module:', error);
@@ -150,12 +150,12 @@ const EnhancedCourseBuilder = ({ course, onBack }) => {
     try {
       if (editingLesson) {
         await api.put(
-          `/courses/${course.id}/modules/${selectedModuleId}/lessons/${editingLesson.id}`,
+          `/api/courses/${course.id}/modules/${selectedModuleId}/lessons/${editingLesson.id}`,
           lessonData
         );
       } else {
         const module = modules.find(m => m.id === selectedModuleId);
-        await api.post(`/courses/${course.id}/modules/${selectedModuleId}/lessons`, {
+        await api.post(`/api/courses/${course.id}/modules/${selectedModuleId}/lessons`, {
           ...lessonData,
           order: module.lessons?.length || 0
         });
