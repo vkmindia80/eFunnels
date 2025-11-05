@@ -174,7 +174,7 @@ const EnhancedCourseBuilder = ({ course, onBack }) => {
     if (!window.confirm('Delete this lesson?')) return;
     
     try {
-      await api.delete(`/courses/${course.id}/modules/${moduleId}/lessons/${lessonId}`);
+      await api.delete(`/api/courses/${course.id}/modules/${moduleId}/lessons/${lessonId}`);
       fetchCourseDetails();
     } catch (error) {
       console.error('Error deleting lesson:', error);
