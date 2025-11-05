@@ -10466,6 +10466,195 @@ async def export_analytics_report(
         overview_data = await get_analytics_dashboard_overview(start_date, end_date, current_user)
         
         if format == "json":
+
+
+# ==================== PHASE 12: ADVANCED AI FEATURES ====================
+
+@app.post("/api/ai/generate/headline")
+async def generate_headline_ai(
+    topic: str = Query(...),
+    style: str = Query("attention-grabbing"),
+    current_user: dict = Depends(get_current_user)
+):
+    """Generate multiple headline options using AI"""
+    try:
+        from ai_helper import AIHelper
+        ai_helper = AIHelper()
+        headlines = await ai_helper.generate_headline(topic, style)
+        
+        return {
+            "topic": topic,
+            "style": style,
+            "headlines": headlines
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate headlines: {str(e)}")
+
+
+@app.post("/api/ai/generate/landing-page")
+async def generate_landing_page_copy(
+    product: str = Query(...),
+    target_audience: str = Query(...),
+    benefits: str = Query(...),  # Comma-separated
+    current_user: dict = Depends(get_current_user)
+):
+    """Generate complete landing page copy"""
+    try:
+        from ai_helper import AIHelper
+        ai_helper = AIHelper()
+        
+        benefits_list = [b.strip() for b in benefits.split(',')]
+        result = await ai_helper.generate_landing_page_copy(product, target_audience, benefits_list)
+        
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate landing page copy: {str(e)}")
+
+
+@app.post("/api/ai/generate/social-posts")
+async def generate_social_posts(
+    topic: str = Query(...),
+    platforms: str = Query("twitter,facebook,linkedin"),  # Comma-separated
+    current_user: dict = Depends(get_current_user)
+):
+    """Generate social media posts for multiple platforms"""
+    try:
+        from ai_helper import AIHelper
+        ai_helper = AIHelper()
+        
+        platforms_list = [p.strip() for p in platforms.split(',')]
+        posts = await ai_helper.generate_social_media_posts(topic, platforms_list)
+        
+        return {
+            "topic": topic,
+            "posts": posts
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate social posts: {str(e)}")
+
+
+@app.post("/api/ai/generate/webinar-outline")
+async def generate_webinar_outline(
+    topic: str = Query(...),
+    duration: int = Query(60),
+    current_user: dict = Depends(get_current_user)
+):
+    """Generate webinar outline with structure"""
+    try:
+        from ai_helper import AIHelper
+        ai_helper = AIHelper()
+        
+        outline = await ai_helper.generate_webinar_outline(topic, duration)
+        
+        return outline
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate webinar outline: {str(e)}")
+
+
+@app.post("/api/ai/generate/course-curriculum")
+async def generate_course_curriculum(
+    title: str = Query(...),
+    level: str = Query("beginner"),
+    current_user: dict = Depends(get_current_user)
+):
+    """Generate course curriculum structure"""
+    try:
+        from ai_helper import AIHelper
+        ai_helper = AIHelper()
+        
+        curriculum = await ai_helper.generate_course_curriculum(title, level)
+        
+        return curriculum
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate curriculum: {str(e)}")
+
+
+@app.post("/api/ai/improve/text")
+async def improve_text_ai(
+    text: str = Query(...),
+    improvement_type: str = Query("grammar"),
+    current_user: dict = Depends(get_current_user)
+):
+    """Improve existing text with AI"""
+    try:
+        from ai_helper import AIHelper
+        ai_helper = AIHelper()
+        
+        improved = await ai_helper.improve_text(text, improvement_type)
+        
+        return {
+            "original": text,
+            "improved": improved,
+            "improvement_type": improvement_type
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to improve text: {str(e)}")
+
+
+@app.post("/api/ai/analyze/sentiment")
+async def analyze_sentiment(
+    text: str = Query(...),
+    current_user: dict = Depends(get_current_user)
+):
+    """Analyze text sentiment and tone"""
+    try:
+        from ai_helper import AIHelper
+        ai_helper = AIHelper()
+        
+        analysis = await ai_helper.analyze_text_sentiment(text)
+        
+        return {
+            "text": text[:100] + "..." if len(text) > 100 else text,
+            "analysis": analysis
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to analyze sentiment: {str(e)}")
+
+
+@app.post("/api/ai/generate/product-description")
+async def generate_product_description_ai(
+    product_name: str = Query(...),
+    features: str = Query(""),  # Comma-separated
+    current_user: dict = Depends(get_current_user)
+):
+    """Generate product description with AI"""
+    try:
+        from ai_helper import AIHelper
+        ai_helper = AIHelper()
+        
+        features_list = [f.strip() for f in features.split(',')] if features else []
+        description = await ai_helper.generate_product_description(product_name, features_list)
+        
+        return {
+            "product_name": product_name,
+            "description": description
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate product description: {str(e)}")
+
+
+@app.post("/api/ai/generate/blog-post")
+async def generate_blog_post_ai(
+    title: str = Query(...),
+    keywords: str = Query(""),  # Comma-separated
+    current_user: dict = Depends(get_current_user)
+):
+    """Generate blog post content with AI"""
+    try:
+        from ai_helper import AIHelper
+        ai_helper = AIHelper()
+        
+        keywords_list = [k.strip() for k in keywords.split(',')] if keywords else []
+        content = await ai_helper.generate_blog_post(title, keywords_list)
+        
+        return {
+            "title": title,
+            "content": content,
+            "keywords": keywords_list
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate blog post: {str(e)}")
+
             return JSONResponse(content=overview_data)
         
         # CSV format
