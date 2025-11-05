@@ -730,10 +730,56 @@ const EnhancedPageBuilderModal = ({ page, onClose, onSave }) => {
             </DragDropContext>
 
             {blocks.length === 0 && (
-              <div className="p-12 text-center text-gray-500">
-                <Layers className="mx-auto mb-4" size={64} />
-                <p className="text-lg font-medium mb-2">Start Building Your Page</p>
-                <p>Add blocks from the sidebar or use templates to get started</p>
+              <div className="p-12">
+                <div className="text-center text-gray-500 mb-8">
+                  <Layers className="mx-auto mb-4" size={64} />
+                  <p className="text-2xl font-bold mb-2 text-gray-900">Start Building Your Page</p>
+                  <p className="text-lg">Choose how you'd like to begin:</p>
+                </div>
+                
+                {/* Quick Start Options */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+                  <button
+                    onClick={() => setShowTemplateBrowser(true)}
+                    className="bg-gradient-to-br from-purple-50 to-purple-100 border-2 border-purple-200 rounded-xl p-6 hover:shadow-lg transition text-left group"
+                  >
+                    <Layers className="text-purple-600 mb-4 group-hover:scale-110 transition" size={48} />
+                    <h3 className="font-bold text-lg text-gray-900 mb-2">Use a Template</h3>
+                    <p className="text-sm text-gray-600">Start with a professional template and customize it</p>
+                  </button>
+                  
+                  <button
+                    onClick={() => setShowAIAssistant(true)}
+                    className="bg-gradient-to-br from-pink-50 to-purple-100 border-2 border-pink-200 rounded-xl p-6 hover:shadow-lg transition text-left group"
+                  >
+                    <Sparkles className="text-pink-600 mb-4 group-hover:scale-110 transition" size={48} />
+                    <h3 className="font-bold text-lg text-gray-900 mb-2">AI Designer</h3>
+                    <p className="text-sm text-gray-600">Let AI create a custom page for your business</p>
+                  </button>
+                  
+                  <div
+                    className="bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 rounded-xl p-6 hover:shadow-lg transition text-left group cursor-default"
+                  >
+                    <Plus className="text-blue-600 mb-4" size={48} />
+                    <h3 className="font-bold text-lg text-gray-900 mb-2">Start from Scratch</h3>
+                    <p className="text-sm text-gray-600">Add blocks from the left sidebar to build your page</p>
+                  </div>
+                </div>
+                
+                {/* Quick Tips */}
+                <div className="mt-12 max-w-3xl mx-auto bg-blue-50 border border-blue-200 rounded-xl p-6">
+                  <h4 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                    <Sparkles className="text-blue-600" size={20} />
+                    Quick Tips
+                  </h4>
+                  <ul className="space-y-2 text-sm text-gray-700">
+                    <li>• <strong>Drag & Drop:</strong> Reorder blocks by dragging them</li>
+                    <li>• <strong>Hover Actions:</strong> Hover over any block to edit, style, duplicate, or delete</li>
+                    <li>• <strong>Templates:</strong> Browse 24+ professional templates to speed up your design</li>
+                    <li>• <strong>AI Assistant:</strong> Generate content, colors, and entire sections with AI</li>
+                    <li>• <strong>Preview Modes:</strong> Switch between desktop and mobile views</li>
+                  </ul>
+                </div>
               </div>
             )}
           </div>
