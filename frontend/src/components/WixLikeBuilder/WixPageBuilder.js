@@ -264,7 +264,7 @@ const WixPageBuilder = ({ page, onSave, onClose }) => {
                             <div
                               ref={provided.innerRef}
                               {...provided.draggableProps}
-                              className={`relative group ${
+                              className={`relative ${
                                 selectedBlockId === block.id ? 'ring-2 ring-blue-500' : ''
                               } ${hoveredBlockId === block.id ? 'ring-1 ring-blue-300' : ''} ${
                                 snapshot.isDragging ? 'shadow-2xl opacity-90' : ''
@@ -273,10 +273,14 @@ const WixPageBuilder = ({ page, onSave, onClose }) => {
                               onMouseLeave={() => setHoveredBlockId(null)}
                               onClick={() => setSelectedBlockId(block.id)}
                             >
-                              {/* Drag Handle Bar - Left side indicator */}
+                              {/* Drag Handle Bar - Always rendered for react-beautiful-dnd */}
                               <div
                                 {...provided.dragHandleProps}
-                                className="absolute left-0 top-0 bottom-0 w-8 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-move bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
+                                className={`absolute left-0 top-0 bottom-0 w-10 flex items-center justify-center cursor-move bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 transition-all z-10 ${
+                                  hoveredBlockId === block.id || selectedBlockId === block.id || snapshot.isDragging
+                                    ? 'opacity-100'
+                                    : 'opacity-0 pointer-events-none'
+                                }`}
                                 title="Drag to reorder"
                                 onClick={(e) => e.stopPropagation()}
                               >
