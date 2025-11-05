@@ -7,7 +7,7 @@ from datetime import datetime
 import time
 
 class eFunnelsAPITester:
-    def __init__(self, base_url="https://edit-preview-1.preview.emergentagent.com"):
+    def __init__(self, base_url="https://open-page-access.preview.emergentagent.com"):
         self.base_url = base_url
         self.token = None
         self.user_id = None
