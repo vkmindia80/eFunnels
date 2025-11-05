@@ -56,9 +56,9 @@ const Courses = ({ user }) => {
   const createCourse = async (courseData) => {
     try {
       if (editingCourse) {
-        await api.put(`/courses/${editingCourse.id}`, courseData);
+        await api.put(`/api/courses/${editingCourse.id}`, courseData);
       } else {
-        await api.post('/courses', courseData);
+        await api.post('/api/courses', courseData);
       }
       fetchData();
       setShowCourseModal(false);
@@ -73,7 +73,7 @@ const Courses = ({ user }) => {
     if (!window.confirm('Are you sure you want to delete this course? This action cannot be undone.')) return;
     
     try {
-      await api.delete(`/courses/${courseId}`);
+      await api.delete(`/api/courses/${courseId}`);
       fetchData();
     } catch (error) {
       console.error('Error deleting course:', error);
@@ -83,7 +83,7 @@ const Courses = ({ user }) => {
 
   const publishCourse = async (courseId) => {
     try {
-      await api.put(`/courses/${courseId}`, { status: 'published' });
+      await api.put(`/api/courses/${courseId}`, { status: 'published' });
       fetchData();
     } catch (error) {
       console.error('Error publishing course:', error);
