@@ -30,7 +30,15 @@ membership_tiers_collection = db['membership_tiers']
 membership_subscriptions_collection = db['membership_subscriptions']
 
 affiliates_collection = db['affiliates']
+
+# Webinar collections (Phase 9)
 webinars_collection = db['webinars']
+webinar_registrations_collection = db['webinar_registrations']
+webinar_chat_messages_collection = db['webinar_chat_messages']
+webinar_qa_collection = db['webinar_qa']
+webinar_polls_collection = db['webinar_polls']
+webinar_recordings_collection = db['webinar_recordings']
+
 workflows_collection = db['workflows']
 workflow_executions_collection = db['workflow_executions']
 workflow_templates_collection = db['workflow_templates']
