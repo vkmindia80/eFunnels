@@ -10701,13 +10701,6 @@ async def generate_blog_post_ai(
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to generate blog post: {str(e)}")
-
-            return JSONResponse(content=overview_data)
-        
-        # CSV format
-        output = io.StringIO()
-        writer = csv.writer(output)
-        
         # Write headers and data
         writer.writerow(['Metric Category', 'Metric', 'Value'])
         
