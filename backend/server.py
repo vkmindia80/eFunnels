@@ -57,7 +57,11 @@ from database import (
     workflows_collection, workflow_executions_collection, workflow_templates_collection,
     courses_collection, course_modules_collection, course_lessons_collection,
     course_enrollments_collection, course_progress_collection, certificates_collection,
-    membership_tiers_collection, membership_subscriptions_collection
+    membership_tiers_collection, membership_subscriptions_collection,
+    blog_posts_collection, blog_categories_collection, blog_tags_collection,
+    blog_comments_collection, blog_post_views_collection,
+    website_pages_collection, website_themes_collection, navigation_menus_collection,
+    website_page_views_collection
 )
 import uuid
 from typing import List
