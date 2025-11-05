@@ -1549,10 +1549,19 @@ function App() {
     );
   }
 
-  // Check for public routes (public webinar catalog)
+  // Check for public routes
   const path = window.location.pathname;
+  
+  // Public webinar catalog
   if (path === '/public/webinars' || path.startsWith('/public/webinars/')) {
     return <PublicWebinarCatalog />;
+  }
+  
+  // Public website pages: /p/{user_id}/{slug}
+  const publicPageMatch = path.match(/^\/p\/([^/]+)\/([^/]+)$/);
+  if (publicPageMatch) {
+    const [, userId, slug] = publicPageMatch;
+    return <PublicWebsitePage userId={userId} slug={slug} />;
   }
 
   return user ? (
