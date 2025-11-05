@@ -501,6 +501,16 @@ const EnhancedWebsiteBuilder = () => {
           }}
         />
       )}
+
+      {showPreviewModal && currentPage && (
+        <PagePreviewModal
+          page={currentPage}
+          onClose={() => {
+            setShowPreviewModal(false);
+            setCurrentPage(null);
+          }}
+        />
+      )}
     </div>
   );
 };
