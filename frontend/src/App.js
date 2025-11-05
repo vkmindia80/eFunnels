@@ -1256,6 +1256,7 @@ const Dashboard = ({ user, onLogout }) => {
     { id: 'workflows', name: 'Automations', icon: Zap },
     { id: 'payments', name: 'Products', icon: ShoppingCart },
     { id: 'analytics', name: 'Analytics', icon: BarChart2 },
+    { id: 'ai-assistant', name: 'AI Assistant', icon: Sparkles },
     { id: 'settings', name: 'Settings', icon: Settings },
   ];
 
