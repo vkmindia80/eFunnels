@@ -1366,7 +1366,7 @@ const Dashboard = ({ user, onLogout }) => {
         return <Blog />;
       
       case 'website':
-        return <WebsiteBuilder />;
+        return <EnhancedWebsiteBuilder />;
       
       case 'webinars':
         return <Webinars />;
