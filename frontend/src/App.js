@@ -24,6 +24,7 @@ import AffiliateManagement from './components/AffiliateManagement';
 import PaymentEcommerce from './components/PaymentEcommerce';
 import Analytics from './components/Analytics';
 import AIAssistant from './components/AIAssistant';
+import Settings from './components/Settings';
 
 // Demo credentials banner component
 const DemoCredentialsBanner = ({ onFillCredentials }) => {
