@@ -1374,6 +1374,9 @@ const Dashboard = ({ user, onLogout }) => {
       case 'payments':
         return <PaymentEcommerce />;
       
+      case 'analytics':
+        return <Analytics />;
+      
       default:
         return (
           <div className="bg-white rounded-xl shadow-md p-12 text-center">
