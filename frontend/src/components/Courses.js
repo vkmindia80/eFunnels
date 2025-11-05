@@ -94,9 +94,9 @@ const Courses = ({ user }) => {
   const createMembership = async (membershipData) => {
     try {
       if (editingMembership) {
-        await api.put(`/memberships/${editingMembership.id}`, membershipData);
+        await api.put(`/api/memberships/${editingMembership.id}`, membershipData);
       } else {
-        await api.post('/memberships', membershipData);
+        await api.post('/api/memberships', membershipData);
       }
       fetchData();
       setShowMembershipModal(false);
