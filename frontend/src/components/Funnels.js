@@ -15,6 +15,7 @@ import UniversalAIAssistant from './UniversalAIAssistant';
 const Funnels = () => {
   const [activeTab, setActiveTab] = useState('funnels'); // funnels, templates, builder, analytics
   const [funnels, setFunnels] = useState([]);
+  const [showTemplateBrowser, setShowTemplateBrowser] = useState(false);
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
