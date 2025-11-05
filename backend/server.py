@@ -87,7 +87,7 @@ from database import (
     blog_posts_collection, blog_categories_collection, blog_tags_collection,
     blog_comments_collection, blog_post_views_collection,
     website_pages_collection, website_themes_collection, navigation_menus_collection,
-    website_page_views_collection,
+    website_page_views_collection, website_assets_collection,
     webinars_collection, webinar_registrations_collection, webinar_chat_messages_collection,
     webinar_qa_collection, webinar_polls_collection, webinar_recordings_collection,
     affiliate_programs_collection, affiliates_collection, affiliate_links_collection,
