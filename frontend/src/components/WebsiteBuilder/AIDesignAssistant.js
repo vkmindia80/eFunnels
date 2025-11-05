@@ -6,6 +6,7 @@ const AIDesignAssistant = ({ onClose, onApply }) => {
   const [activeFeature, setActiveFeature] = useState('website');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
+  const [previewTab, setPreviewTab] = useState('visual');
 
   // Form states
   const [websiteForm, setWebsiteForm] = useState({
