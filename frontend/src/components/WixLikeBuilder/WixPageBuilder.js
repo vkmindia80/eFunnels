@@ -271,8 +271,8 @@ const WixPageBuilder = ({ page, onSave, onClose }) => {
 
       {/* Main Content Area */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Block Library Sidebar */}
-        {showBlockLibrary && (
+        {/* Block Library Sidebar - Hide in Preview Mode */}
+        {!isPreviewMode && showBlockLibrary && (
           <BlockLibrary
             onAddBlock={addBlock}
             onClose={() => setShowBlockLibrary(false)}
@@ -285,7 +285,7 @@ const WixPageBuilder = ({ page, onSave, onClose }) => {
             className="mx-auto bg-white shadow-2xl rounded-lg overflow-hidden transition-all duration-300"
             style={{ width: getCanvasWidth(), minHeight: '100%' }}
           >
-            {blocks.length === 0 ? (
+            {blocks.length === 0 && !isPreviewMode ? (
               <div className="flex flex-col items-center justify-center py-20 px-4">
                 <Layers className="text-gray-300 mb-4" size={64} />
                 <h3 className="text-2xl font-bold text-gray-900 mb-2">Start Building Your Page</h3>
