@@ -50,6 +50,28 @@ const Webinars = () => {
     }
   };
 
+  const fetchAllRecordings = async () => {
+    try {
+      setLoading(true);
+      // Fetch recordings for all webinars
+      const allRecordings = [];
+      for (const webinar of webinars) {
+        const response = await api.get(`/api/webinars/${webinar.id}/recordings`);
+        if (response.data.recordings) {
+          allRecordings.push(...response.data.recordings.map(r => ({
+            ...r,
+            webinar_title: webinar.title
+          })));
+        }
+      }
+      setRecordings(allRecordings);
+    } catch (error) {
+      console.error('Error fetching recordings:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getStatusColor = (status) => {
     const colors = {
       draft: 'bg-gray-100 text-gray-700',
