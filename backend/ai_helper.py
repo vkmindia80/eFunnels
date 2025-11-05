@@ -637,6 +637,422 @@ Format as numbered list with brief explanations."""
                 suggestions.append(line.lstrip('0123456789.-) ').strip())
         
         return suggestions[:5]
+    
+    # ==================== WEBSITE BUILDER AI FEATURES ====================
+    
+    async def generate_complete_website(self, business_info: dict) -> dict:
+        """
+        Generate a complete website structure with pages and content
+        
+        Args:
+            business_info: Dict with business_type, industry, description, target_audience
+            
+        Returns:
+            Complete website structure with pages
+        """
+        system_message = "You are a professional web designer and content strategist. Create complete, professional websites."
+        
+        business_type = business_info.get('business_type', 'general business')
+        industry = business_info.get('industry', 'general')
+        description = business_info.get('description', '')
+        target_audience = business_info.get('target_audience', 'general audience')
+        
+        prompt = f"""Create a complete website structure for:
+Business Type: {business_type}
+Industry: {industry}
+Description: {description}
+Target Audience: {target_audience}
+
+Provide a comprehensive website with:
+1. Home page (hero section, about, services/products, testimonials, CTA)
+2. About page (company story, mission, team)
+3. Services/Products page (detailed offerings)
+4. Contact page (contact form, location, social links)
+5. Blog page structure
+
+For each page, provide:
+- Page title and URL
+- Hero headline and subheadline
+- Main content sections with actual content
+- Call-to-action text
+
+Format as structured JSON-like output with clear sections."""
+        
+        response = await self.generate_text(prompt, system_message)
+        
+        return {
+            "business_info": business_info,
+            "website_structure": response,
+            "pages_count": 5,
+            "generated_at": "now"
+        }
+    
+    async def generate_website_section(self, section_type: str, context: dict) -> dict:
+        """
+        Generate a specific website section with content
+        
+        Args:
+            section_type: Type of section (hero, about, services, testimonials, contact, etc.)
+            context: Context information (business_name, industry, etc.)
+            
+        Returns:
+            Section structure with content and styling suggestions
+        """
+        system_message = "You are an expert web designer. Create professional, conversion-optimized website sections."
+        
+        context_str = "\n".join([f"{k}: {v}" for k, v in context.items()])
+        
+        prompt = f"""Create a {section_type} section for a website with this context:
+{context_str}
+
+Provide:
+1. Section headline (compelling and clear)
+2. Subheadline or supporting text
+3. Body content (2-3 paragraphs or bullet points as appropriate)
+4. Call-to-action text (if applicable)
+5. Visual suggestions (image types, colors, layout)
+6. Design recommendations (spacing, alignment, style)
+
+Format clearly with labeled sections."""
+        
+        response = await self.generate_text(prompt, system_message)
+        
+        return {
+            "section_type": section_type,
+            "content": response,
+            "context": context
+        }
+    
+    async def generate_color_scheme(self, brand_info: dict) -> dict:
+        """
+        Generate a harmonious color scheme for a website
+        
+        Args:
+            brand_info: Dict with brand_type, mood, industry
+            
+        Returns:
+            Color palette with hex codes and usage suggestions
+        """
+        system_message = "You are a color theory expert and brand designer. Create harmonious, professional color schemes."
+        
+        brand_type = brand_info.get('brand_type', 'professional')
+        mood = brand_info.get('mood', 'trustworthy')
+        industry = brand_info.get('industry', 'general')
+        
+        prompt = f"""Create a professional color scheme for:
+Brand Type: {brand_type}
+Desired Mood: {mood}
+Industry: {industry}
+
+Provide:
+1. Primary color (hex code) - main brand color
+2. Secondary color (hex code) - supporting color
+3. Accent color (hex code) - for CTAs and highlights
+4. Background color (hex code) - main background
+5. Text color (hex code) - body text
+6. Heading color (hex code) - headings
+7. Usage guidelines for each color
+8. Color psychology explanation
+
+Format as:
+PRIMARY: #HEXCODE - [usage description]
+SECONDARY: #HEXCODE - [usage description]
+etc."""
+        
+        response = await self.generate_text(prompt, system_message)
+        
+        # Parse colors
+        colors = {
+            "primary": "#3B82F6",
+            "secondary": "#10B981",
+            "accent": "#F59E0B",
+            "background": "#FFFFFF",
+            "text": "#111827",
+            "heading": "#1F2937"
+        }
+        
+        for line in response.split('\n'):
+            if line.startswith('PRIMARY:'):
+                hex_match = line.split('#')
+                if len(hex_match) > 1:
+                    colors['primary'] = '#' + hex_match[1][:6]
+            elif line.startswith('SECONDARY:'):
+                hex_match = line.split('#')
+                if len(hex_match) > 1:
+                    colors['secondary'] = '#' + hex_match[1][:6]
+            elif line.startswith('ACCENT:'):
+                hex_match = line.split('#')
+                if len(hex_match) > 1:
+                    colors['accent'] = '#' + hex_match[1][:6]
+            elif line.startswith('BACKGROUND:'):
+                hex_match = line.split('#')
+                if len(hex_match) > 1:
+                    colors['background'] = '#' + hex_match[1][:6]
+            elif line.startswith('TEXT:'):
+                hex_match = line.split('#')
+                if len(hex_match) > 1:
+                    colors['text'] = '#' + hex_match[1][:6]
+            elif line.startswith('HEADING:'):
+                hex_match = line.split('#')
+                if len(hex_match) > 1:
+                    colors['heading'] = '#' + hex_match[1][:6]
+        
+        return {
+            "colors": colors,
+            "full_response": response,
+            "brand_info": brand_info
+        }
+    
+    async def generate_typography_suggestions(self, brand_style: str, website_type: str) -> dict:
+        """
+        Generate typography recommendations
+        
+        Args:
+            brand_style: Brand style (modern, classic, elegant, playful, etc.)
+            website_type: Type of website (corporate, creative, ecommerce, blog, etc.)
+            
+        Returns:
+            Typography recommendations with font pairings
+        """
+        system_message = "You are a typography expert. Recommend professional font combinations."
+        
+        prompt = f"""Recommend typography for:
+Brand Style: {brand_style}
+Website Type: {website_type}
+
+Provide:
+1. Heading font (Google Font name)
+2. Body font (Google Font name)
+3. Font pairing rationale
+4. Size recommendations (h1, h2, body, etc.)
+5. Line height and spacing suggestions
+6. Alternative font combinations (2 more pairs)
+
+Format clearly with font names and reasoning."""
+        
+        response = await self.generate_text(prompt, system_message)
+        
+        return {
+            "brand_style": brand_style,
+            "website_type": website_type,
+            "recommendations": response
+        }
+    
+    async def generate_layout_suggestion(self, page_type: str, content_blocks: list) -> dict:
+        """
+        Suggest optimal layout for page with given content blocks
+        
+        Args:
+            page_type: Type of page (home, about, services, etc.)
+            content_blocks: List of content block types available
+            
+        Returns:
+            Layout recommendation with arrangement suggestions
+        """
+        system_message = "You are a UX designer. Create optimal page layouts for maximum engagement."
+        
+        blocks_str = ", ".join(content_blocks)
+        
+        prompt = f"""Design an optimal layout for a {page_type} page using these content blocks:
+{blocks_str}
+
+Provide:
+1. Recommended block order (from top to bottom)
+2. Layout structure (full-width, contained, grid, etc.)
+3. Spacing recommendations
+4. Visual hierarchy suggestions
+5. Mobile layout considerations
+6. Reasoning for each decision
+
+Format as a structured layout plan."""
+        
+        response = await self.generate_text(prompt, system_message)
+        
+        return {
+            "page_type": page_type,
+            "blocks": content_blocks,
+            "layout_plan": response
+        }
+    
+    async def optimize_website_section(self, section_content: str, section_type: str, goals: list) -> dict:
+        """
+        Optimize existing website section for better performance
+        
+        Args:
+            section_content: Current section content
+            section_type: Type of section
+            goals: List of goals (conversion, engagement, clarity, etc.)
+            
+        Returns:
+            Optimization recommendations
+        """
+        system_message = "You are a conversion optimization expert. Improve website sections for better results."
+        
+        goals_str = ", ".join(goals)
+        
+        prompt = f"""Optimize this {section_type} section for: {goals_str}
+
+Current Content:
+{section_content}
+
+Provide:
+1. Improved headline (more compelling)
+2. Better body copy (clearer, more persuasive)
+3. Stronger CTA
+4. Design improvements (visual hierarchy, spacing, colors)
+5. A/B testing suggestions
+6. Specific changes to make (numbered list)
+
+Format with clear before/after comparisons."""
+        
+        response = await self.generate_text(prompt, system_message)
+        
+        return {
+            "section_type": section_type,
+            "goals": goals,
+            "optimization_plan": response
+        }
+    
+    async def generate_responsive_design_suggestions(self, layout_description: str) -> dict:
+        """
+        Generate responsive design recommendations for mobile/tablet
+        
+        Args:
+            layout_description: Description of current desktop layout
+            
+        Returns:
+            Responsive design recommendations
+        """
+        system_message = "You are a responsive web design expert. Optimize layouts for all devices."
+        
+        prompt = f"""Current desktop layout:
+{layout_description}
+
+Provide responsive design recommendations:
+1. Mobile layout changes (what to stack, hide, or reorganize)
+2. Tablet layout adjustments
+3. Touch-friendly improvements
+4. Performance optimizations for mobile
+5. Typography scaling recommendations
+6. Image handling strategies
+
+Format with device-specific sections."""
+        
+        response = await self.generate_text(prompt, system_message)
+        
+        return {
+            "desktop_layout": layout_description,
+            "responsive_recommendations": response
+        }
+    
+    async def generate_animation_suggestions(self, element_type: str, context: str) -> dict:
+        """
+        Suggest appropriate animations for website elements
+        
+        Args:
+            element_type: Type of element (button, image, section, etc.)
+            context: Context of use (hero, CTA, gallery, etc.)
+            
+        Returns:
+            Animation recommendations
+        """
+        system_message = "You are a web animation expert. Suggest subtle, professional animations that enhance UX."
+        
+        prompt = f"""Suggest animations for:
+Element Type: {element_type}
+Context: {context}
+
+Provide:
+1. Entrance animation (type, duration, easing)
+2. Hover effects (if applicable)
+3. Scroll animations (if applicable)
+4. Exit animation (if needed)
+5. Animation timing and performance tips
+6. When NOT to animate (accessibility considerations)
+
+Format with specific CSS animation suggestions."""
+        
+        response = await self.generate_text(prompt, system_message)
+        
+        return {
+            "element_type": element_type,
+            "context": context,
+            "animation_suggestions": response
+        }
+    
+    async def generate_seo_metadata(self, page_info: dict) -> dict:
+        """
+        Generate SEO-optimized metadata for website pages
+        
+        Args:
+            page_info: Dict with page_title, page_content, target_keywords
+            
+        Returns:
+            SEO metadata (title, description, keywords, og tags)
+        """
+        system_message = "You are an SEO expert. Create optimized metadata for maximum search visibility."
+        
+        page_title = page_info.get('page_title', '')
+        page_content = page_info.get('page_content', '')
+        keywords = page_info.get('target_keywords', [])
+        keywords_str = ", ".join(keywords) if keywords else "relevant keywords"
+        
+        prompt = f"""Create SEO metadata for:
+Page Title: {page_title}
+Target Keywords: {keywords_str}
+Page Content Summary: {page_content[:300]}...
+
+Provide:
+1. SEO Title (55-60 chars, include primary keyword)
+2. Meta Description (150-160 chars, compelling, include keyword)
+3. Meta Keywords (10-15 relevant keywords)
+4. Open Graph Title (for social sharing)
+5. Open Graph Description
+6. Suggested URL slug
+7. H1 tag recommendation
+
+Format clearly with character counts."""
+        
+        response = await self.generate_text(prompt, system_message)
+        
+        return {
+            "page_info": page_info,
+            "seo_metadata": response
+        }
+    
+    async def generate_accessibility_recommendations(self, page_structure: str) -> dict:
+        """
+        Generate accessibility improvement recommendations
+        
+        Args:
+            page_structure: Description of page structure and elements
+            
+        Returns:
+            Accessibility recommendations (WCAG compliance)
+        """
+        system_message = "You are a web accessibility expert. Ensure websites meet WCAG 2.1 AA standards."
+        
+        prompt = f"""Review this page structure for accessibility:
+{page_structure}
+
+Provide recommendations for:
+1. Color contrast improvements
+2. Keyboard navigation enhancements
+3. Screen reader optimization
+4. Alt text guidelines for images
+5. ARIA labels and roles needed
+6. Focus indicators
+7. Form accessibility
+8. Heading hierarchy
+
+Format as actionable checklist."""
+        
+        response = await self.generate_text(prompt, system_message)
+        
+        return {
+            "page_structure": page_structure,
+            "accessibility_recommendations": response
+        }
 
 
 # Convenience functions
