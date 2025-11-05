@@ -1899,10 +1899,10 @@ const BlockRenderer = ({ block }) => {
           <div className="grid md:grid-cols-3 gap-6">
             {(content.plans || [{ name: 'Basic', price: '$9' }, { name: 'Pro', price: '$29' }, { name: 'Enterprise', price: '$99' }]).map((plan, i) => (
               <div key={i} className="bg-white border-2 border-gray-200 rounded-xl p-6 hover:border-blue-500 transition">
-                <h3 className="font-bold text-xl mb-2">{plan.name}</h3>
-                <div className="text-4xl font-bold mb-4">{plan.price}</div>
+                <h3 className="font-bold text-xl mb-2">{plan?.name || 'Plan'}</h3>
+                <div className="text-4xl font-bold mb-4">{plan?.price || '$0'}</div>
                 <ul className="space-y-2 mb-6">
-                  {(plan.features || ['Feature 1', 'Feature 2', 'Feature 3']).map((feature, j) => (
+                  {(plan?.features || ['Feature 1', 'Feature 2', 'Feature 3']).map((feature, j) => (
                     <li key={j} className="flex items-center gap-2">
                       <Check size={16} className="text-green-600" />
                       <span>{feature}</span>
@@ -1910,7 +1910,7 @@ const BlockRenderer = ({ block }) => {
                   ))}
                 </ul>
                 <button className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700">
-                  {plan.cta || 'Get Started'}
+                  {plan?.cta || 'Get Started'}
                 </button>
               </div>
             ))}
