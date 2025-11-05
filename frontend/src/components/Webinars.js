@@ -250,6 +250,16 @@ const Webinars = () => {
         />
       )}
 
+      {activeTab === 'recordings' && (
+        <RecordingsPanel
+          webinars={webinars}
+          recordings={recordings}
+          onRefresh={fetchAllRecordings}
+          onAddRecording={setShowRecordingModal}
+          loading={loading}
+        />
+      )}
+
       {activeTab === 'analytics' && (
         <WebinarAnalytics webinars={webinars} />
       )}
