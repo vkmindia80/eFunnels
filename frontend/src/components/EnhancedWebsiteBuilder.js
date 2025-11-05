@@ -1867,7 +1867,7 @@ const BlockRenderer = ({ block }) => {
               fontSize: style?.fontSize || '16px'
             }}
           >
-            {content.text || 'Button Text'}
+            {content?.text || content?.content || 'Button Text'}
           </button>
         </div>
       );
