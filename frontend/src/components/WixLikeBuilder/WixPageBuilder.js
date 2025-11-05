@@ -264,7 +264,8 @@ const WixPageBuilder = ({ page, onSave, onClose }) => {
                             <div
                               ref={provided.innerRef}
                               {...provided.draggableProps}
-                              className={`relative group ${
+                              {...provided.dragHandleProps}
+                              className={`relative group cursor-move ${
                                 selectedBlockId === block.id ? 'ring-2 ring-blue-500' : ''
                               } ${hoveredBlockId === block.id ? 'ring-1 ring-blue-300' : ''} ${
                                 snapshot.isDragging ? 'shadow-2xl opacity-90' : ''
@@ -276,13 +277,12 @@ const WixPageBuilder = ({ page, onSave, onClose }) => {
                               {/* Block Toolbar - Shows on Hover */}
                               {(hoveredBlockId === block.id || selectedBlockId === block.id) && (
                                 <div className="absolute top-2 right-2 z-10 flex gap-1 bg-white shadow-lg rounded-lg border border-gray-200 p-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <button
-                                    {...provided.dragHandleProps}
-                                    className="p-2 text-gray-600 hover:bg-gray-100 rounded cursor-move"
+                                  <div
+                                    className="p-2 text-gray-600 bg-gray-50 rounded cursor-move"
                                     title="Drag to reorder"
                                   >
                                     <GripVertical size={16} />
-                                  </button>
+                                  </div>
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
