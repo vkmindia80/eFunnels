@@ -160,6 +160,7 @@ website_pages_collection = db['website_pages']
 website_themes_collection = db['website_themes']
 navigation_menus_collection = db['navigation_menus']
 website_page_views_collection = db['website_page_views']
+website_assets_collection = db['website_assets']
 
 # Blog & Website indexes
 blog_posts_collection.create_index('user_id')
