@@ -10744,6 +10744,318 @@ async def generate_blog_post_ai(
         raise HTTPException(status_code=500, detail=f"Failed to export report: {str(e)}")
 
 
+
+# ==================== TEMPLATE MANAGEMENT ROUTES ====================
+
+from template_library import get_templates_by_module, get_all_templates
+from ai_helper import AIHelper
+
+@app.get("/api/templates")
+async def get_all_available_templates(current_user: dict = Depends(get_current_user)):
+    """Get all available templates across all modules"""
+    return get_all_templates()
+
+@app.get("/api/templates/{module}")
+async def get_module_templates(
+    module: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get templates for a specific module"""
+    templates = get_templates_by_module(module)
+    return {"module": module, "templates": templates}
+
+@app.get("/api/templates/{module}/{template_id}")
+async def get_template_details(
+    module: str,
+    template_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get detailed information about a specific template"""
+    templates = get_templates_by_module(module)
+    template = next((t for t in templates if t.get('id') == template_id), None)
+    
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+    
+    return template
+
+
+# ==================== AI ENHANCEMENT ROUTES ====================
+
+@app.post("/api/ai/generate-content")
+async def ai_generate_content(
+    request: dict,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Generate content using AI
+    
+    Request body:
+    {
+        "module": "email|blog|course|etc",
+        "content_type": "subject|body|headline|etc",
+        "prompt": "what to generate",
+        "context": {...}
+    }
+    """
+    try:
+        ai_helper = AIHelper()
+        module = request.get('module', 'general')
+        content_type = request.get('content_type', 'text')
+        prompt = request.get('prompt', '')
+        context = request.get('context', {})
+        
+        if not prompt:
+            raise HTTPException(status_code=400, detail="Prompt is required")
+        
+        # Module-specific generation
+        if module == 'email' and content_type == 'full':
+            result = await ai_helper.generate_email_copy(prompt, context.get('tone', 'professional'))
+        elif module == 'blog':
+            result = await ai_helper.generate_blog_post(prompt, context.get('keywords', []))
+        elif module == 'course' and content_type == 'lesson':
+            result = await ai_helper.generate_course_lesson_content(
+                prompt, 
+                context.get('course_topic', ''),
+                context.get('lesson_number', 1)
+            )
+        elif module == 'funnel' and content_type == 'copy':
+            result = await ai_helper.generate_landing_page_copy(
+                prompt,
+                context.get('target_audience', 'general audience'),
+                context.get('benefits', [])
+            )
+        elif module == 'product' and content_type == 'description':
+            result = await ai_helper.generate_product_description(
+                prompt,
+                context.get('features', [])
+            )
+        else:
+            # General text generation
+            result = await ai_helper.generate_text(prompt)
+        
+        return {
+            "success": True,
+            "content": result,
+            "module": module,
+            "content_type": content_type
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"AI generation failed: {str(e)}")
+
+@app.post("/api/ai/improve-content")
+async def ai_improve_content(
+    request: dict,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Improve existing content using AI
+    
+    Request body:
+    {
+        "content": "text to improve",
+        "improvement_type": "grammar|clarity|engagement|seo",
+        "target_keywords": [...] (optional, for SEO)
+    }
+    """
+    try:
+        ai_helper = AIHelper()
+        content = request.get('content', '')
+        improvement_type = request.get('improvement_type', 'grammar')
+        
+        if not content:
+            raise HTTPException(status_code=400, detail="Content is required")
+        
+        if improvement_type == 'seo':
+            target_keywords = request.get('target_keywords', [])
+            result = await ai_helper.improve_seo(content, target_keywords)
+        else:
+            result = await ai_helper.improve_text(content, improvement_type)
+        
+        return {
+            "success": True,
+            "improved_content": result,
+            "improvement_type": improvement_type
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Content improvement failed: {str(e)}")
+
+@app.post("/api/ai/smart-suggestions")
+async def ai_smart_suggestions(
+    request: dict,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Get smart AI suggestions based on context
+    
+    Request body:
+    {
+        "module": "email|funnel|course|etc",
+        "context": {...module-specific context}
+    }
+    """
+    try:
+        ai_helper = AIHelper()
+        module = request.get('module', '')
+        context = request.get('context', {})
+        
+        if not module:
+            raise HTTPException(status_code=400, detail="Module is required")
+        
+        suggestions = await ai_helper.generate_smart_suggestions(module, context)
+        
+        return {
+            "success": True,
+            "module": module,
+            "suggestions": suggestions
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Suggestion generation failed: {str(e)}")
+
+@app.post("/api/ai/generate-headlines")
+async def ai_generate_headlines(
+    request: dict,
+    current_user: dict = Depends(get_current_user)
+):
+    """Generate multiple headline options"""
+    try:
+        ai_helper = AIHelper()
+        topic = request.get('topic', '')
+        style = request.get('style', 'attention-grabbing')
+        
+        if not topic:
+            raise HTTPException(status_code=400, detail="Topic is required")
+        
+        headlines = await ai_helper.generate_headline(topic, style)
+        
+        return {
+            "success": True,
+            "headlines": headlines
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Headline generation failed: {str(e)}")
+
+@app.post("/api/ai/generate-form-fields")
+async def ai_generate_form_fields(
+    request: dict,
+    current_user: dict = Depends(get_current_user)
+):
+    """Generate form fields using AI"""
+    try:
+        ai_helper = AIHelper()
+        form_purpose = request.get('form_purpose', 'contact')
+        target_audience = request.get('target_audience', 'general')
+        
+        fields = await ai_helper.generate_form_fields(form_purpose, target_audience)
+        
+        return {
+            "success": True,
+            "fields": fields
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Form field generation failed: {str(e)}")
+
+@app.post("/api/ai/generate-survey-questions")
+async def ai_generate_survey_questions(
+    request: dict,
+    current_user: dict = Depends(get_current_user)
+):
+    """Generate survey questions using AI"""
+    try:
+        ai_helper = AIHelper()
+        survey_topic = request.get('survey_topic', '')
+        num_questions = request.get('num_questions', 10)
+        
+        if not survey_topic:
+            raise HTTPException(status_code=400, detail="Survey topic is required")
+        
+        questions = await ai_helper.generate_survey_questions(survey_topic, num_questions)
+        
+        return {
+            "success": True,
+            "questions": questions
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Survey question generation failed: {str(e)}")
+
+@app.post("/api/ai/optimize-funnel-page")
+async def ai_optimize_funnel_page(
+    request: dict,
+    current_user: dict = Depends(get_current_user)
+):
+    """Optimize funnel page using AI"""
+    try:
+        ai_helper = AIHelper()
+        current_content = request.get('current_content', '')
+        page_purpose = request.get('page_purpose', 'landing')
+        
+        if not current_content:
+            raise HTTPException(status_code=400, detail="Current content is required")
+        
+        optimization = await ai_helper.optimize_funnel_page(current_content, page_purpose)
+        
+        return {
+            "success": True,
+            "optimization": optimization
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Page optimization failed: {str(e)}")
+
+@app.post("/api/ai/generate-social-posts")
+async def ai_generate_social_posts(
+    request: dict,
+    current_user: dict = Depends(get_current_user)
+):
+    """Generate social media posts"""
+    try:
+        ai_helper = AIHelper()
+        topic = request.get('topic', '')
+        platforms = request.get('platforms', ['twitter', 'facebook', 'linkedin'])
+        
+        if not topic:
+            raise HTTPException(status_code=400, detail="Topic is required")
+        
+        posts = await ai_helper.generate_social_media_posts(topic, platforms)
+        
+        return {
+            "success": True,
+            "posts": posts
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Social post generation failed: {str(e)}")
+
+@app.post("/api/ai/analyze-sentiment")
+async def ai_analyze_sentiment(
+    request: dict,
+    current_user: dict = Depends(get_current_user)
+):
+    """Analyze text sentiment"""
+    try:
+        ai_helper = AIHelper()
+        text = request.get('text', '')
+        
+        if not text:
+            raise HTTPException(status_code=400, detail="Text is required")
+        
+        analysis = await ai_helper.analyze_text_sentiment(text)
+        
+        return {
+            "success": True,
+            "analysis": analysis
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Sentiment analysis failed: {str(e)}")
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
