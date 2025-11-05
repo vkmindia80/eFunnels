@@ -119,7 +119,22 @@ const WixPageBuilder = ({ page, onSave, onClose }) => {
   };
 
   const handleSave = async () => {
-    await onSave({ ...page, content: { blocks } });
+    await onSave({ ...page, content: { blocks }, status: pageStatus });
+  };
+
+  const handlePublish = async () => {
+    setPageStatus('published');
+    await onSave({ ...page, content: { blocks }, status: 'published' });
+    alert('Page published successfully!');
+  };
+
+  const handleUnpublish = async () => {
+    setPageStatus('draft');
+    await onSave({ ...page, content: { blocks }, status: 'draft' });
+  };
+
+  const togglePreview = () => {
+    setIsPreviewMode(!isPreviewMode);
   };
 
   const selectedBlock = blocks.find(b => b.id === selectedBlockId);
