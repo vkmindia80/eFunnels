@@ -39,6 +39,18 @@ affiliate_commissions_collection = db['affiliate_commissions']
 affiliate_payouts_collection = db['affiliate_payouts']
 affiliate_resources_collection = db['affiliate_resources']
 
+# Payment & E-commerce collections (Phase 11)
+products_collection = db['products']
+product_categories_collection = db['product_categories']
+product_variants_collection = db['product_variants']
+shopping_carts_collection = db['shopping_carts']
+orders_collection = db['orders']
+order_items_collection = db['order_items']
+subscriptions_collection = db['subscriptions']
+coupons_collection = db['coupons']
+invoices_collection = db['invoices']
+payment_transactions_collection = db['payment_transactions']
+
 # Webinar collections (Phase 9)
 webinars_collection = db['webinars']
 webinar_registrations_collection = db['webinar_registrations']
