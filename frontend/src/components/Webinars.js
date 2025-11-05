@@ -23,6 +23,12 @@ const Webinars = () => {
     fetchAnalytics();
   }, []);
 
+  useEffect(() => {
+    if (activeTab === 'recordings') {
+      fetchAllRecordings();
+    }
+  }, [activeTab]);
+
   const fetchWebinars = async () => {
     try {
       setLoading(true);
