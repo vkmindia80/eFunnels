@@ -30,6 +30,7 @@ const TemplateBrowser = ({ onClose, onSelect }) => {
 
   useEffect(() => {
     filterTemplates();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [templates, activeCategory, searchQuery]);
 
   const fetchTemplates = async () => {
