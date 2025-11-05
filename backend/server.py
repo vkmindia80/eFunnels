@@ -11056,6 +11056,393 @@ async def ai_analyze_sentiment(
         raise HTTPException(status_code=500, detail=f"Sentiment analysis failed: {str(e)}")
 
 
+# ==================== WEBSITE BUILDER AI ENDPOINTS ====================
+
+@app.post("/api/website/ai/generate-complete-website")
+async def generate_complete_website_ai(
+    request: dict,
+    current_user: dict = Depends(get_current_user)
+):
+    """Generate a complete website with AI"""
+    try:
+        ai_helper = AIHelper()
+        business_info = request.get('business_info', {})
+        
+        result = await ai_helper.generate_complete_website(business_info)
+        
+        return {
+            "success": True,
+            "website": result
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Website generation failed: {str(e)}")
+
+
+@app.post("/api/website/ai/generate-section")
+async def generate_website_section_ai(
+    request: dict,
+    current_user: dict = Depends(get_current_user)
+):
+    """Generate a specific website section with AI"""
+    try:
+        ai_helper = AIHelper()
+        section_type = request.get('section_type', 'hero')
+        context = request.get('context', {})
+        
+        result = await ai_helper.generate_website_section(section_type, context)
+        
+        return {
+            "success": True,
+            "section": result
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Section generation failed: {str(e)}")
+
+
+@app.post("/api/website/ai/generate-color-scheme")
+async def generate_color_scheme_ai(
+    request: dict,
+    current_user: dict = Depends(get_current_user)
+):
+    """Generate a color scheme with AI"""
+    try:
+        ai_helper = AIHelper()
+        brand_info = request.get('brand_info', {})
+        
+        result = await ai_helper.generate_color_scheme(brand_info)
+        
+        return {
+            "success": True,
+            "color_scheme": result
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Color scheme generation failed: {str(e)}")
+
+
+@app.post("/api/website/ai/generate-typography")
+async def generate_typography_ai(
+    request: dict,
+    current_user: dict = Depends(get_current_user)
+):
+    """Generate typography recommendations with AI"""
+    try:
+        ai_helper = AIHelper()
+        brand_style = request.get('brand_style', 'modern')
+        website_type = request.get('website_type', 'corporate')
+        
+        result = await ai_helper.generate_typography_suggestions(brand_style, website_type)
+        
+        return {
+            "success": True,
+            "typography": result
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Typography generation failed: {str(e)}")
+
+
+@app.post("/api/website/ai/suggest-layout")
+async def suggest_layout_ai(
+    request: dict,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get AI layout suggestions"""
+    try:
+        ai_helper = AIHelper()
+        page_type = request.get('page_type', 'home')
+        content_blocks = request.get('content_blocks', [])
+        
+        result = await ai_helper.generate_layout_suggestion(page_type, content_blocks)
+        
+        return {
+            "success": True,
+            "layout": result
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Layout suggestion failed: {str(e)}")
+
+
+@app.post("/api/website/ai/optimize-section")
+async def optimize_section_ai(
+    request: dict,
+    current_user: dict = Depends(get_current_user)
+):
+    """Optimize existing section with AI"""
+    try:
+        ai_helper = AIHelper()
+        section_content = request.get('section_content', '')
+        section_type = request.get('section_type', 'general')
+        goals = request.get('goals', ['conversion'])
+        
+        result = await ai_helper.optimize_website_section(section_content, section_type, goals)
+        
+        return {
+            "success": True,
+            "optimization": result
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Section optimization failed: {str(e)}")
+
+
+@app.post("/api/website/ai/responsive-suggestions")
+async def responsive_suggestions_ai(
+    request: dict,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get responsive design suggestions"""
+    try:
+        ai_helper = AIHelper()
+        layout_description = request.get('layout_description', '')
+        
+        result = await ai_helper.generate_responsive_design_suggestions(layout_description)
+        
+        return {
+            "success": True,
+            "suggestions": result
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Responsive suggestions failed: {str(e)}")
+
+
+@app.post("/api/website/ai/animation-suggestions")
+async def animation_suggestions_ai(
+    request: dict,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get animation suggestions"""
+    try:
+        ai_helper = AIHelper()
+        element_type = request.get('element_type', 'button')
+        context = request.get('context', 'hero')
+        
+        result = await ai_helper.generate_animation_suggestions(element_type, context)
+        
+        return {
+            "success": True,
+            "animations": result
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Animation suggestions failed: {str(e)}")
+
+
+@app.post("/api/website/ai/seo-metadata")
+async def generate_seo_metadata_ai(
+    request: dict,
+    current_user: dict = Depends(get_current_user)
+):
+    """Generate SEO metadata with AI"""
+    try:
+        ai_helper = AIHelper()
+        page_info = request.get('page_info', {})
+        
+        result = await ai_helper.generate_seo_metadata(page_info)
+        
+        return {
+            "success": True,
+            "metadata": result
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"SEO metadata generation failed: {str(e)}")
+
+
+@app.post("/api/website/ai/accessibility-check")
+async def accessibility_check_ai(
+    request: dict,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get accessibility recommendations"""
+    try:
+        ai_helper = AIHelper()
+        page_structure = request.get('page_structure', '')
+        
+        result = await ai_helper.generate_accessibility_recommendations(page_structure)
+        
+        return {
+            "success": True,
+            "recommendations": result
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Accessibility check failed: {str(e)}")
+
+
+# ==================== SECTION TEMPLATES ENDPOINTS ====================
+
+@app.get("/api/website/section-templates")
+async def get_section_templates(
+    category: str = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get section templates"""
+    try:
+        from website_templates import get_all_templates, get_templates_by_category
+        
+        if category:
+            templates = get_templates_by_category(category)
+        else:
+            templates = get_all_templates()
+        
+        return {
+            "success": True,
+            "templates": templates,
+            "count": len(templates)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch templates: {str(e)}")
+
+
+@app.get("/api/website/section-templates/{template_id}")
+async def get_section_template_by_id(
+    template_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get a specific section template"""
+    try:
+        from website_templates import get_template_by_id
+        
+        template = get_template_by_id(template_id)
+        
+        if not template:
+            raise HTTPException(status_code=404, detail="Template not found")
+        
+        return {
+            "success": True,
+            "template": template
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch template: {str(e)}")
+
+
+# ==================== ADVANCED BLOCKS ENDPOINTS ====================
+
+@app.get("/api/website/advanced-blocks")
+async def get_advanced_blocks(
+    category: str = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get advanced blocks"""
+    try:
+        from advanced_blocks import get_all_advanced_blocks, get_blocks_by_category
+        
+        if category:
+            blocks = get_blocks_by_category(category)
+        else:
+            blocks = get_all_advanced_blocks()
+        
+        return {
+            "success": True,
+            "blocks": blocks,
+            "count": len(blocks)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch blocks: {str(e)}")
+
+
+@app.get("/api/website/advanced-blocks/{block_type}")
+async def get_advanced_block_by_type(
+    block_type: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get a specific advanced block"""
+    try:
+        from advanced_blocks import get_block_by_type
+        
+        block = get_block_by_type(block_type)
+        
+        if not block:
+            raise HTTPException(status_code=404, detail="Block not found")
+        
+        return {
+            "success": True,
+            "block": block
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch block: {str(e)}")
+
+
+# ==================== ASSET MANAGEMENT ENDPOINTS ====================
+
+# Assets collection
+assets_collection = db['website_assets']
+
+@app.post("/api/website/assets/upload")
+async def upload_asset(
+    file: dict,
+    current_user: dict = Depends(get_current_user)
+):
+    """Upload an asset (simulated)"""
+    try:
+        asset_id = str(uuid.uuid4())
+        asset = {
+            "id": asset_id,
+            "user_id": current_user["id"],
+            "name": file.get("name", "untitled"),
+            "type": file.get("type", "image"),
+            "url": file.get("url", ""),
+            "size": file.get("size", 0),
+            "uploaded_at": datetime.utcnow().isoformat(),
+            "tags": file.get("tags", [])
+        }
+        
+        await assets_collection.insert_one(asset)
+        
+        return {
+            "success": True,
+            "asset": asset
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
+
+
+@app.get("/api/website/assets")
+async def get_assets(
+    asset_type: str = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get user's assets"""
+    try:
+        query = {"user_id": current_user["id"]}
+        if asset_type:
+            query["type"] = asset_type
+        
+        assets = await assets_collection.find(query).to_list(length=100)
+        
+        return {
+            "success": True,
+            "assets": assets,
+            "count": len(assets)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch assets: {str(e)}")
+
+
+@app.delete("/api/website/assets/{asset_id}")
+async def delete_asset(
+    asset_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Delete an asset"""
+    try:
+        result = await assets_collection.delete_one({
+            "id": asset_id,
+            "user_id": current_user["id"]
+        })
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Asset not found")
+        
+        return {
+            "success": True,
+            "message": "Asset deleted"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Delete failed: {str(e)}")
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
