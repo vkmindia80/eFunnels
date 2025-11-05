@@ -5162,6 +5162,9 @@ async def get_course_analytics(
         "active_students": active_students,
         "completed_students": completed_students,
         "completion_rate": round(completion_rate, 2),
+        "average_progress": round(avg_progress, 2),
+        "total_revenue": round(total_revenue, 2)
+    }
 
 
 # ==================== PHASE 8: BLOG & WEBSITE BUILDER ROUTES ====================
