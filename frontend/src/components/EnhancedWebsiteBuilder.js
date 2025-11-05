@@ -282,6 +282,27 @@ const EnhancedWebsiteBuilder = () => {
                             <Trash2 size={16} />
                           </button>
                         </div>
+                        <button
+                          onClick={() => handleToggleVisibility(page)}
+                          className={`w-full ${
+                            (page.visibility || page.custom_fields?.visibility || 'public') === 'public'
+                              ? 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+                              : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+                          } px-3 py-2 rounded-lg font-semibold transition flex items-center justify-center gap-2`}
+                          data-testid={`toggle-visibility-${page.id}`}
+                        >
+                          {(page.visibility || page.custom_fields?.visibility || 'public') === 'public' ? (
+                            <>
+                              <Lock size={16} />
+                              Make Private
+                            </>
+                          ) : (
+                            <>
+                              <Globe size={16} />
+                              Make Public
+                            </>
+                          )}
+                        </button>
                       </div>
                     </div>
                   </div>
