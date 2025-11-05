@@ -8,13 +8,15 @@ import {
 import api from '../api';
 
 const Webinars = () => {
-  const [activeTab, setActiveTab] = useState('webinars'); // webinars, upcoming, recordings
+  const [activeTab, setActiveTab] = useState('webinars'); // webinars, upcoming, recordings, analytics
   const [webinars, setWebinars] = useState([]);
+  const [recordings, setRecordings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showWebinarView, setShowWebinarView] = useState(null);
   const [analytics, setAnalytics] = useState(null);
   const [selectedWebinar, setSelectedWebinar] = useState(null);
+  const [showRecordingModal, setShowRecordingModal] = useState(null);
 
   useEffect(() => {
     fetchWebinars();
