@@ -4,11 +4,13 @@ import {
   Copy, Settings, ExternalLink, ChevronRight, Layout, 
   Target, Users, TrendingUp, Globe, Search, Filter,
   ArrowLeft, Save, X, Monitor, Smartphone, Code,
-  GripVertical, Palette, Type, Image as ImageIcon
+  GripVertical, Palette, Type, Image as ImageIcon, Sparkles, Wand2
 } from 'lucide-react';
 import api from '../api';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { defaultBlocks, getBlockIcon, getBlockLabel } from './FunnelBuilder/pageBlocks';
+import TemplateBrowser from './TemplateBrowser';
+import UniversalAIAssistant from './UniversalAIAssistant';
 
 const Funnels = () => {
   const [activeTab, setActiveTab] = useState('funnels'); // funnels, templates, builder, analytics
