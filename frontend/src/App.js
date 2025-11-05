@@ -1353,6 +1353,12 @@ const Dashboard = ({ user, onLogout }) => {
       case 'courses':
         return <Courses user={user} />;
       
+      case 'blog':
+        return <Blog />;
+      
+      case 'website':
+        return <WebsiteBuilder />;
+      
       default:
         return (
           <div className="bg-white rounded-xl shadow-md p-12 text-center">
