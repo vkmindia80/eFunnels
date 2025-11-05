@@ -9,7 +9,7 @@ import io
 import os
 
 class ComprehensiveeFunnelsAPITester:
-    def __init__(self, base_url="https://milestone-tracker-29.preview.emergentagent.com"):
+    def __init__(self, base_url="https://git-code-connect.preview.emergentagent.com"):
         self.base_url = base_url
         self.token = None
         self.user_id = None
