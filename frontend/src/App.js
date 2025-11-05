@@ -1524,6 +1524,12 @@ function App() {
     );
   }
 
+  // Check for public routes (public webinar catalog)
+  const path = window.location.pathname;
+  if (path === '/public/webinars' || path.startsWith('/public/webinars/')) {
+    return <PublicWebinarCatalog />;
+  }
+
   return user ? (
     <Dashboard user={user} onLogout={handleLogout} />
   ) : (
