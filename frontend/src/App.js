@@ -1362,6 +1362,9 @@ const Dashboard = ({ user, onLogout }) => {
       case 'website':
         return <WebsiteBuilder />;
       
+      case 'webinars':
+        return <Webinars />;
+      
       default:
         return (
           <div className="bg-white rounded-xl shadow-md p-12 text-center">
