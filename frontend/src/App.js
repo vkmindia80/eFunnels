@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Menu, X, Home, Users, Mail, Layout, BookOpen, DollarSign, 
-  Video, Zap, FileText, Settings, 
+  Video, Zap, FileText, Settings as SettingsIcon, 
   LogOut, User, Bell, Search, Plus, BarChart2,
   UserPlus, ShoppingCart, Target, Award, MessageSquare,
   Edit, Trash2, Tag, Download, Upload, Filter, 
