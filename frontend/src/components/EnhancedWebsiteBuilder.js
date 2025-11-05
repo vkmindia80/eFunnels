@@ -1927,14 +1927,14 @@ const BlockRenderer = ({ block }) => {
           <div className="grid md:grid-cols-3 gap-6">
             {(content.testimonials || [{ author: 'John Doe', text: 'Great product!' }]).map((testimonial, i) => (
               <div key={i} className="bg-white p-6 rounded-lg border border-gray-200">
-                <p className="text-gray-700 mb-4 italic">"{testimonial.text}"</p>
+                <p className="text-gray-700 mb-4 italic">"{testimonial?.text || 'Great product!'}"</p>
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
-                    {testimonial.author.charAt(0)}
+                    {testimonial?.author?.charAt(0) || 'J'}
                   </div>
                   <div>
-                    <p className="font-semibold">{testimonial.author}</p>
-                    {testimonial.role && <p className="text-sm text-gray-600">{testimonial.role}</p>}
+                    <p className="font-semibold">{testimonial?.author || 'John Doe'}</p>
+                    {testimonial?.role && <p className="text-sm text-gray-600">{testimonial.role}</p>}
                   </div>
                 </div>
               </div>
