@@ -6604,8 +6604,13 @@ async def register_for_webinar(
         )
     
     # Send confirmation email
-    # TODO: Integrate with Phase 3 email system for confirmation email
+    background_tasks.add_task(
+        webinar_email_service.send_registration_confirmation,
+        webinar,
+        registration_dict
+    )
     
+    registration_dict.pop('_id', None)
     return registration_dict
 
 @app.get("/api/webinars/{webinar_id}/registrations")
