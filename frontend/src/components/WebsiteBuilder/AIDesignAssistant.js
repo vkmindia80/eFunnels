@@ -464,8 +464,6 @@ const AIDesignAssistant = ({ onClose, onApply }) => {
                 <div className="space-y-4">
                   {/* Tabbed View: Visual + JSON */}
                   {(() => {
-                    const [previewTab, setPreviewTab] = useState('visual');
-                    
                     // Try to parse website_structure if it's a string
                     let parsedData = result;
                     if (result.website_structure && typeof result.website_structure === 'string') {
