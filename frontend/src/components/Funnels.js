@@ -11,6 +11,7 @@ import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { defaultBlocks, getBlockIcon, getBlockLabel } from './FunnelBuilder/pageBlocks';
 import TemplateBrowser from './TemplateBrowser';
 import UniversalAIAssistant from './UniversalAIAssistant';
+import { WixPageBuilder } from './WixLikeBuilder';
 
 const Funnels = () => {
   const [activeTab, setActiveTab] = useState('funnels'); // funnels, templates, builder, analytics
