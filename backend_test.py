@@ -350,8 +350,10 @@ class eFunnelsAPITester:
             print("   Skipping enrollment tests - no course ID")
             return False
         
-        # Enroll in course
+        # Enroll in course - Updated to match API requirements
         enrollment_data = {
+            "student_name": "Test Student",
+            "student_email": "test@example.com",
             "payment_method": "mock",
             "payment_amount": 0
         }
