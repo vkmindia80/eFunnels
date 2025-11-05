@@ -406,16 +406,21 @@ const EnhancedWebsiteBuilder = () => {
       )}
 
       {showPageBuilder && currentPage && (
-        <EnhancedPageBuilderModal
+        <WixPageBuilder
           page={currentPage}
           onClose={() => {
             setShowPageBuilder(false);
             setCurrentPage(null);
           }}
-          onSave={() => {
-            fetchPages();
-            setShowPageBuilder(false);
-            setCurrentPage(null);
+          onSave={async (updatedPage) => {
+            try {
+              await api.put(`/api/website/pages/${currentPage.id}`, updatedPage);
+              fetchPages();
+              setShowPageBuilder(false);
+              setCurrentPage(null);
+            } catch (error) {
+              alert('Failed to save page: ' + (error.response?.data?.detail || error.message));
+            }
           }}
         />
       )}
