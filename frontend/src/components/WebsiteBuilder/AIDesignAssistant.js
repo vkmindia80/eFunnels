@@ -452,16 +452,141 @@ const AIDesignAssistant = ({ onClose, onApply }) => {
                 </div>
               )}
 
-              {result && activeFeature !== 'colors' && (
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <pre className="text-sm text-gray-800 whitespace-pre-wrap overflow-auto max-h-96">
-                    {typeof result === 'string' ? result : JSON.stringify(result, null, 2)}
-                  </pre>
+              {result && activeFeature === 'website' && (
+                <div className="space-y-4">
+                  <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                    {/* Website Structure Preview */}
+                    {result.pages && result.pages.length > 0 && (
+                      <div className="p-4 border-b border-gray-200">
+                        <h4 className="font-semibold text-gray-900 mb-3">Website Structure ({result.pages_count || result.pages.length} Pages)</h4>
+                        <div className="space-y-2">
+                          {result.pages.map((page, index) => (
+                            <div key={index} className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                              <div className="flex items-start gap-3">
+                                <div className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-sm">
+                                  {index + 1}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <h5 className="font-semibold text-gray-900 mb-1">{page.postTitle || page.title || `Page ${index + 1}`}</h5>
+                                  {page.postUrl && (
+                                    <p className="text-xs text-blue-600 mb-2">/{page.postUrl}</p>
+                                  )}
+                                  {page.sections && page.sections.length > 0 && (
+                                    <div className="text-xs text-gray-600 space-y-1">
+                                      <p className="font-medium">Sections ({page.sections.length}):</p>
+                                      {page.sections.map((section, sIdx) => (
+                                        <div key={sIdx} className="pl-3 border-l-2 border-blue-300">
+                                          {section.sectionTitle || section.title || `Section ${sIdx + 1}`}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Description */}
+                    {result.description && (
+                      <div className="p-4 bg-gray-50">
+                        <h4 className="font-semibold text-gray-900 mb-2">Description</h4>
+                        <p className="text-sm text-gray-700 whitespace-pre-wrap">{result.description}</p>
+                      </div>
+                    )}
+                  </div>
+                  
                   <button
                     onClick={() => onApply && onApply(result)}
-                    className="w-full mt-4 bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 transition"
+                    className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition"
                   >
                     Apply to Page
+                  </button>
+                </div>
+              )}
+
+              {result && activeFeature === 'section' && (
+                <div className="space-y-4">
+                  <div className="bg-white rounded-lg border border-gray-200 p-4">
+                    {/* Section Preview */}
+                    {result.title && (
+                      <div className="mb-4">
+                        <h4 className="text-xl font-bold text-gray-900">{result.title}</h4>
+                      </div>
+                    )}
+                    
+                    {result.content && (
+                      <div className="prose prose-sm max-w-none">
+                        <div className="text-gray-700 whitespace-pre-wrap">{result.content}</div>
+                      </div>
+                    )}
+                    
+                    {result.blocks && result.blocks.length > 0 && (
+                      <div className="mt-4 space-y-2">
+                        <h5 className="font-semibold text-gray-900 text-sm">Content Elements:</h5>
+                        {result.blocks.map((block, index) => (
+                          <div key={index} className="bg-gray-50 border border-gray-200 rounded p-3">
+                            <p className="text-xs font-medium text-gray-600 mb-1">{block.type || 'Content Block'}</p>
+                            <p className="text-sm text-gray-800">{block.text || block.content || JSON.stringify(block).substring(0, 100)}...</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {/* Fallback for string result */}
+                    {typeof result === 'string' && (
+                      <div className="text-gray-700 whitespace-pre-wrap">{result}</div>
+                    )}
+                  </div>
+                  
+                  <button
+                    onClick={() => onApply && onApply(result)}
+                    className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition"
+                  >
+                    Apply to Page
+                  </button>
+                </div>
+              )}
+
+              {result && activeFeature === 'typography' && (
+                <div className="space-y-4">
+                  <div className="bg-white rounded-lg border border-gray-200 p-4">
+                    {result.heading_font && (
+                      <div className="mb-4 pb-4 border-b border-gray-200">
+                        <p className="text-sm text-gray-600 mb-2">Heading Font</p>
+                        <p className="text-2xl font-bold" style={{ fontFamily: result.heading_font }}>
+                          {result.heading_font}
+                        </p>
+                        <p className="text-sm text-gray-500 mt-1">Example: The Quick Brown Fox</p>
+                      </div>
+                    )}
+                    
+                    {result.body_font && (
+                      <div className="mb-4 pb-4 border-b border-gray-200">
+                        <p className="text-sm text-gray-600 mb-2">Body Font</p>
+                        <p className="text-lg" style={{ fontFamily: result.body_font }}>
+                          {result.body_font}
+                        </p>
+                        <p className="text-sm text-gray-500 mt-1" style={{ fontFamily: result.body_font }}>
+                          This is how your body text will look with a longer sentence to see the font in action.
+                        </p>
+                      </div>
+                    )}
+                    
+                    {result.rationale && (
+                      <div className="bg-blue-50 border border-blue-200 rounded p-3">
+                        <p className="text-sm text-blue-800">{result.rationale}</p>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <button
+                    onClick={() => onApply && onApply(result)}
+                    className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition"
+                  >
+                    Apply Typography
                   </button>
                 </div>
               )}
