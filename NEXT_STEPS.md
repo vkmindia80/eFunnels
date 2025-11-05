@@ -141,7 +141,7 @@ All 8 phases have been comprehensively tested with **100% success rate**. The pl
 
 ---
 
-### **Option 3: Start Phase 11 - Payment & E-commerce** 💳
+### **Option 2: Start Phase 11 - Payment & E-commerce** 💳
 
 **What you'll build:**
 
