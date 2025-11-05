@@ -207,18 +207,18 @@ const EnhancedWebsiteBuilder = () => {
                         <div className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-lg border border-gray-200">
                           <Globe size={14} className="text-gray-400 flex-shrink-0" />
                           <a 
-                            href={`/${page.slug}`}
+                            href={`/p/${page.user_id}/${page.slug}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-sm text-blue-600 hover:text-blue-700 font-mono truncate flex-1"
                             data-testid={`page-url-${page.id}`}
                           >
-                            {window.location.origin}/{page.slug}
+                            {window.location.origin}/p/{page.user_id}/{page.slug}
                           </a>
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              const url = `${window.location.origin}/${page.slug}`;
+                              const url = `${window.location.origin}/p/${page.user_id}/${page.slug}`;
                               
                               // Fallback method for clipboard copy that works in all browsers
                               const textarea = document.createElement('textarea');
