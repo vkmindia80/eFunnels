@@ -77,7 +77,7 @@ const EnhancedCourseBuilder = ({ course, onBack }) => {
       // Update on backend
       try {
         await Promise.all(updatedModules.map(mod =>
-          api.put(`/courses/${course.id}/modules/${mod.id}`, { order: mod.order })
+          api.put(`/api/courses/${course.id}/modules/${mod.id}`, { order: mod.order })
         ));
       } catch (error) {
         console.error('Error updating module order:', error);
@@ -106,7 +106,7 @@ const EnhancedCourseBuilder = ({ course, onBack }) => {
       // Update on backend
       try {
         await Promise.all(updatedLessons.map(lesson =>
-          api.put(`/courses/${course.id}/modules/${moduleId}/lessons/${lesson.id}`, { order: lesson.order })
+          api.put(`/api/courses/${course.id}/modules/${moduleId}/lessons/${lesson.id}`, { order: lesson.order })
         ));
       } catch (error) {
         console.error('Error updating lesson order:', error);
