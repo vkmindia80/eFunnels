@@ -273,17 +273,15 @@ const WixPageBuilder = ({ page, onSave, onClose }) => {
                               onMouseLeave={() => setHoveredBlockId(null)}
                               onClick={() => setSelectedBlockId(block.id)}
                             >
-                              {/* Drag Handle - Always visible on hover */}
-                              {(hoveredBlockId === block.id || selectedBlockId === block.id) && (
-                                <div
-                                  {...provided.dragHandleProps}
-                                  className="absolute top-2 left-2 z-10 bg-white shadow-lg rounded-lg border border-gray-200 p-2 opacity-0 group-hover:opacity-100 transition-opacity cursor-move"
-                                  title="Drag to reorder"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <GripVertical size={20} />
-                                </div>
-                              )}
+                              {/* Drag Handle Bar - Left side indicator */}
+                              <div
+                                {...provided.dragHandleProps}
+                                className="absolute left-0 top-0 bottom-0 w-8 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-move bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
+                                title="Drag to reorder"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <GripVertical size={20} className="text-white" />
+                              </div>
 
                               {/* Block Toolbar - Shows on Hover */}
                               {(hoveredBlockId === block.id || selectedBlockId === block.id) && (
