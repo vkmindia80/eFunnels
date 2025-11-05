@@ -28,8 +28,8 @@ const CoursePlayer = ({ courseId, onBack }) => {
   const fetchCourseData = async () => {
     try {
       const [courseRes, progressRes] = await Promise.all([
-        api.get(`/courses/${courseId}`),
-        api.get(`/courses/${courseId}/progress`)
+        api.get(`/api/courses/${courseId}`),
+        api.get(`/api/courses/${courseId}/progress`)
       ]);
 
       setCourse(courseRes.data);
@@ -57,7 +57,7 @@ const CoursePlayer = ({ courseId, onBack }) => {
   const loadLesson = async (lesson, moduleIndex, lessonIndex) => {
     try {
       const response = await api.get(
-        `/courses/${courseId}/modules/${modules[moduleIndex].id}/lessons/${lesson.id}`
+        `/api/courses/${courseId}/modules/${modules[moduleIndex].id}/lessons/${lesson.id}`
       );
       setCurrentLesson(response.data);
       setCurrentModuleIndex(moduleIndex);
@@ -74,7 +74,7 @@ const CoursePlayer = ({ courseId, onBack }) => {
     if (!currentLesson) return;
 
     try {
-      await api.post(`/courses/${courseId}/lessons/${currentLesson.id}/complete`, {
+      await api.post(`/api/courses/${courseId}/lessons/${currentLesson.id}/complete`, {
         lesson_id: currentLesson.id,
         time_spent: 0,
         quiz_score: null,
