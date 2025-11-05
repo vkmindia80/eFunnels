@@ -25,6 +25,7 @@ const EnhancedWebsiteBuilder = () => {
   const [showPageBuilder, setShowPageBuilder] = useState(false);
   const [showThemeModal, setShowThemeModal] = useState(false);
   const [showMenuModal, setShowMenuModal] = useState(false);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [currentPage, setCurrentPage] = useState(null);
 
   useEffect(() => {
