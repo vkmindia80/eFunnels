@@ -30,6 +30,9 @@ const Forms = () => {
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // AI & Template state
+  const [showTemplateBrowser, setShowTemplateBrowser] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [selectedField, setSelectedField] = useState(null);
