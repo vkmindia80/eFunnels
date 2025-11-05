@@ -689,7 +689,7 @@ const CreateWebinarModal = ({ webinar, onClose, onSuccess }) => {
 const WebinarLiveView = ({ webinar, onClose }) => {
   const [activePanel, setActivePanel] = useState('chat'); // chat, qa, polls
   const [chatMessages, setChatMessages] = useState([]);
-  const [chatInput, setChat Input] = useState('');
+  const [chatInput, setChatInput] = useState('');
   const [qaQuestions, setQaQuestions] = useState([]);
   const [qaInput, setQaInput] = useState('');
   const [polls, setPolls] = useState([]);
