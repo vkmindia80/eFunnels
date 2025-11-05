@@ -52,7 +52,17 @@ from models import (
     AffiliateCommissionCreate, AffiliateCommission,
     AffiliatePayoutCreate, AffiliatePayoutUpdate, AffiliatePayout,
     AffiliateResourceCreate, AffiliateResourceUpdate, AffiliateResource,
-    AffiliateAnalytics
+    AffiliateAnalytics,
+    ProductCategoryCreate, ProductCategoryUpdate, ProductCategory,
+    ProductCreate, ProductUpdate, Product,
+    ProductVariantCreate, ProductVariantUpdate, ProductVariant,
+    ShoppingCartCreate, ShoppingCartUpdate, ShoppingCart, CartItem,
+    CouponCreate, CouponUpdate, Coupon,
+    OrderCreate, OrderUpdate, Order, OrderItemCreate, OrderItem,
+    SubscriptionCreate, SubscriptionUpdate, Subscription,
+    InvoiceCreate, Invoice,
+    PaymentTransactionCreate, PaymentTransaction,
+    CheckoutRequest, PaymentAnalytics
 )
 from auth import (
     get_password_hash, 
