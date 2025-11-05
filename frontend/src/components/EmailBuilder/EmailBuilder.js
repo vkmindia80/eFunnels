@@ -408,13 +408,12 @@ const EmailBuilder = ({ onBack, initialData = null, isTemplate = false, onSave }
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Email Subject
                 </label>
-                <input
-                  type="text"
-                  value={emailSubject}
-                  onChange={(e) => setEmailSubject(e.target.value)}
-                  placeholder="Enter subject line"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+                <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-700">
+                  {emailSubject || <span className="text-gray-400">No subject line entered</span>}
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Edit subject line in the main editor above
+                </p>
               </div>
             </div>
 
