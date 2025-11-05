@@ -404,7 +404,7 @@ I will:
 6. Add performance analytics
 7. Build payout system
 
-### If you choose Option 3 (Phase 11 - Payments):
+### If you choose Option 2 (Phase 11 - Payments):
 **Tell me:** "Let's start Phase 11 - Payment & E-commerce"
 
 I will:
