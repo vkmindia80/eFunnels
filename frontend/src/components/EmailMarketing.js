@@ -3,10 +3,12 @@ import {
   Mail, Plus, Send, Eye, Trash2, Copy, Settings, 
   Edit, ArrowLeft, Users, Calendar, BarChart2,
   Check, Search, Layout, TrendingUp, MousePointer,
-  ChevronRight, Clock, Sparkles
+  ChevronRight, Clock, Sparkles, Wand2
 } from 'lucide-react';
 import api from '../api';
 import EmailBuilder from './EmailBuilder/EmailBuilder';
+import TemplateBrowser from './TemplateBrowser';
+import UniversalAIAssistant from './UniversalAIAssistant';
 
 // Email Marketing Main Page
 const EmailMarketingPage = () => {
