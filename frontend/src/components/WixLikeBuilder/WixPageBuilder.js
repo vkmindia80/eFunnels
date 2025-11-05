@@ -264,7 +264,7 @@ const WixPageBuilder = ({ page, onSave, onClose }) => {
                             <div
                               ref={provided.innerRef}
                               {...provided.draggableProps}
-                              className={`relative ${
+                              className={`relative group ${
                                 selectedBlockId === block.id ? 'ring-2 ring-blue-500' : ''
                               } ${hoveredBlockId === block.id ? 'ring-1 ring-blue-300' : ''} ${
                                 snapshot.isDragging ? 'shadow-2xl opacity-90' : ''
