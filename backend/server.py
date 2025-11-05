@@ -4049,6 +4049,37 @@ async def create_module(
     
     return module_dict
 
+@app.get("/api/courses/{course_id}/modules")
+async def get_course_modules(
+    course_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get all modules for a course"""
+    course = courses_collection.find_one({
+        "id": course_id,
+        "user_id": current_user['id']
+    })
+    
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    
+    modules = list(course_modules_collection.find({
+        "course_id": course_id,
+        "user_id": current_user['id']
+    }).sort("order", 1))
+    
+    for module in modules:
+        module.pop('_id', None)
+        # Get lessons for each module
+        lessons = list(course_lessons_collection.find({
+            "module_id": module['id']
+        }).sort("order", 1))
+        for lesson in lessons:
+            lesson.pop('_id', None)
+        module['lessons'] = lessons
+    
+    return modules
+
 @app.put("/api/courses/{course_id}/modules/{module_id}")
 async def update_module(
     course_id: str,
