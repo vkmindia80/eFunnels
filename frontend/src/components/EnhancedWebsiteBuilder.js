@@ -12,6 +12,7 @@ import StylePanel from './WebsiteBuilder/StylePanel';
 import AIDesignAssistant from './WebsiteBuilder/AIDesignAssistant';
 import TemplateBrowser from './WebsiteBuilder/TemplateBrowser';
 import AssetManager from './WebsiteBuilder/AssetManager';
+import { WixPageBuilder } from './WixLikeBuilder';
 
 const EnhancedWebsiteBuilder = () => {
   const [activeTab, setActiveTab] = useState('pages');
