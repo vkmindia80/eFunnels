@@ -113,6 +113,24 @@ const EnhancedWebsiteBuilder = () => {
     setShowPreviewModal(true);
   };
 
+  const handleToggleVisibility = async (page) => {
+    const currentVisibility = page.visibility || 'public';
+    const newVisibility = currentVisibility === 'public' ? 'private' : 'public';
+    const actionText = newVisibility === 'private' ? 'make this page private' : 'make this page public';
+    
+    if (!window.confirm(`Are you sure you want to ${actionText}?`)) return;
+    
+    try {
+      await api.put(`/api/website/pages/${page.id}`, { 
+        visibility: newVisibility,
+        custom_fields: { ...page.custom_fields, visibility: newVisibility }
+      });
+      fetchPages();
+    } catch (error) {
+      alert(`Failed to update page visibility`);
+    }
+  };
+
   const renderContent = () => {
     switch (activeTab) {
       case 'pages':
