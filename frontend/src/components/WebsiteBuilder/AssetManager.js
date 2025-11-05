@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Upload, Image, Video, File, Search, Trash2, X, Plus } from 'lucide-react';
+import { Upload, Image, Video, File, Search, Trash2, X } from 'lucide-react';
 import api from '../../api';
 
 const AssetManager = ({ onClose, onSelect }) => {
