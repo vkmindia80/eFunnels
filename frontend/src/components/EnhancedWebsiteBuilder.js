@@ -94,6 +94,25 @@ const EnhancedWebsiteBuilder = () => {
     }
   };
 
+  const handlePublishPage = async (page) => {
+    const newStatus = page.status === 'published' ? 'draft' : 'published';
+    const actionText = newStatus === 'published' ? 'publish' : 'unpublish';
+    
+    if (!window.confirm(`Are you sure you want to ${actionText} this page?`)) return;
+    
+    try {
+      await api.put(`/api/website/pages/${page.id}`, { status: newStatus });
+      fetchPages();
+    } catch (error) {
+      alert(`Failed to ${actionText} page`);
+    }
+  };
+
+  const handlePreviewPage = (page) => {
+    setCurrentPage(page);
+    setShowPreviewModal(true);
+  };
+
   const renderContent = () => {
     switch (activeTab) {
       case 'pages':
