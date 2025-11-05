@@ -1057,12 +1057,15 @@ const PageModal = ({ page, onClose, onSave }) => {
         content: formData.content || { blocks: [] } // Add default content structure
       };
       
+      let savedPage;
       if (page) {
-        await api.put(`/api/website/pages/${page.id}`, dataToSubmit);
+        const response = await api.put(`/api/website/pages/${page.id}`, dataToSubmit);
+        savedPage = response.data;
       } else {
-        await api.post('/api/website/pages', dataToSubmit);
+        const response = await api.post('/api/website/pages', dataToSubmit);
+        savedPage = response.data;
       }
-      onSave();
+      onSave(savedPage);
     } catch (error) {
       const errorMessage = error.response?.data?.detail || 'Failed to save page. Please try again.';
       setError(typeof errorMessage === 'string' ? errorMessage : JSON.stringify(errorMessage));
