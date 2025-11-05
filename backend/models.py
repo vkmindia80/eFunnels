@@ -1197,3 +1197,169 @@ class PublicBlogCommentRequest(BaseModel):
     author_email: EmailStr
     parent_id: Optional[str] = None
     
+
+
+# ==================== WEBINAR MODELS ====================
+
+class WebinarBase(BaseModel):
+    title: str
+    description: Optional[str] = None
+    scheduled_at: datetime
+    duration_minutes: int = 60
+    timezone: str = "UTC"
+    max_attendees: Optional[int] = None
+    presenter_name: str
+    presenter_bio: Optional[str] = None
+    presenter_avatar: Optional[str] = None
+    thumbnail_url: Optional[str] = None
+    registration_required: bool = True
+    send_reminders: bool = True
+
+class WebinarCreate(WebinarBase):
+    pass
+
+class WebinarUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    scheduled_at: Optional[datetime] = None
+    duration_minutes: Optional[int] = None
+    timezone: Optional[str] = None
+    max_attendees: Optional[int] = None
+    presenter_name: Optional[str] = None
+    presenter_bio: Optional[str] = None
+    presenter_avatar: Optional[str] = None
+    thumbnail_url: Optional[str] = None
+    registration_required: Optional[bool] = None
+    send_reminders: Optional[bool] = None
+
+class Webinar(WebinarBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    status: str = "draft"  # draft, scheduled, live, ended, cancelled
+    registration_count: int = 0
+    attendee_count: int = 0
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    started_at: Optional[datetime] = None
+    ended_at: Optional[datetime] = None
+
+class WebinarRegistrationBase(BaseModel):
+    first_name: str
+    last_name: str
+    email: EmailStr
+    phone: Optional[str] = None
+    company: Optional[str] = None
+    questions: Optional[dict] = None
+
+class WebinarRegistrationCreate(WebinarRegistrationBase):
+    webinar_id: str
+
+class PublicWebinarRegistrationRequest(WebinarRegistrationBase):
+    pass
+
+class WebinarRegistration(WebinarRegistrationBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    webinar_id: str
+    user_id: Optional[str] = None
+    contact_id: Optional[str] = None
+    status: str = "registered"  # registered, attended, no_show, cancelled
+    registered_at: datetime = Field(default_factory=datetime.utcnow)
+    attended_at: Optional[datetime] = None
+    left_at: Optional[datetime] = None
+    watch_time_minutes: int = 0
+
+class WebinarChatMessageBase(BaseModel):
+    message: str
+    sender_name: str
+
+class WebinarChatMessageCreate(WebinarChatMessageBase):
+    webinar_id: str
+
+class WebinarChatMessage(WebinarChatMessageBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    webinar_id: str
+    user_id: Optional[str] = None
+    registration_id: Optional[str] = None
+    is_host: bool = False
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class WebinarQABase(BaseModel):
+    question: str
+
+class WebinarQACreate(WebinarQABase):
+    webinar_id: str
+    asker_name: str
+
+class WebinarQA(WebinarQABase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    webinar_id: str
+    asker_name: str
+    registration_id: Optional[str] = None
+    answer: Optional[str] = None
+    answered_by: Optional[str] = None
+    is_answered: bool = False
+    is_featured: bool = False
+    upvotes: int = 0
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    answered_at: Optional[datetime] = None
+
+class WebinarPollBase(BaseModel):
+    question: str
+    options: List[str]
+    allow_multiple: bool = False
+
+class WebinarPollCreate(WebinarPollBase):
+    webinar_id: str
+
+class WebinarPollUpdate(BaseModel):
+    question: Optional[str] = None
+    options: Optional[List[str]] = None
+    is_active: Optional[bool] = None
+
+class WebinarPoll(WebinarPollBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    webinar_id: str
+    is_active: bool = True
+    total_votes: int = 0
+    votes: dict = {}  # {option_index: vote_count}
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class WebinarPollVote(BaseModel):
+    poll_id: str
+    option_indices: List[int]
+    voter_name: Optional[str] = None
+
+class WebinarRecordingBase(BaseModel):
+    title: str
+    recording_url: str
+    duration_minutes: Optional[int] = None
+    thumbnail_url: Optional[str] = None
+
+class WebinarRecordingCreate(WebinarRecordingBase):
+    webinar_id: str
+
+class WebinarRecordingUpdate(BaseModel):
+    title: Optional[str] = None
+    recording_url: Optional[str] = None
+    duration_minutes: Optional[int] = None
+    thumbnail_url: Optional[str] = None
+    is_public: Optional[bool] = None
+
+class WebinarRecording(WebinarRecordingBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    webinar_id: str
+    is_public: bool = False
+    view_count: int = 0
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+class WebinarAnalytics(BaseModel):
+    total_webinars: int
+    upcoming_webinars: int
+    completed_webinars: int
+    total_registrations: int
+    total_attendees: int
+    average_attendance_rate: float
+    total_chat_messages: int
+    total_questions: int
+
