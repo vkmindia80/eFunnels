@@ -413,8 +413,8 @@ const WixPageBuilder = ({ page, onSave, onClose }) => {
           </div>
         </div>
 
-        {/* Style Panel Sidebar */}
-        {showStylePanel && selectedBlock && (
+        {/* Style Panel Sidebar - Hide in Preview Mode */}
+        {!isPreviewMode && showStylePanel && selectedBlock && (
           <StylePanel
             block={selectedBlock}
             onStyleChange={(styleUpdates) => updateBlockStyle(selectedBlockId, styleUpdates)}
