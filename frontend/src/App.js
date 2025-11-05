@@ -1253,7 +1253,7 @@ const Dashboard = ({ user, onLogout }) => {
     { id: 'forms', name: 'Forms', icon: MessageSquare },
     { id: 'affiliates', name: 'Affiliates', icon: Award },
     { id: 'workflows', name: 'Automations', icon: Zap },
-    { id: 'products', name: 'Products', icon: ShoppingCart },
+    { id: 'payments', name: 'Products', icon: ShoppingCart },
     { id: 'analytics', name: 'Analytics', icon: BarChart2 },
     { id: 'settings', name: 'Settings', icon: Settings },
   ];
