@@ -23,7 +23,7 @@ const PublicCourseCatalog = ({ onBack, user }) => {
 
   const fetchPublicCourses = async () => {
     try {
-      const response = await api.get('/courses/public/list');
+      const response = await api.get('/api/courses/public/list');
       setCourses(response.data.courses || []);
     } catch (error) {
       console.error('Error fetching public courses:', error);
@@ -34,7 +34,7 @@ const PublicCourseCatalog = ({ onBack, user }) => {
 
   const viewCourseDetails = async (courseId) => {
     try {
-      const response = await api.get(`/courses/${courseId}/public/preview`);
+      const response = await api.get(`/api/courses/${courseId}/public/preview`);
       setSelectedCourse(response.data);
     } catch (error) {
       console.error('Error fetching course details:', error);
@@ -47,7 +47,7 @@ const PublicCourseCatalog = ({ onBack, user }) => {
       const studentName = user?.full_name || 'Student';
       const studentEmail = user?.email || 'student@example.com';
       
-      await api.post(`/courses/${courseId}/enroll`, {
+      await api.post(`/api/courses/${courseId}/enroll`, {
         student_name: studentName,
         student_email: studentEmail,
         payment_method: 'mock'
