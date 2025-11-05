@@ -3,7 +3,7 @@ import {
   Globe, Plus, Search, Edit, Trash2, Save, X,
   Monitor, Smartphone, Palette, Menu as MenuIcon, Settings,
   ChevronUp, ChevronDown, ExternalLink, FileText,
-  Sparkles, Image as ImageIcon, Layers, Copy
+  Sparkles, Image as ImageIcon, Layers, Copy, Eye, Check
 } from 'lucide-react';
 import api from '../api';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
