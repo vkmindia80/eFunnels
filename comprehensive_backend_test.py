@@ -571,6 +571,10 @@ class ComprehensiveeFunnelsAPITester:
         if success and 'id' in response:
             self.lesson_id = response['id']
         
+        # Publish course before enrollment
+        publish_data = {"status": "published"}
+        success, data = self.run_test("Publish Course for Enrollment", "PUT", f"courses/{self.course_id}", 200, publish_data)
+        
         # Enroll in course
         enrollment_data = {
             "student_name": "Test Student",
