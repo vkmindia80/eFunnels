@@ -5167,8 +5167,6 @@ async def get_course_analytics(
 # ==================== PHASE 8: BLOG & WEBSITE BUILDER ROUTES ====================
 
 # Helper function to generate slugs
-import re
-
 def generate_slug(text: str) -> str:
     """Generate URL-friendly slug from text"""
     text = text.lower().strip()
