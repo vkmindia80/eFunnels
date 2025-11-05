@@ -1363,3 +1363,231 @@ class WebinarAnalytics(BaseModel):
     total_chat_messages: int
     total_questions: int
 
+
+# ==================== AFFILIATE MODELS ====================
+
+class AffiliateProgramBase(BaseModel):
+    name: str
+    description: Optional[str] = None
+    commission_type: str = "percentage"  # percentage, fixed, tiered
+    commission_value: float  # percentage or fixed amount
+    commission_tiers: Optional[List[dict]] = []  # [{"min_sales": 0, "max_sales": 5, "value": 10}]
+    cookie_duration_days: int = 30
+    approval_required: bool = True
+    terms_and_conditions: Optional[str] = None
+    payout_threshold: float = 50.0  # Minimum amount before payout
+    payment_methods: List[str] = ["paypal", "stripe", "manual"]
+
+class AffiliateProgramCreate(AffiliateProgramBase):
+    pass
+
+class AffiliateProgramUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    commission_type: Optional[str] = None
+    commission_value: Optional[float] = None
+    commission_tiers: Optional[List[dict]] = None
+    cookie_duration_days: Optional[int] = None
+    approval_required: Optional[bool] = None
+    terms_and_conditions: Optional[str] = None
+    payout_threshold: Optional[float] = None
+    payment_methods: Optional[List[str]] = None
+    is_active: Optional[bool] = None
+
+class AffiliateProgram(AffiliateProgramBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str  # Program owner
+    is_active: bool = True
+    total_affiliates: int = 0
+    total_clicks: int = 0
+    total_conversions: int = 0
+    total_revenue: float = 0.0
+    total_commissions: float = 0.0
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+class AffiliateBase(BaseModel):
+    first_name: str
+    last_name: str
+    email: EmailStr
+    phone: Optional[str] = None
+    company: Optional[str] = None
+    website: Optional[str] = None
+    payment_method: str = "paypal"  # paypal, stripe, manual
+    payment_email: Optional[str] = None
+    notes: Optional[str] = None
+
+class AffiliateCreate(AffiliateBase):
+    program_id: str
+
+class AffiliateUpdate(BaseModel):
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    phone: Optional[str] = None
+    company: Optional[str] = None
+    website: Optional[str] = None
+    payment_method: Optional[str] = None
+    payment_email: Optional[str] = None
+    notes: Optional[str] = None
+
+class Affiliate(AffiliateBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    program_id: str
+    user_id: Optional[str] = None  # Linked user account (if registered)
+    contact_id: Optional[str] = None  # CRM contact
+    affiliate_code: str  # Unique code for tracking
+    status: str = "pending"  # pending, approved, rejected, suspended
+    total_clicks: int = 0
+    total_conversions: int = 0
+    total_revenue: float = 0.0
+    total_commissions: float = 0.0
+    pending_commissions: float = 0.0
+    paid_commissions: float = 0.0
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    approved_at: Optional[datetime] = None
+    approved_by: Optional[str] = None
+
+class AffiliateLinkBase(BaseModel):
+    product_type: str  # course, funnel, webinar, product
+    product_id: str
+    product_name: str
+
+class AffiliateLinkCreate(AffiliateLinkBase):
+    affiliate_id: str
+
+class AffiliateLink(AffiliateLinkBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    affiliate_id: str
+    program_id: str
+    link_url: str  # Full tracking URL
+    short_code: str  # Short code for the link
+    clicks: int = 0
+    conversions: int = 0
+    revenue: float = 0.0
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class AffiliateClickBase(BaseModel):
+    link_id: str
+    ip_address: Optional[str] = None
+    user_agent: Optional[str] = None
+    referrer: Optional[str] = None
+
+class AffiliateClickCreate(AffiliateClickBase):
+    pass
+
+class AffiliateClick(AffiliateClickBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    affiliate_id: str
+    program_id: str
+    clicked_at: datetime = Field(default_factory=datetime.utcnow)
+    converted: bool = False
+    conversion_id: Optional[str] = None
+
+class AffiliateConversionBase(BaseModel):
+    click_id: Optional[str] = None
+    product_type: str
+    product_id: str
+    order_id: Optional[str] = None
+    order_amount: float
+    customer_email: Optional[str] = None
+
+class AffiliateConversionCreate(AffiliateConversionBase):
+    affiliate_id: str
+    program_id: str
+
+class AffiliateConversion(AffiliateConversionBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    affiliate_id: str
+    program_id: str
+    commission_id: Optional[str] = None
+    commission_amount: float = 0.0
+    converted_at: datetime = Field(default_factory=datetime.utcnow)
+
+class AffiliateCommissionBase(BaseModel):
+    conversion_id: str
+    commission_amount: float
+    commission_type: str  # percentage, fixed, tiered
+
+class AffiliateCommissionCreate(AffiliateCommissionBase):
+    affiliate_id: str
+    program_id: str
+
+class AffiliateCommission(AffiliateCommissionBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    affiliate_id: str
+    program_id: str
+    status: str = "pending"  # pending, approved, paid, rejected
+    payout_id: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    approved_at: Optional[datetime] = None
+    paid_at: Optional[datetime] = None
+
+class AffiliatePayoutBase(BaseModel):
+    payment_method: str  # paypal, stripe, manual
+    amount: float
+    notes: Optional[str] = None
+
+class AffiliatePayoutCreate(AffiliatePayoutBase):
+    affiliate_id: str
+    commission_ids: List[str]
+
+class AffiliatePayoutUpdate(BaseModel):
+    status: Optional[str] = None
+    transaction_id: Optional[str] = None
+    notes: Optional[str] = None
+
+class AffiliatePayout(AffiliatePayoutBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    affiliate_id: str
+    program_id: str
+    commission_ids: List[str]
+    status: str = "pending"  # pending, processing, completed, failed
+    transaction_id: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    processed_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+
+class AffiliateResourceBase(BaseModel):
+    title: str
+    description: Optional[str] = None
+    resource_type: str  # banner, logo, email_template, guide
+    file_url: Optional[str] = None
+    file_size: Optional[int] = None
+    dimensions: Optional[str] = None  # e.g., "1200x628"
+
+class AffiliateResourceCreate(AffiliateResourceBase):
+    program_id: str
+
+class AffiliateResourceUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    file_url: Optional[str] = None
+    file_size: Optional[int] = None
+    dimensions: Optional[str] = None
+
+class AffiliateResource(AffiliateResourceBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    program_id: str
+    user_id: str  # Uploader
+    downloads: int = 0
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+class AffiliateAnalytics(BaseModel):
+    total_affiliates: int
+    active_affiliates: int
+    pending_affiliates: int
+    total_clicks: int
+    total_conversions: int
+    total_revenue: float
+    total_commissions: float
+    pending_commissions: float
+    paid_commissions: float
+    conversion_rate: float
+    average_commission: float
+
+class PublicAffiliateRegistrationRequest(AffiliateBase):
+    program_id: str
+    agree_to_terms: bool = True
+
