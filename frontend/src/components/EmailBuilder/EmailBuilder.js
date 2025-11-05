@@ -299,6 +299,61 @@ const EmailBuilder = ({ onBack, initialData = null, isTemplate = false, onSave }
         </div>
       </div>
 
+      {/* Subject Line Section */}
+      <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-b border-gray-200 px-6 py-4">
+        <div className="max-w-4xl mx-auto">
+          <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+            <span>📧</span>
+            Email Subject Line
+          </label>
+          <div className="flex gap-3">
+            <input
+              type="text"
+              value={emailSubject}
+              onChange={(e) => setEmailSubject(e.target.value)}
+              placeholder="Enter your email subject line here..."
+              className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
+            />
+            <button
+              onClick={async () => {
+                try {
+                  setAiGenerating(true);
+                  const response = await api.post('/api/ai/generate-headlines', {
+                    topic: emailName || 'email campaign',
+                    style: 'attention-grabbing'
+                  });
+                  if (response.data.headlines) {
+                    // Take the first headline or parse the response
+                    const headlines = typeof response.data.headlines === 'string' 
+                      ? response.data.headlines.split('\n').filter(h => h.trim())
+                      : response.data.headlines;
+                    const firstHeadline = Array.isArray(headlines) ? headlines[0] : headlines;
+                    setEmailSubject(firstHeadline?.replace(/^\d+\.\s*/, '').trim() || firstHeadline);
+                  }
+                } catch (error) {
+                  console.error('Failed to generate subject:', error);
+                  alert('Failed to generate subject line');
+                } finally {
+                  setAiGenerating(false);
+                }
+              }}
+              disabled={aiGenerating}
+              className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:shadow-lg transition disabled:opacity-50 whitespace-nowrap"
+              title="Generate subject line with AI"
+            >
+              <Sparkles size={18} className={aiGenerating ? 'animate-spin' : ''} />
+              AI Subject
+            </button>
+          </div>
+          {!emailSubject && (
+            <p className="text-sm text-amber-600 mt-2 flex items-center gap-1">
+              <span>⚠️</span>
+              Subject line is required before saving
+            </p>
+          )}
+        </div>
+      </div>
+
       {/* Main Editor */}
       <div className="flex flex-1 overflow-hidden">
         {/* Block Library */}
