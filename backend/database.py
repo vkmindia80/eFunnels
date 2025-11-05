@@ -121,3 +121,39 @@ membership_subscriptions_collection.create_index('status')
 
 workflow_executions_collection.create_index('user_id')
 workflow_executions_collection.create_index('status')
+
+# Blog & Website Builder collections (Phase 8)
+blog_posts_collection = db['blog_posts']
+blog_categories_collection = db['blog_categories']
+blog_tags_collection = db['blog_tags']
+blog_comments_collection = db['blog_comments']
+blog_post_views_collection = db['blog_post_views']
+website_pages_collection = db['website_pages']
+website_themes_collection = db['website_themes']
+navigation_menus_collection = db['navigation_menus']
+website_page_views_collection = db['website_page_views']
+
+# Blog & Website indexes
+blog_posts_collection.create_index('user_id')
+blog_posts_collection.create_index('status')
+blog_posts_collection.create_index('slug', unique=True)
+blog_posts_collection.create_index('category_id')
+blog_posts_collection.create_index([('user_id', 1), ('status', 1)])
+blog_categories_collection.create_index('user_id')
+blog_categories_collection.create_index([('user_id', 1), ('slug', 1)], unique=True)
+blog_tags_collection.create_index('user_id')
+blog_tags_collection.create_index([('user_id', 1), ('slug', 1)], unique=True)
+blog_comments_collection.create_index('post_id')
+blog_comments_collection.create_index('user_id')
+blog_comments_collection.create_index('status')
+blog_post_views_collection.create_index('post_id')
+blog_post_views_collection.create_index('user_id')
+website_pages_collection.create_index('user_id')
+website_pages_collection.create_index('status')
+website_pages_collection.create_index([('user_id', 1), ('slug', 1)], unique=True)
+website_themes_collection.create_index('user_id')
+website_themes_collection.create_index([('user_id', 1), ('is_active', 1)])
+navigation_menus_collection.create_index('user_id')
+navigation_menus_collection.create_index([('user_id', 1), ('location', 1)])
+website_page_views_collection.create_index('page_id')
+website_page_views_collection.create_index('user_id')
