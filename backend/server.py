@@ -7268,6 +7268,91 @@ async def get_webinar_specific_analytics(
         }
     }
 
+# ==================== WEBINAR EMAIL REMINDERS ====================
+
+@app.post("/api/webinars/reminders/process")
+async def process_webinar_reminders(current_user: dict = Depends(get_current_user)):
+    """
+    Manually trigger reminder processing (admin only)
+    In production, this would be a cron job
+    """
+    result = webinar_email_service.process_scheduled_reminders()
+    return result
+
+@app.post("/api/webinars/{webinar_id}/send-thank-you")
+async def send_thank_you_emails(
+    webinar_id: str,
+    background_tasks: BackgroundTasks,
+    current_user: dict = Depends(get_current_user)
+):
+    """Send thank you emails to all attendees"""
+    webinar = webinars_collection.find_one({
+        "id": webinar_id,
+        "user_id": current_user["id"]
+    })
+    
+    if not webinar:
+        raise HTTPException(status_code=404, detail="Webinar not found")
+    
+    # Get all attendees
+    registrations = list(webinar_registrations_collection.find({
+        "webinar_id": webinar_id,
+        "status": "attended"
+    }))
+    
+    # Get recording if available
+    recording = webinar_recordings_collection.find_one({
+        "webinar_id": webinar_id,
+        "is_public": True
+    })
+    recording_url = recording.get('recording_url') if recording else None
+    
+    # Send emails in background
+    for registration in registrations:
+        background_tasks.add_task(
+            webinar_email_service.send_thank_you_with_recording,
+            webinar,
+            registration,
+            recording_url
+        )
+    
+    return {
+        "message": f"Sending thank you emails to {len(registrations)} attendees",
+        "count": len(registrations)
+    }
+
+@app.post("/api/webinars/{webinar_id}/test-reminder")
+async def send_test_reminder(
+    webinar_id: str,
+    email: str,
+    reminder_type: str = Query(..., regex="^(24h|1h|confirmation)$"),
+    current_user: dict = Depends(get_current_user)
+):
+    """Send test reminder email (for testing)"""
+    webinar = webinars_collection.find_one({
+        "id": webinar_id,
+        "user_id": current_user["id"]
+    })
+    
+    if not webinar:
+        raise HTTPException(status_code=404, detail="Webinar not found")
+    
+    # Create test registration
+    test_registration = {
+        'first_name': 'Test',
+        'last_name': 'User',
+        'email': email
+    }
+    
+    if reminder_type == '24h':
+        result = webinar_email_service.send_reminder_24h(webinar, test_registration)
+    elif reminder_type == '1h':
+        result = webinar_email_service.send_reminder_1h(webinar, test_registration)
+    else:  # confirmation
+        result = webinar_email_service.send_registration_confirmation(webinar, test_registration)
+    
+    return result
+
 
 if __name__ == "__main__":
     import uvicorn
