@@ -1258,7 +1258,7 @@ const Dashboard = ({ user, onLogout }) => {
     { id: 'payments', name: 'Products', icon: ShoppingCart },
     { id: 'analytics', name: 'Analytics', icon: BarChart2 },
     { id: 'ai-assistant', name: 'AI Assistant', icon: Sparkles },
-    { id: 'settings', name: 'Settings', icon: Settings },
+    { id: 'settings', name: 'Settings', icon: SettingsIcon },
   ];
 
   const stats = [
