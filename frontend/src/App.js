@@ -1464,7 +1464,7 @@ const Dashboard = ({ user, onLogout }) => {
                       Profile
                     </button>
                     <button className="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center gap-2">
-                      <Settings size={16} />
+                      <SettingsIcon size={16} />
                       Settings
                     </button>
                     <hr className="my-2" />
