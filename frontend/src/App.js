@@ -23,6 +23,7 @@ import PublicWebinarCatalog from './components/PublicWebinarCatalog';
 import AffiliateManagement from './components/AffiliateManagement';
 import PaymentEcommerce from './components/PaymentEcommerce';
 import Analytics from './components/Analytics';
+import AIAssistant from './components/AIAssistant';
 
 // Demo credentials banner component
 const DemoCredentialsBanner = ({ onFillCredentials }) => {
