@@ -6191,11 +6191,6 @@ async def generate_rss_feed(
     return JSONResponse(content=rss_xml, media_type="application/rss+xml")
 
 
-        "average_progress": round(avg_progress, 2),
-        "total_revenue": round(total_revenue, 2)
-    }
-
-
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
