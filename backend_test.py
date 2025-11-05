@@ -7,7 +7,7 @@ from datetime import datetime
 import time
 
 class eFunnelsAPITester:
-    def __init__(self, base_url="https://e2e-test-suite-3.preview.emergentagent.com"):
+    def __init__(self, base_url="https://website-craft-next.preview.emergentagent.com"):
         self.base_url = base_url
         self.token = None
         self.user_id = None
