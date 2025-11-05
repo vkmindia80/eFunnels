@@ -177,7 +177,33 @@ const EnhancedWebsiteBuilder = () => {
                       </div>
                       
                       <h3 className="text-lg font-bold text-gray-900 mb-2">{page.title}</h3>
-                      <p className="text-sm text-gray-600 mb-4">/{page.slug}</p>
+                      <div className="mb-4 space-y-1">
+                        <p className="text-xs text-gray-500 font-medium uppercase">Page URL</p>
+                        <div className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-lg border border-gray-200">
+                          <Globe size={14} className="text-gray-400 flex-shrink-0" />
+                          <a 
+                            href={`/${page.slug}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm text-blue-600 hover:text-blue-700 font-mono truncate flex-1"
+                            data-testid={`page-url-${page.id}`}
+                          >
+                            {window.location.origin}/{page.slug}
+                          </a>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigator.clipboard.writeText(`${window.location.origin}/${page.slug}`);
+                              alert('URL copied to clipboard!');
+                            }}
+                            className="text-gray-400 hover:text-gray-600 flex-shrink-0"
+                            title="Copy URL"
+                            data-testid={`copy-url-${page.id}`}
+                          >
+                            <Copy size={14} />
+                          </button>
+                        </div>
+                      </div>
                       
                       <div className="space-y-2">
                         <div className="flex items-center gap-2">
