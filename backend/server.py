@@ -8620,6 +8620,1304 @@ async def get_affiliate_performance(
     }
 
 
+
+# ============================================
+# PHASE 11: PAYMENT & E-COMMERCE ENDPOINTS
+# ============================================
+
+# Helper functions for Phase 11
+def generate_order_number():
+    """Generate unique order number"""
+    timestamp = datetime.utcnow().strftime('%Y%m%d')
+    random_suffix = ''.join([str(uuid.uuid4().int)[-6:]])
+    return f"ORD-{timestamp}-{random_suffix}"
+
+def generate_invoice_number():
+    """Generate unique invoice number"""
+    timestamp = datetime.utcnow().strftime('%Y%m%d')
+    random_suffix = ''.join([str(uuid.uuid4().int)[-6:]])
+    return f"INV-{timestamp}-{random_suffix}"
+
+def calculate_cart_totals(items: List[CartItem], coupon_code: Optional[str] = None, user_id: str = None):
+    """Calculate cart subtotal, tax, discount, and total"""
+    subtotal = sum(item.price * item.quantity for item in items)
+    tax = subtotal * 0.1  # 10% tax (configurable)
+    discount = 0
+    
+    # Apply coupon if provided
+    if coupon_code and user_id:
+        coupon = coupons_collection.find_one({
+            "code": coupon_code,
+            "user_id": user_id,
+            "status": "active"
+        })
+        
+        if coupon:
+            # Check if expired
+            if coupon.get("expires_at") and coupon["expires_at"] < datetime.utcnow():
+                pass  # Expired, no discount
+            else:
+                # Calculate discount
+                if coupon["discount_type"] == "percentage":
+                    discount = subtotal * (coupon["discount_value"] / 100)
+                    if coupon.get("maximum_discount"):
+                        discount = min(discount, coupon["maximum_discount"])
+                else:  # fixed
+                    discount = coupon["discount_value"]
+                
+                # Check minimum purchase
+                if coupon.get("minimum_purchase") and subtotal < coupon["minimum_purchase"]:
+                    discount = 0
+    
+    total = subtotal + tax - discount
+    
+    return {
+        "subtotal": round(subtotal, 2),
+        "tax": round(tax, 2),
+        "discount": round(discount, 2),
+        "total": round(total, 2)
+    }
+
+# ==================== PRODUCT CATEGORY ENDPOINTS ====================
+
+@app.get("/api/product-categories")
+async def list_product_categories(current_user: dict = Depends(get_current_user)):
+    """List all product categories"""
+    categories = list(product_categories_collection.find({"user_id": current_user["id"]}))
+    
+    for category in categories:
+        category["_id"] = str(category["_id"])
+    
+    return {"categories": categories}
+
+@app.post("/api/product-categories")
+async def create_product_category(
+    category: ProductCategoryCreate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Create new product category"""
+    # Check if slug exists
+    existing = product_categories_collection.find_one({
+        "user_id": current_user["id"],
+        "slug": category.slug
+    })
+    
+    if existing:
+        raise HTTPException(status_code=400, detail="Category slug already exists")
+    
+    category_data = category.dict()
+    category_data["id"] = str(uuid.uuid4())
+    category_data["user_id"] = current_user["id"]
+    category_data["product_count"] = 0
+    category_data["created_at"] = datetime.utcnow()
+    category_data["updated_at"] = datetime.utcnow()
+    
+    product_categories_collection.insert_one(category_data)
+    
+    return {"message": "Category created successfully", "category": category_data}
+
+@app.put("/api/product-categories/{category_id}")
+async def update_product_category(
+    category_id: str,
+    category: ProductCategoryUpdate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Update product category"""
+    existing = product_categories_collection.find_one({
+        "id": category_id,
+        "user_id": current_user["id"]
+    })
+    
+    if not existing:
+        raise HTTPException(status_code=404, detail="Category not found")
+    
+    update_data = {k: v for k, v in category.dict(exclude_unset=True).items() if v is not None}
+    update_data["updated_at"] = datetime.utcnow()
+    
+    product_categories_collection.update_one(
+        {"id": category_id},
+        {"$set": update_data}
+    )
+    
+    return {"message": "Category updated successfully"}
+
+@app.delete("/api/product-categories/{category_id}")
+async def delete_product_category(
+    category_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Delete product category"""
+    result = product_categories_collection.delete_one({
+        "id": category_id,
+        "user_id": current_user["id"]
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Category not found")
+    
+    return {"message": "Category deleted successfully"}
+
+# ==================== PRODUCT ENDPOINTS ====================
+
+@app.get("/api/products")
+async def list_products(
+    status: Optional[str] = None,
+    category_id: Optional[str] = None,
+    product_type: Optional[str] = None,
+    search: Optional[str] = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """List all products with filters"""
+    query = {"user_id": current_user["id"]}
+    
+    if status:
+        query["status"] = status
+    if category_id:
+        query["category_id"] = category_id
+    if product_type:
+        query["product_type"] = product_type
+    if search:
+        query["$or"] = [
+            {"name": {"$regex": search, "$options": "i"}},
+            {"description": {"$regex": search, "$options": "i"}},
+            {"sku": {"$regex": search, "$options": "i"}}
+        ]
+    
+    products = list(products_collection.find(query).sort("created_at", -1))
+    
+    for product in products:
+        product["_id"] = str(product["_id"])
+    
+    return {"products": products}
+
+@app.post("/api/products")
+async def create_product(
+    product: ProductCreate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Create new product"""
+    # Check if slug exists
+    existing = products_collection.find_one({
+        "user_id": current_user["id"],
+        "slug": product.slug
+    })
+    
+    if existing:
+        raise HTTPException(status_code=400, detail="Product slug already exists")
+    
+    product_data = product.dict()
+    product_data["id"] = str(uuid.uuid4())
+    product_data["user_id"] = current_user["id"]
+    product_data["sales_count"] = 0
+    product_data["revenue"] = 0
+    product_data["views"] = 0
+    product_data["created_at"] = datetime.utcnow()
+    product_data["updated_at"] = datetime.utcnow()
+    
+    products_collection.insert_one(product_data)
+    
+    # Update category count
+    if product.category_id:
+        product_categories_collection.update_one(
+            {"id": product.category_id},
+            {"$inc": {"product_count": 1}}
+        )
+    
+    return {"message": "Product created successfully", "product": product_data}
+
+@app.get("/api/products/{product_id}")
+async def get_product(
+    product_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get product details"""
+    product = products_collection.find_one({
+        "id": product_id,
+        "user_id": current_user["id"]
+    })
+    
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    
+    product["_id"] = str(product["_id"])
+    
+    # Get variants
+    variants = list(product_variants_collection.find({"product_id": product_id}))
+    for variant in variants:
+        variant["_id"] = str(variant["_id"])
+    
+    product["variants"] = variants
+    
+    return {"product": product}
+
+@app.put("/api/products/{product_id}")
+async def update_product(
+    product_id: str,
+    product: ProductUpdate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Update product"""
+    existing = products_collection.find_one({
+        "id": product_id,
+        "user_id": current_user["id"]
+    })
+    
+    if not existing:
+        raise HTTPException(status_code=404, detail="Product not found")
+    
+    update_data = {k: v for k, v in product.dict(exclude_unset=True).items() if v is not None}
+    update_data["updated_at"] = datetime.utcnow()
+    
+    products_collection.update_one(
+        {"id": product_id},
+        {"$set": update_data}
+    )
+    
+    return {"message": "Product updated successfully"}
+
+@app.delete("/api/products/{product_id}")
+async def delete_product(
+    product_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Delete product"""
+    product = products_collection.find_one({
+        "id": product_id,
+        "user_id": current_user["id"]
+    })
+    
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    
+    # Delete product
+    products_collection.delete_one({"id": product_id})
+    
+    # Delete variants
+    product_variants_collection.delete_many({"product_id": product_id})
+    
+    # Update category count
+    if product.get("category_id"):
+        product_categories_collection.update_one(
+            {"id": product["category_id"]},
+            {"$inc": {"product_count": -1}}
+        )
+    
+    return {"message": "Product deleted successfully"}
+
+# ==================== PRODUCT VARIANT ENDPOINTS ====================
+
+@app.post("/api/products/{product_id}/variants")
+async def create_product_variant(
+    product_id: str,
+    variant: ProductVariantCreate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Create product variant"""
+    # Verify product ownership
+    product = products_collection.find_one({
+        "id": product_id,
+        "user_id": current_user["id"]
+    })
+    
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    
+    variant_data = variant.dict()
+    variant_data["id"] = str(uuid.uuid4())
+    variant_data["user_id"] = current_user["id"]
+    variant_data["created_at"] = datetime.utcnow()
+    variant_data["updated_at"] = datetime.utcnow()
+    
+    product_variants_collection.insert_one(variant_data)
+    
+    return {"message": "Variant created successfully", "variant": variant_data}
+
+@app.get("/api/products/{product_id}/variants")
+async def list_product_variants(
+    product_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """List product variants"""
+    # Verify product ownership
+    product = products_collection.find_one({
+        "id": product_id,
+        "user_id": current_user["id"]
+    })
+    
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    
+    variants = list(product_variants_collection.find({"product_id": product_id}))
+    
+    for variant in variants:
+        variant["_id"] = str(variant["_id"])
+    
+    return {"variants": variants}
+
+@app.delete("/api/products/{product_id}/variants/{variant_id}")
+async def delete_product_variant(
+    product_id: str,
+    variant_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Delete product variant"""
+    result = product_variants_collection.delete_one({
+        "id": variant_id,
+        "product_id": product_id,
+        "user_id": current_user["id"]
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Variant not found")
+    
+    return {"message": "Variant deleted successfully"}
+
+# ==================== SHOPPING CART ENDPOINTS ====================
+
+@app.get("/api/cart")
+async def get_cart(current_user: dict = Depends(get_current_user)):
+    """Get user's shopping cart"""
+    cart = shopping_carts_collection.find_one({"user_id": current_user["id"]})
+    
+    if not cart:
+        # Create new cart
+        cart_data = {
+            "id": str(uuid.uuid4()),
+            "user_id": current_user["id"],
+            "items": [],
+            "subtotal": 0,
+            "tax": 0,
+            "shipping": 0,
+            "discount": 0,
+            "total": 0,
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        }
+        shopping_carts_collection.insert_one(cart_data)
+        cart = cart_data
+    
+    cart["_id"] = str(cart["_id"])
+    
+    return {"cart": cart}
+
+@app.post("/api/cart/items")
+async def add_to_cart(
+    product_id: str,
+    variant_id: Optional[str] = None,
+    quantity: int = 1,
+    current_user: dict = Depends(get_current_user)
+):
+    """Add item to cart"""
+    # Get product
+    product = products_collection.find_one({"id": product_id, "status": "active"})
+    
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    
+    # Get cart
+    cart = shopping_carts_collection.find_one({"user_id": current_user["id"]})
+    
+    if not cart:
+        cart = {
+            "id": str(uuid.uuid4()),
+            "user_id": current_user["id"],
+            "items": [],
+            "created_at": datetime.utcnow()
+        }
+    
+    # Create cart item
+    cart_item = {
+        "product_id": product_id,
+        "variant_id": variant_id,
+        "quantity": quantity,
+        "price": product["price"],
+        "product_name": product["name"],
+        "product_image": product.get("featured_image")
+    }
+    
+    # Check if item already in cart
+    items = cart.get("items", [])
+    existing_item = None
+    for i, item in enumerate(items):
+        if item["product_id"] == product_id and item.get("variant_id") == variant_id:
+            existing_item = i
+            break
+    
+    if existing_item is not None:
+        # Update quantity
+        items[existing_item]["quantity"] += quantity
+    else:
+        # Add new item
+        items.append(cart_item)
+    
+    # Recalculate totals
+    totals = calculate_cart_totals(
+        [CartItem(**item) for item in items],
+        cart.get("coupon_code"),
+        product.get("user_id")
+    )
+    
+    # Update cart
+    cart["items"] = items
+    cart.update(totals)
+    cart["updated_at"] = datetime.utcnow()
+    
+    shopping_carts_collection.update_one(
+        {"user_id": current_user["id"]},
+        {"$set": cart},
+        upsert=True
+    )
+    
+    return {"message": "Item added to cart", "cart": cart}
+
+@app.put("/api/cart/items/{product_id}")
+async def update_cart_item(
+    product_id: str,
+    quantity: int,
+    variant_id: Optional[str] = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """Update cart item quantity"""
+    cart = shopping_carts_collection.find_one({"user_id": current_user["id"]})
+    
+    if not cart:
+        raise HTTPException(status_code=404, detail="Cart not found")
+    
+    items = cart.get("items", [])
+    
+    # Find and update item
+    for item in items:
+        if item["product_id"] == product_id and item.get("variant_id") == variant_id:
+            if quantity <= 0:
+                items.remove(item)
+            else:
+                item["quantity"] = quantity
+            break
+    
+    # Recalculate totals
+    if items:
+        product = products_collection.find_one({"id": items[0]["product_id"]})
+        totals = calculate_cart_totals(
+            [CartItem(**item) for item in items],
+            cart.get("coupon_code"),
+            product.get("user_id") if product else None
+        )
+    else:
+        totals = {"subtotal": 0, "tax": 0, "discount": 0, "total": 0}
+    
+    # Update cart
+    cart["items"] = items
+    cart.update(totals)
+    cart["updated_at"] = datetime.utcnow()
+    
+    shopping_carts_collection.update_one(
+        {"user_id": current_user["id"]},
+        {"$set": cart}
+    )
+    
+    return {"message": "Cart updated", "cart": cart}
+
+@app.delete("/api/cart/items/{product_id}")
+async def remove_from_cart(
+    product_id: str,
+    variant_id: Optional[str] = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """Remove item from cart"""
+    cart = shopping_carts_collection.find_one({"user_id": current_user["id"]})
+    
+    if not cart:
+        raise HTTPException(status_code=404, detail="Cart not found")
+    
+    items = cart.get("items", [])
+    
+    # Remove item
+    items = [item for item in items if not (
+        item["product_id"] == product_id and item.get("variant_id") == variant_id
+    )]
+    
+    # Recalculate totals
+    if items:
+        product = products_collection.find_one({"id": items[0]["product_id"]})
+        totals = calculate_cart_totals(
+            [CartItem(**item) for item in items],
+            cart.get("coupon_code"),
+            product.get("user_id") if product else None
+        )
+    else:
+        totals = {"subtotal": 0, "tax": 0, "discount": 0, "total": 0}
+    
+    # Update cart
+    cart["items"] = items
+    cart.update(totals)
+    cart["updated_at"] = datetime.utcnow()
+    
+    shopping_carts_collection.update_one(
+        {"user_id": current_user["id"]},
+        {"$set": cart}
+    )
+    
+    return {"message": "Item removed from cart", "cart": cart}
+
+@app.post("/api/cart/apply-coupon")
+async def apply_coupon(
+    coupon_code: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Apply coupon to cart"""
+    cart = shopping_carts_collection.find_one({"user_id": current_user["id"]})
+    
+    if not cart or not cart.get("items"):
+        raise HTTPException(status_code=400, detail="Cart is empty")
+    
+    # Get product owner (assuming all items from same store)
+    product = products_collection.find_one({"id": cart["items"][0]["product_id"]})
+    
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    
+    # Recalculate with coupon
+    totals = calculate_cart_totals(
+        [CartItem(**item) for item in cart["items"]],
+        coupon_code,
+        product["user_id"]
+    )
+    
+    if totals["discount"] == 0:
+        raise HTTPException(status_code=400, detail="Invalid or expired coupon")
+    
+    # Update cart
+    cart["coupon_code"] = coupon_code
+    cart.update(totals)
+    cart["updated_at"] = datetime.utcnow()
+    
+    shopping_carts_collection.update_one(
+        {"user_id": current_user["id"]},
+        {"$set": cart}
+    )
+    
+    # Increment coupon usage
+    coupons_collection.update_one(
+        {"code": coupon_code},
+        {"$inc": {"usage_count": 1}}
+    )
+    
+    return {"message": "Coupon applied successfully", "cart": cart}
+
+@app.delete("/api/cart")
+async def clear_cart(current_user: dict = Depends(get_current_user)):
+    """Clear shopping cart"""
+    shopping_carts_collection.delete_one({"user_id": current_user["id"]})
+    
+    return {"message": "Cart cleared successfully"}
+
+# ==================== COUPON ENDPOINTS ====================
+
+@app.get("/api/coupons")
+async def list_coupons(
+    status: Optional[str] = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """List all coupons"""
+    query = {"user_id": current_user["id"]}
+    
+    if status:
+        query["status"] = status
+    
+    coupons = list(coupons_collection.find(query).sort("created_at", -1))
+    
+    for coupon in coupons:
+        coupon["_id"] = str(coupon["_id"])
+    
+    return {"coupons": coupons}
+
+@app.post("/api/coupons")
+async def create_coupon(
+    coupon: CouponCreate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Create new coupon"""
+    # Check if code exists
+    existing = coupons_collection.find_one({"code": coupon.code})
+    
+    if existing:
+        raise HTTPException(status_code=400, detail="Coupon code already exists")
+    
+    coupon_data = coupon.dict()
+    coupon_data["id"] = str(uuid.uuid4())
+    coupon_data["user_id"] = current_user["id"]
+    coupon_data["usage_count"] = 0
+    coupon_data["created_at"] = datetime.utcnow()
+    coupon_data["updated_at"] = datetime.utcnow()
+    
+    coupons_collection.insert_one(coupon_data)
+    
+    return {"message": "Coupon created successfully", "coupon": coupon_data}
+
+@app.put("/api/coupons/{coupon_id}")
+async def update_coupon(
+    coupon_id: str,
+    coupon: CouponUpdate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Update coupon"""
+    existing = coupons_collection.find_one({
+        "id": coupon_id,
+        "user_id": current_user["id"]
+    })
+    
+    if not existing:
+        raise HTTPException(status_code=404, detail="Coupon not found")
+    
+    update_data = {k: v for k, v in coupon.dict(exclude_unset=True).items() if v is not None}
+    update_data["updated_at"] = datetime.utcnow()
+    
+    coupons_collection.update_one(
+        {"id": coupon_id},
+        {"$set": update_data}
+    )
+    
+    return {"message": "Coupon updated successfully"}
+
+@app.delete("/api/coupons/{coupon_id}")
+async def delete_coupon(
+    coupon_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Delete coupon"""
+    result = coupons_collection.delete_one({
+        "id": coupon_id,
+        "user_id": current_user["id"]
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Coupon not found")
+    
+    return {"message": "Coupon deleted successfully"}
+
+# ==================== CHECKOUT & ORDER ENDPOINTS ====================
+
+@app.post("/api/checkout")
+async def process_checkout(
+    checkout: CheckoutRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """Process checkout and create order"""
+    if not checkout.items:
+        raise HTTPException(status_code=400, detail="Cart is empty")
+    
+    # Get product owner (assuming all items from same store)
+    product = products_collection.find_one({"id": checkout.items[0].product_id})
+    
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    
+    store_owner_id = product["user_id"]
+    
+    # Calculate totals
+    totals = calculate_cart_totals(checkout.items, checkout.coupon_code, store_owner_id)
+    
+    # Create order
+    order_data = {
+        "id": str(uuid.uuid4()),
+        "order_number": generate_order_number(),
+        "user_id": store_owner_id,
+        "customer_id": current_user.get("id"),
+        "customer_name": checkout.customer_name,
+        "customer_email": checkout.customer_email,
+        "customer_phone": checkout.customer_phone,
+        
+        # Addresses
+        "billing_address_line1": checkout.billing_address.get("line1"),
+        "billing_address_line2": checkout.billing_address.get("line2"),
+        "billing_city": checkout.billing_address.get("city"),
+        "billing_state": checkout.billing_address.get("state"),
+        "billing_postal_code": checkout.billing_address.get("postal_code"),
+        "billing_country": checkout.billing_address.get("country", "US"),
+        
+        "shipping_same_as_billing": checkout.shipping_address is None,
+        "shipping_address_line1": checkout.shipping_address.get("line1") if checkout.shipping_address else None,
+        "shipping_address_line2": checkout.shipping_address.get("line2") if checkout.shipping_address else None,
+        "shipping_city": checkout.shipping_address.get("city") if checkout.shipping_address else None,
+        "shipping_state": checkout.shipping_address.get("state") if checkout.shipping_address else None,
+        "shipping_postal_code": checkout.shipping_address.get("postal_code") if checkout.shipping_address else None,
+        "shipping_country": checkout.shipping_address.get("country", "US") if checkout.shipping_address else None,
+        
+        # Order details
+        "items": [],
+        "subtotal": totals["subtotal"],
+        "tax": totals["tax"],
+        "shipping_cost": 0,
+        "discount": totals["discount"],
+        "total": totals["total"],
+        "currency": "USD",
+        
+        # Coupon
+        "coupon_code": checkout.coupon_code,
+        "coupon_discount": totals["discount"],
+        
+        # Payment
+        "payment_method": checkout.payment_method,
+        "payment_status": "paid" if checkout.payment_method == "mock" else "pending",
+        
+        # Status
+        "status": "processing" if checkout.payment_method == "mock" else "pending",
+        
+        # Notes
+        "customer_notes": checkout.customer_notes,
+        
+        # Fulfillment
+        "is_fulfilled": False,
+        
+        # Dates
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow(),
+        "paid_at": datetime.utcnow() if checkout.payment_method == "mock" else None
+    }
+    
+    # Create order items
+    order_items = []
+    for item in checkout.items:
+        order_item = {
+            "id": str(uuid.uuid4()),
+            "order_id": order_data["id"],
+            "product_id": item.product_id,
+            "product_name": item.product_name,
+            "variant_id": item.variant_id,
+            "quantity": item.quantity,
+            "price": item.price,
+            "subtotal": item.price * item.quantity,
+            "tax": 0,
+            "total": item.price * item.quantity,
+            "product_type": "physical",
+            "created_at": datetime.utcnow()
+        }
+        order_items.append(order_item)
+        
+        # Update product stats
+        products_collection.update_one(
+            {"id": item.product_id},
+            {
+                "$inc": {
+                    "sales_count": item.quantity,
+                    "revenue": item.price * item.quantity
+                }
+            }
+        )
+    
+    order_data["items"] = order_items
+    
+    # Insert order
+    orders_collection.insert_one(order_data)
+    
+    # Insert order items
+    for order_item in order_items:
+        order_items_collection.insert_one(order_item)
+    
+    # Create payment transaction
+    transaction_data = {
+        "id": str(uuid.uuid4()),
+        "user_id": store_owner_id,
+        "order_id": order_data["id"],
+        "customer_email": checkout.customer_email,
+        "amount": totals["total"],
+        "currency": "USD",
+        "payment_method": checkout.payment_method,
+        "payment_provider": checkout.payment_method,
+        "status": "completed" if checkout.payment_method == "mock" else "pending",
+        "transaction_id": f"TXN-{str(uuid.uuid4())[:8]}",
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow(),
+        "completed_at": datetime.utcnow() if checkout.payment_method == "mock" else None
+    }
+    
+    payment_transactions_collection.insert_one(transaction_data)
+    
+    # Create or update contact in CRM
+    contact = contacts_collection.find_one({
+        "email": checkout.customer_email,
+        "user_id": store_owner_id
+    })
+    
+    if not contact:
+        contact_data = {
+            "id": str(uuid.uuid4()),
+            "user_id": store_owner_id,
+            "email": checkout.customer_email,
+            "first_name": checkout.customer_name.split()[0] if checkout.customer_name else "",
+            "last_name": " ".join(checkout.customer_name.split()[1:]) if len(checkout.customer_name.split()) > 1 else "",
+            "phone": checkout.customer_phone,
+            "company": "",
+            "address": checkout.billing_address.get("line1", ""),
+            "city": checkout.billing_address.get("city", ""),
+            "state": checkout.billing_address.get("state", ""),
+            "country": checkout.billing_address.get("country", "US"),
+            "postal_code": checkout.billing_address.get("postal_code", ""),
+            "tags": ["customer"],
+            "status": "customer",
+            "source": "order",
+            "score": 80,
+            "last_contact_date": datetime.utcnow(),
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        }
+        contacts_collection.insert_one(contact_data)
+        order_data["contact_id"] = contact_data["id"]
+        orders_collection.update_one(
+            {"id": order_data["id"]},
+            {"$set": {"contact_id": contact_data["id"]}}
+        )
+    else:
+        # Update existing contact
+        contacts_collection.update_one(
+            {"id": contact["id"]},
+            {
+                "$set": {
+                    "status": "customer",
+                    "last_contact_date": datetime.utcnow(),
+                    "updated_at": datetime.utcnow()
+                },
+                "$addToSet": {"tags": "customer"}
+            }
+        )
+        order_data["contact_id"] = contact["id"]
+        orders_collection.update_one(
+            {"id": order_data["id"]},
+            {"$set": {"contact_id": contact["id"]}}
+        )
+    
+    # Clear cart
+    shopping_carts_collection.delete_one({"user_id": current_user["id"]})
+    
+    # Generate invoice
+    invoice_data = {
+        "id": str(uuid.uuid4()),
+        "invoice_number": generate_invoice_number(),
+        "user_id": store_owner_id,
+        "order_id": order_data["id"],
+        "customer_name": checkout.customer_name,
+        "customer_email": checkout.customer_email,
+        "customer_address": f"{checkout.billing_address.get('line1', '')}, {checkout.billing_address.get('city', '')}, {checkout.billing_address.get('state', '')} {checkout.billing_address.get('postal_code', '')}",
+        "items": [
+            {
+                "name": item["product_name"],
+                "quantity": item["quantity"],
+                "price": item["price"],
+                "total": item["total"]
+            }
+            for item in order_items
+        ],
+        "subtotal": totals["subtotal"],
+        "tax": totals["tax"],
+        "discount": totals["discount"],
+        "total": totals["total"],
+        "currency": "USD",
+        "status": "paid" if checkout.payment_method == "mock" else "draft",
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow(),
+        "paid_at": datetime.utcnow() if checkout.payment_method == "mock" else None
+    }
+    
+    invoices_collection.insert_one(invoice_data)
+    
+    return {
+        "message": "Order placed successfully",
+        "order": {
+            "id": order_data["id"],
+            "order_number": order_data["order_number"],
+            "total": order_data["total"],
+            "status": order_data["status"],
+            "payment_status": order_data["payment_status"]
+        },
+        "invoice": {
+            "id": invoice_data["id"],
+            "invoice_number": invoice_data["invoice_number"]
+        }
+    }
+
+@app.get("/api/orders")
+async def list_orders(
+    status: Optional[str] = None,
+    payment_status: Optional[str] = None,
+    search: Optional[str] = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """List all orders"""
+    query = {"user_id": current_user["id"]}
+    
+    if status:
+        query["status"] = status
+    if payment_status:
+        query["payment_status"] = payment_status
+    if search:
+        query["$or"] = [
+            {"order_number": {"$regex": search, "$options": "i"}},
+            {"customer_name": {"$regex": search, "$options": "i"}},
+            {"customer_email": {"$regex": search, "$options": "i"}}
+        ]
+    
+    orders = list(orders_collection.find(query).sort("created_at", -1).limit(100))
+    
+    for order in orders:
+        order["_id"] = str(order["_id"])
+    
+    return {"orders": orders}
+
+@app.get("/api/orders/{order_id}")
+async def get_order(
+    order_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get order details"""
+    order = orders_collection.find_one({
+        "id": order_id,
+        "user_id": current_user["id"]
+    })
+    
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    order["_id"] = str(order["_id"])
+    
+    # Get order items
+    items = list(order_items_collection.find({"order_id": order_id}))
+    for item in items:
+        item["_id"] = str(item["_id"])
+    
+    order["order_items"] = items
+    
+    # Get invoice
+    invoice = invoices_collection.find_one({"order_id": order_id})
+    if invoice:
+        invoice["_id"] = str(invoice["_id"])
+        order["invoice"] = invoice
+    
+    return {"order": order}
+
+@app.put("/api/orders/{order_id}")
+async def update_order(
+    order_id: str,
+    order: OrderUpdate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Update order"""
+    existing = orders_collection.find_one({
+        "id": order_id,
+        "user_id": current_user["id"]
+    })
+    
+    if not existing:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    update_data = {k: v for k, v in order.dict(exclude_unset=True).items() if v is not None}
+    update_data["updated_at"] = datetime.utcnow()
+    
+    # Handle status changes
+    if order.status == "completed" and existing.get("status") != "completed":
+        update_data["completed_at"] = datetime.utcnow()
+        update_data["is_fulfilled"] = True
+        update_data["fulfilled_at"] = datetime.utcnow()
+    elif order.status == "cancelled":
+        update_data["cancelled_at"] = datetime.utcnow()
+    
+    if order.payment_status == "paid" and existing.get("payment_status") != "paid":
+        update_data["paid_at"] = datetime.utcnow()
+    
+    orders_collection.update_one(
+        {"id": order_id},
+        {"$set": update_data}
+    )
+    
+    return {"message": "Order updated successfully"}
+
+@app.post("/api/orders/{order_id}/refund")
+async def refund_order(
+    order_id: str,
+    refund_amount: Optional[float] = None,
+    reason: Optional[str] = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """Refund order"""
+    order = orders_collection.find_one({
+        "id": order_id,
+        "user_id": current_user["id"]
+    })
+    
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    if order.get("payment_status") != "paid":
+        raise HTTPException(status_code=400, detail="Order is not paid")
+    
+    # Use full amount if not specified
+    if not refund_amount:
+        refund_amount = order["total"]
+    
+    # Update order
+    orders_collection.update_one(
+        {"id": order_id},
+        {
+            "$set": {
+                "status": "refunded",
+                "payment_status": "refunded",
+                "admin_notes": f"Refunded: {reason or 'No reason provided'}",
+                "updated_at": datetime.utcnow()
+            }
+        }
+    )
+    
+    # Create refund transaction
+    transaction_data = {
+        "id": str(uuid.uuid4()),
+        "user_id": current_user["id"],
+        "order_id": order_id,
+        "customer_email": order["customer_email"],
+        "amount": -refund_amount,
+        "currency": "USD",
+        "payment_method": order["payment_method"],
+        "payment_provider": order["payment_method"],
+        "status": "completed",
+        "transaction_id": f"REFUND-{str(uuid.uuid4())[:8]}",
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow(),
+        "completed_at": datetime.utcnow()
+    }
+    
+    payment_transactions_collection.insert_one(transaction_data)
+    
+    return {"message": "Order refunded successfully", "refund_amount": refund_amount}
+
+# ==================== SUBSCRIPTION ENDPOINTS ====================
+
+@app.get("/api/subscriptions")
+async def list_subscriptions(
+    status: Optional[str] = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """List all subscriptions"""
+    query = {"user_id": current_user["id"]}
+    
+    if status:
+        query["status"] = status
+    
+    subscriptions = list(subscriptions_collection.find(query).sort("created_at", -1))
+    
+    for subscription in subscriptions:
+        subscription["_id"] = str(subscription["_id"])
+    
+    return {"subscriptions": subscriptions}
+
+@app.get("/api/subscriptions/{subscription_id}")
+async def get_subscription(
+    subscription_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get subscription details"""
+    subscription = subscriptions_collection.find_one({
+        "id": subscription_id,
+        "user_id": current_user["id"]
+    })
+    
+    if not subscription:
+        raise HTTPException(status_code=404, detail="Subscription not found")
+    
+    subscription["_id"] = str(subscription["_id"])
+    
+    return {"subscription": subscription}
+
+@app.post("/api/subscriptions/{subscription_id}/cancel")
+async def cancel_subscription(
+    subscription_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Cancel subscription"""
+    subscription = subscriptions_collection.find_one({
+        "id": subscription_id,
+        "user_id": current_user["id"]
+    })
+    
+    if not subscription:
+        raise HTTPException(status_code=404, detail="Subscription not found")
+    
+    subscriptions_collection.update_one(
+        {"id": subscription_id},
+        {
+            "$set": {
+                "status": "cancelled",
+                "cancelled_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow()
+            }
+        }
+    )
+    
+    return {"message": "Subscription cancelled successfully"}
+
+@app.post("/api/subscriptions/{subscription_id}/pause")
+async def pause_subscription(
+    subscription_id: str,
+    pause_until: Optional[datetime] = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """Pause subscription"""
+    subscription = subscriptions_collection.find_one({
+        "id": subscription_id,
+        "user_id": current_user["id"]
+    })
+    
+    if not subscription:
+        raise HTTPException(status_code=404, detail="Subscription not found")
+    
+    subscriptions_collection.update_one(
+        {"id": subscription_id},
+        {
+            "$set": {
+                "status": "paused",
+                "pause_until": pause_until,
+                "updated_at": datetime.utcnow()
+            }
+        }
+    )
+    
+    return {"message": "Subscription paused successfully"}
+
+@app.post("/api/subscriptions/{subscription_id}/resume")
+async def resume_subscription(
+    subscription_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Resume subscription"""
+    subscription = subscriptions_collection.find_one({
+        "id": subscription_id,
+        "user_id": current_user["id"]
+    })
+    
+    if not subscription:
+        raise HTTPException(status_code=404, detail="Subscription not found")
+    
+    subscriptions_collection.update_one(
+        {"id": subscription_id},
+        {
+            "$set": {
+                "status": "active",
+                "pause_until": None,
+                "updated_at": datetime.utcnow()
+            }
+        }
+    )
+    
+    return {"message": "Subscription resumed successfully"}
+
+# ==================== INVOICE ENDPOINTS ====================
+
+@app.get("/api/invoices")
+async def list_invoices(
+    status: Optional[str] = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """List all invoices"""
+    query = {"user_id": current_user["id"]}
+    
+    if status:
+        query["status"] = status
+    
+    invoices = list(invoices_collection.find(query).sort("created_at", -1))
+    
+    for invoice in invoices:
+        invoice["_id"] = str(invoice["_id"])
+    
+    return {"invoices": invoices}
+
+@app.get("/api/invoices/{invoice_id}")
+async def get_invoice(
+    invoice_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get invoice details"""
+    invoice = invoices_collection.find_one({
+        "id": invoice_id,
+        "user_id": current_user["id"]
+    })
+    
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    
+    invoice["_id"] = str(invoice["_id"])
+    
+    return {"invoice": invoice}
+
+# ==================== PAYMENT ANALYTICS ENDPOINTS ====================
+
+@app.get("/api/payment-analytics/summary")
+async def get_payment_analytics(current_user: dict = Depends(get_current_user)):
+    """Get payment analytics summary"""
+    # Get all orders
+    all_orders = list(orders_collection.find({"user_id": current_user["id"]}))
+    
+    # Calculate metrics
+    total_revenue = sum(order.get("total", 0) for order in all_orders if order.get("payment_status") == "paid")
+    total_orders = len([o for o in all_orders if o.get("payment_status") == "paid"])
+    average_order_value = total_revenue / total_orders if total_orders > 0 else 0
+    
+    # Get subscriptions
+    all_subscriptions = list(subscriptions_collection.find({"user_id": current_user["id"]}))
+    active_subscriptions = len([s for s in all_subscriptions if s.get("status") == "active"])
+    
+    # Get products
+    total_products = products_collection.count_documents({"user_id": current_user["id"]})
+    
+    # Get unique customers
+    customer_emails = set(order.get("customer_email") for order in all_orders)
+    total_customers = len(customer_emails)
+    
+    # Revenue by period (last 12 months)
+    revenue_by_period = {}
+    for i in range(12):
+        month_start = datetime.utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0) - timedelta(days=30*i)
+        month_end = month_start + timedelta(days=30)
+        month_orders = [o for o in all_orders if month_start <= o.get("created_at", datetime.min) < month_end and o.get("payment_status") == "paid"]
+        month_revenue = sum(o.get("total", 0) for o in month_orders)
+        revenue_by_period[month_start.strftime("%Y-%m")] = round(month_revenue, 2)
+    
+    # Top products
+    products = list(products_collection.find({"user_id": current_user["id"]}).sort("sales_count", -1).limit(5))
+    top_products = [
+        {
+            "id": p["id"],
+            "name": p["name"],
+            "sales_count": p.get("sales_count", 0),
+            "revenue": round(p.get("revenue", 0), 2)
+        }
+        for p in products
+    ]
+    
+    # Recent orders
+    recent = list(orders_collection.find({"user_id": current_user["id"]}).sort("created_at", -1).limit(10))
+    recent_orders = [
+        {
+            "id": o["id"],
+            "order_number": o["order_number"],
+            "customer_name": o["customer_name"],
+            "total": o["total"],
+            "status": o["status"],
+            "created_at": o["created_at"].isoformat() if "created_at" in o else None
+        }
+        for o in recent
+    ]
+    
+    return {
+        "total_revenue": round(total_revenue, 2),
+        "total_orders": total_orders,
+        "total_subscriptions": len(all_subscriptions),
+        "active_subscriptions": active_subscriptions,
+        "average_order_value": round(average_order_value, 2),
+        "total_products": total_products,
+        "total_customers": total_customers,
+        "revenue_by_period": revenue_by_period,
+        "top_products": top_products,
+        "recent_orders": recent_orders
+    }
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
