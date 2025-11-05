@@ -6141,6 +6141,108 @@ async def get_website_analytics(
     }
 
 
+# ==================== NAVIGATION MENU ROUTES ====================
+
+@app.get("/api/website/navigation-menus")
+async def list_navigation_menus(
+    current_user: User = Depends(get_current_user)
+):
+    """List navigation menus"""
+    menus = list(navigation_menus_collection.find({'user_id': current_user['id']}))
+    
+    for menu in menus:
+        menu['_id'] = str(menu['_id'])
+    
+    return {"menus": menus}
+
+
+@app.post("/api/website/navigation-menus", status_code=status.HTTP_201_CREATED)
+async def create_navigation_menu(
+    menu_data: NavigationMenuCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Create a new navigation menu"""
+    menu_dict = menu_data.model_dump()
+    menu_dict['id'] = str(uuid.uuid4())
+    menu_dict['user_id'] = current_user['id']
+    menu_dict['created_at'] = datetime.utcnow()
+    menu_dict['updated_at'] = datetime.utcnow()
+    menu_dict['menu_items'] = []
+    
+    navigation_menus_collection.insert_one(menu_dict)
+    menu_dict.pop('_id', None)
+    
+    return menu_dict
+
+
+@app.get("/api/website/navigation-menus/{menu_id}")
+async def get_navigation_menu(
+    menu_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get a navigation menu by ID"""
+    menu = navigation_menus_collection.find_one({
+        'id': menu_id,
+        'user_id': current_user['id']
+    })
+    
+    if not menu:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Menu not found"
+        )
+    
+    menu['_id'] = str(menu['_id'])
+    return menu
+
+
+@app.put("/api/website/navigation-menus/{menu_id}")
+async def update_navigation_menu(
+    menu_id: str,
+    menu_data: NavigationMenuUpdate,
+    current_user: User = Depends(get_current_user)
+):
+    """Update a navigation menu"""
+    update_data = menu_data.model_dump(exclude_unset=True)
+    update_data['updated_at'] = datetime.utcnow()
+    
+    result = navigation_menus_collection.update_one(
+        {'id': menu_id, 'user_id': current_user['id']},
+        {'$set': update_data}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Menu not found"
+        )
+    
+    updated_menu = navigation_menus_collection.find_one({'id': menu_id})
+    updated_menu['_id'] = str(updated_menu['_id'])
+    
+    return updated_menu
+
+
+@app.delete("/api/website/navigation-menus/{menu_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_navigation_menu(
+    menu_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Delete a navigation menu"""
+    result = navigation_menus_collection.delete_one({
+        'id': menu_id,
+        'user_id': current_user['id']
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Menu not found"
+        )
+    
+    return {"message": "Menu deleted"}
+
+
 # ==================== RSS FEED ROUTE ====================
 
 @app.get("/api/public/blog/rss")
