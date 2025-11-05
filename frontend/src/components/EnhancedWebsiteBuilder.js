@@ -1841,10 +1841,10 @@ const BlockRenderer = ({ block }) => {
     case 'image':
       return (
         <div style={containerStyle}>
-          {content.image_url ? (
+          {content?.image_url ? (
             <img 
               src={content.image_url} 
-              alt={content.alt_text || ''} 
+              alt={content?.alt_text || ''} 
               className="w-full rounded-lg"
               style={{ maxHeight: style?.imageHeight || 'auto' }}
             />
