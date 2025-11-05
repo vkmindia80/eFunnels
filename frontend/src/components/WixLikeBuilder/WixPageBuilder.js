@@ -287,9 +287,10 @@ const WixPageBuilder = ({ page, onSave, onClose }) => {
                                 <GripVertical size={20} className="text-white" />
                               </div>
 
-                              {/* Block Toolbar - Shows on Hover */}
-                              {(hoveredBlockId === block.id || selectedBlockId === block.id) && (
-                                <div className="absolute top-2 right-2 z-10 flex gap-1 bg-white shadow-lg rounded-lg border border-gray-200 p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              {/* Block Toolbar - Shows on Hover or Selection */}
+                              <div className={`absolute top-2 right-2 z-10 flex gap-1 bg-white shadow-lg rounded-lg border border-gray-200 p-1 transition-opacity ${
+                                hoveredBlockId === block.id || selectedBlockId === block.id ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                              }`}>
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
