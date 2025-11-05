@@ -314,32 +314,35 @@ const WixPageBuilder = ({ page, onSave, onClose }) => {
                               ref={provided.innerRef}
                               {...provided.draggableProps}
                               className={`relative group ${
-                                selectedBlockId === block.id ? 'ring-2 ring-blue-500' : ''
-                              } ${hoveredBlockId === block.id ? 'ring-1 ring-blue-300' : ''} ${
+                                !isPreviewMode && selectedBlockId === block.id ? 'ring-2 ring-blue-500' : ''
+                              } ${!isPreviewMode && hoveredBlockId === block.id ? 'ring-1 ring-blue-300' : ''} ${
                                 snapshot.isDragging ? 'shadow-2xl opacity-90' : ''
                               }`}
-                              onMouseEnter={() => setHoveredBlockId(block.id)}
-                              onMouseLeave={() => setHoveredBlockId(null)}
-                              onClick={() => setSelectedBlockId(block.id)}
+                              onMouseEnter={() => !isPreviewMode && setHoveredBlockId(block.id)}
+                              onMouseLeave={() => !isPreviewMode && setHoveredBlockId(null)}
+                              onClick={() => !isPreviewMode && setSelectedBlockId(block.id)}
                             >
-                              {/* Drag Handle Bar - Always rendered for react-beautiful-dnd */}
-                              <div
-                                {...provided.dragHandleProps}
-                                className={`absolute left-0 top-0 bottom-0 w-10 flex items-center justify-center cursor-move bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 transition-all z-10 ${
-                                  hoveredBlockId === block.id || selectedBlockId === block.id || snapshot.isDragging
-                                    ? 'opacity-100'
-                                    : 'opacity-0 pointer-events-none'
-                                }`}
-                                title="Drag to reorder"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <GripVertical size={20} className="text-white" />
-                              </div>
+                              {/* Drag Handle Bar - Hidden in Preview Mode */}
+                              {!isPreviewMode && (
+                                <div
+                                  {...provided.dragHandleProps}
+                                  className={`absolute left-0 top-0 bottom-0 w-10 flex items-center justify-center cursor-move bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 transition-all z-10 ${
+                                    hoveredBlockId === block.id || selectedBlockId === block.id || snapshot.isDragging
+                                      ? 'opacity-100'
+                                      : 'opacity-0 pointer-events-none'
+                                  }`}
+                                  title="Drag to reorder"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <GripVertical size={20} className="text-white" />
+                                </div>
+                              )}
 
-                              {/* Block Toolbar - Shows on Hover or Selection */}
-                              <div className={`absolute top-2 right-2 z-10 flex gap-1 bg-white shadow-lg rounded-lg border border-gray-200 p-1 transition-opacity ${
-                                hoveredBlockId === block.id || selectedBlockId === block.id ? 'opacity-100' : 'opacity-0 pointer-events-none'
-                              }`}>
+                              {/* Block Toolbar - Hidden in Preview Mode */}
+                              {!isPreviewMode && (
+                                <div className={`absolute top-2 right-2 z-10 flex gap-1 bg-white shadow-lg rounded-lg border border-gray-200 p-1 transition-opacity ${
+                                  hoveredBlockId === block.id || selectedBlockId === block.id ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                                }`}>
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
