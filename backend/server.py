@@ -37,7 +37,12 @@ from models import (
     WebsitePageCreate, WebsitePageUpdate, WebsitePage,
     WebsiteThemeCreate, WebsiteThemeUpdate, WebsiteTheme,
     NavigationMenuCreate, NavigationMenuUpdate, NavigationMenu,
-    BlogPostView, WebsitePageView
+    BlogPostView, WebsitePageView,
+    WebinarCreate, WebinarUpdate, Webinar, WebinarRegistrationCreate, WebinarRegistration,
+    PublicWebinarRegistrationRequest, WebinarChatMessageCreate, WebinarChatMessage,
+    WebinarQACreate, WebinarQA, WebinarPollCreate, WebinarPollUpdate, WebinarPoll,
+    WebinarPollVote, WebinarRecordingCreate, WebinarRecordingUpdate, WebinarRecording,
+    WebinarAnalytics
 )
 from auth import (
     get_password_hash, 
