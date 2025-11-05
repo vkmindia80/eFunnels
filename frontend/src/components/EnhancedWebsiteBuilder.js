@@ -1779,7 +1779,9 @@ const PagePreviewModal = ({ page, onClose }) => {
 
 // Block Renderer Component for Preview
 const BlockRenderer = ({ block }) => {
-  const { type, content, style } = block;
+  if (!block) return null;
+  
+  const { type, content = {}, style = {} } = block;
 
   const containerStyle = {
     backgroundColor: style?.backgroundColor || 'transparent',
