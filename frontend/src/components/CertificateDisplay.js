@@ -19,7 +19,7 @@ const CertificateDisplay = ({ courseId, onClose }) => {
 
   const fetchOrGenerateCertificate = async () => {
     try {
-      const response = await api.post(`/courses/${courseId}/certificate`);
+      const response = await api.post(`/api/courses/${courseId}/certificate`);
       setCertificate(response.data);
     } catch (error) {
       console.error('Error fetching certificate:', error);
