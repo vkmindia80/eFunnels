@@ -1140,18 +1140,26 @@ const PageModal = ({ page, onClose, onSave }) => {
             </div>
           </div>
 
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+              {error}
+            </div>
+          )}
+
           <div className="flex items-center gap-3 pt-4">
             <button
               type="submit"
-              className="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 rounded-lg font-semibold hover:shadow-lg transition"
+              disabled={saving}
+              className="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 rounded-lg font-semibold hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
               data-testid="save-page-btn"
             >
-              {page ? 'Update Page' : 'Create Page'}
+              {saving ? 'Saving...' : (page ? 'Update Page' : 'Create Page')}
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-300 transition"
+              disabled={saving}
+              className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-300 transition disabled:opacity-50"
             >
               Cancel
             </button>
