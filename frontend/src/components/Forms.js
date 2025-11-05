@@ -4,10 +4,12 @@ import {
   Save, X, ArrowLeft, Settings, BarChart2, FileText,
   MessageSquare, CheckSquare, Calendar, Phone, Mail,
   Hash, AlignLeft, List, Star, Upload, Check, ChevronDown,
-  ChevronUp, GripVertical, Link as LinkIcon
+  ChevronUp, GripVertical, Link as LinkIcon, Sparkles, Wand2
 } from 'lucide-react';
 import api from '../api';
 import { fieldTypes, renderFieldPreview } from './FormBuilder/fieldTypes';
+import TemplateBrowser from './TemplateBrowser';
+import UniversalAIAssistant from './UniversalAIAssistant';
 
 const Forms = () => {
   const [activeTab, setActiveTab] = useState('forms'); // 'forms' or 'surveys'
