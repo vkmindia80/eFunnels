@@ -386,13 +386,19 @@ class eFunnelsAPITester:
             200
         )
         
-        # Mark lesson as complete
+        # Mark lesson as complete - Add required request body
         if self.lesson_id:
+            complete_data = {
+                "time_spent": 15,
+                "quiz_score": None,
+                "quiz_passed": None
+            }
             success, response = self.run_test(
                 "Mark Lesson Complete",
                 "POST",
                 f"courses/{self.course_id}/lessons/{self.lesson_id}/complete",
-                200
+                200,
+                complete_data
             )
         
         return True
