@@ -25,8 +25,20 @@ const PublicWebsitePage = ({ userId, slug }) => {
   };
 
   const renderBlock = (block) => {
-    if (!block || !block.type) return null;
+    if (!block || !block.type) {
+      console.warn('Invalid block:', block);
+      return null;
+    }
 
+    try {
+      return renderBlockContent(block);
+    } catch (error) {
+      console.error('Error rendering block:', error, block);
+      return null;
+    }
+  };
+
+  const renderBlockContent = (block) => {
     switch (block.type) {
       case 'heading':
         const HeadingTag = block.level ? `h${block.level}` : 'h2';
