@@ -10466,6 +10466,53 @@ async def export_analytics_report(
         overview_data = await get_analytics_dashboard_overview(start_date, end_date, current_user)
         
         if format == "json":
+            return JSONResponse(content=overview_data)
+        
+        # CSV format
+        output = io.StringIO()
+        writer = csv.writer(output)
+        
+        # Write headers and data
+        writer.writerow(['Metric Category', 'Metric', 'Value'])
+        
+        # Revenue
+        writer.writerow(['Revenue', 'Total Revenue', f"${overview_data['total_revenue']}"])
+        writer.writerow(['Revenue', 'Revenue Growth', f"{overview_data['revenue_growth']}%"])
+        
+        # Contacts
+        writer.writerow(['Contacts', 'Total Contacts', overview_data['total_contacts']])
+        writer.writerow(['Contacts', 'New Contacts', overview_data['new_contacts']])
+        writer.writerow(['Contacts', 'Active Contacts', overview_data['active_contacts']])
+        
+        # Email Marketing
+        email = overview_data['email_marketing']
+        writer.writerow(['Email', 'Total Campaigns', email['total_campaigns']])
+        writer.writerow(['Email', 'Emails Sent', email['total_emails_sent']])
+        writer.writerow(['Email', 'Open Rate', f"{email['open_rate']}%"])
+        writer.writerow(['Email', 'Click Rate', f"{email['click_rate']}%"])
+        
+        # Funnels
+        funnels = overview_data['funnels']
+        writer.writerow(['Funnels', 'Total Funnels', funnels['total_funnels']])
+        writer.writerow(['Funnels', 'Total Visits', funnels['total_visits']])
+        writer.writerow(['Funnels', 'Conversions', funnels['conversions']])
+        writer.writerow(['Funnels', 'Conversion Rate', f"{funnels['conversion_rate']}%"])
+        
+        # E-commerce
+        ecommerce = overview_data['ecommerce']
+        writer.writerow(['E-commerce', 'Total Orders', ecommerce['total_orders']])
+        writer.writerow(['E-commerce', 'Completed Orders', ecommerce['completed_orders']])
+        writer.writerow(['E-commerce', 'Average Order Value', f"${ecommerce['average_order_value']}"])
+        
+        output.seek(0)
+        return StreamingResponse(
+            iter([output.getvalue()]),
+            media_type="text/csv",
+            headers={"Content-Disposition": f"attachment; filename=analytics_report_{datetime.utcnow().strftime('%Y%m%d')}.csv"}
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to export report: {str(e)}")
 
 
 # ==================== PHASE 12: ADVANCED AI FEATURES ====================
