@@ -1069,12 +1069,12 @@ const BlockPreview = ({ block }) => {
     case 'features':
       return (
         <div style={containerStyle}>
-          <h2 className="text-3xl font-bold mb-8">{content.headline || 'Our Features'}</h2>
+          <h2 className="text-3xl font-bold mb-8">{content?.headline || 'Our Features'}</h2>
           <div className="grid grid-cols-3 gap-6">
-            {(content.features || [{ title: 'Feature 1' }, { title: 'Feature 2' }, { title: 'Feature 3' }]).map((feature, i) => (
+            {(content?.features || [{ title: 'Feature 1' }, { title: 'Feature 2' }, { title: 'Feature 3' }]).map((feature, i) => (
               <div key={i} className="p-6 bg-white border border-gray-200 rounded-lg">
-                <h3 className="font-bold text-lg mb-2">{feature.title}</h3>
-                <p className="text-gray-600">{feature.description}</p>
+                <h3 className="font-bold text-lg mb-2">{feature?.title || 'Feature'}</h3>
+                <p className="text-gray-600">{feature?.description || ''}</p>
               </div>
             ))}
           </div>
@@ -1084,12 +1084,12 @@ const BlockPreview = ({ block }) => {
     case 'testimonials':
       return (
         <div style={containerStyle}>
-          <h2 className="text-3xl font-bold mb-8">{content.headline || 'Testimonials'}</h2>
+          <h2 className="text-3xl font-bold mb-8">{content?.headline || 'Testimonials'}</h2>
           <div className="grid grid-cols-2 gap-6">
-            {(content.testimonials || [{ name: 'John Doe', text: 'Great product!' }]).map((testimonial, i) => (
+            {(content?.testimonials || [{ name: 'John Doe', text: 'Great product!' }]).map((testimonial, i) => (
               <div key={i} className="p-6 bg-white border border-gray-200 rounded-lg">
-                <p className="text-gray-700 mb-4">"{testimonial.text}"</p>
-                <p className="font-bold">{testimonial.name}</p>
+                <p className="text-gray-700 mb-4">"{testimonial?.text || 'Great product!'}"</p>
+                <p className="font-bold">{testimonial?.name || 'John Doe'}</p>
               </div>
             ))}
           </div>
