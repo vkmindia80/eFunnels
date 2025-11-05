@@ -221,13 +221,45 @@ const WixPageBuilder = ({ page, onSave, onClose }) => {
 
         {/* Right Actions */}
         <div className="flex items-center gap-3">
+          {/* Preview Button */}
+          <button
+            onClick={togglePreview}
+            className="bg-gray-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-gray-700 transition flex items-center gap-2"
+            title={isPreviewMode ? "Exit Preview" : "Preview Page"}
+          >
+            <Eye size={20} />
+            {isPreviewMode ? 'Exit Preview' : 'Preview'}
+          </button>
+
+          {/* Publish/Unpublish Button */}
+          {pageStatus === 'published' ? (
+            <button
+              onClick={handleUnpublish}
+              className="bg-orange-500 text-white px-6 py-2 rounded-lg font-semibold hover:bg-orange-600 transition flex items-center gap-2"
+            >
+              <X size={20} />
+              Unpublish
+            </button>
+          ) : (
+            <button
+              onClick={handlePublish}
+              className="bg-green-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-700 transition flex items-center gap-2"
+            >
+              <Eye size={20} />
+              Publish
+            </button>
+          )}
+
+          {/* Save Button */}
           <button
             onClick={handleSave}
             className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-2 rounded-lg font-semibold hover:shadow-lg transition flex items-center gap-2"
           >
             <Save size={20} />
-            Save
+            Save Draft
           </button>
+
+          {/* Close Button */}
           <button
             onClick={onClose}
             className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
