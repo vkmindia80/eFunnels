@@ -34,16 +34,16 @@ const Courses = ({ user }) => {
     try {
       if (activeTab === 'my-courses') {
         const [coursesRes, analyticsRes] = await Promise.all([
-          api.get('/courses'),
-          api.get('/courses/analytics/summary')
+          api.get('/api/courses'),
+          api.get('/api/courses/analytics/summary')
         ]);
         setCourses(coursesRes.data.courses || []);
         setAnalytics(analyticsRes.data || {});
       } else if (activeTab === 'students') {
-        const enrollmentsRes = await api.get('/enrollments');
+        const enrollmentsRes = await api.get('/api/enrollments');
         setEnrollments(enrollmentsRes.data || []);
       } else if (activeTab === 'memberships') {
-        const membershipsRes = await api.get('/memberships');
+        const membershipsRes = await api.get('/api/memberships');
         setMemberships(membershipsRes.data || []);
       }
     } catch (error) {
