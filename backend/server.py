@@ -92,7 +92,11 @@ from database import (
     webinar_qa_collection, webinar_polls_collection, webinar_recordings_collection,
     affiliate_programs_collection, affiliates_collection, affiliate_links_collection,
     affiliate_clicks_collection, affiliate_conversions_collection, affiliate_commissions_collection,
-    affiliate_payouts_collection, affiliate_resources_collection
+    affiliate_payouts_collection, affiliate_resources_collection,
+    products_collection, product_categories_collection, product_variants_collection,
+    shopping_carts_collection, orders_collection, order_items_collection,
+    subscriptions_collection, coupons_collection, invoices_collection,
+    payment_transactions_collection
 )
 import uuid
 from typing import List
