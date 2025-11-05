@@ -11364,9 +11364,6 @@ async def get_advanced_block_by_type(
 
 # ==================== ASSET MANAGEMENT ENDPOINTS ====================
 
-# Assets collection
-assets_collection = db['website_assets']
-
 @app.post("/api/website/assets/upload")
 async def upload_asset(
     file: dict,
