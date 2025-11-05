@@ -1002,7 +1002,9 @@ const EnhancedPageBuilderModal = ({ page, onClose, onSave }) => {
 
 // Block Preview Component
 const BlockPreview = ({ block }) => {
-  const { type, content, style } = block;
+  if (!block) return null;
+  
+  const { type, content = {}, style = {} } = block;
 
   const containerStyle = {
     backgroundColor: style?.backgroundColor,
