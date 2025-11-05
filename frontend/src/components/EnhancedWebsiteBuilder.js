@@ -179,24 +179,58 @@ const EnhancedWebsiteBuilder = () => {
                       <h3 className="text-lg font-bold text-gray-900 mb-2">{page.title}</h3>
                       <p className="text-sm text-gray-600 mb-4">/{page.slug}</p>
                       
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => {
-                            setCurrentPage(page);
-                            setShowPageBuilder(true);
-                          }}
-                          className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition flex items-center justify-center gap-2"
-                          data-testid={`edit-page-${page.id}`}
-                        >
-                          <Edit size={16} />
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDeletePage(page.id)}
-                          className="bg-red-50 text-red-600 px-4 py-2 rounded-lg hover:bg-red-100 transition"
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handlePreviewPage(page)}
+                            className="flex-1 bg-purple-50 text-purple-600 px-3 py-2 rounded-lg font-semibold hover:bg-purple-100 transition flex items-center justify-center gap-2"
+                            data-testid={`preview-page-${page.id}`}
+                          >
+                            <Eye size={16} />
+                            Preview
+                          </button>
+                          <button
+                            onClick={() => {
+                              setCurrentPage(page);
+                              setShowPageBuilder(true);
+                            }}
+                            className="flex-1 bg-blue-600 text-white px-3 py-2 rounded-lg font-semibold hover:bg-blue-700 transition flex items-center justify-center gap-2"
+                            data-testid={`edit-page-${page.id}`}
+                          >
+                            <Edit size={16} />
+                            Edit
+                          </button>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handlePublishPage(page)}
+                            className={`flex-1 ${
+                              page.status === 'published' 
+                                ? 'bg-orange-50 text-orange-600 hover:bg-orange-100' 
+                                : 'bg-green-50 text-green-600 hover:bg-green-100'
+                            } px-3 py-2 rounded-lg font-semibold transition flex items-center justify-center gap-2`}
+                            data-testid={`publish-page-${page.id}`}
+                          >
+                            {page.status === 'published' ? (
+                              <>
+                                <X size={16} />
+                                Unpublish
+                              </>
+                            ) : (
+                              <>
+                                <Check size={16} />
+                                Publish
+                              </>
+                            )}
+                          </button>
+                          <button
+                            onClick={() => handleDeletePage(page.id)}
+                            className="bg-red-50 text-red-600 px-3 py-2 rounded-lg hover:bg-red-100 transition"
+                            data-testid={`delete-page-${page.id}`}
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
