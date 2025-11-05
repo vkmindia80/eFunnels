@@ -48,7 +48,14 @@ const AIDesignAssistant = ({ onClose, onApply }) => {
       });
       setResult(response.data.website);
     } catch (error) {
-      alert('Failed to generate website: ' + (error.response?.data?.detail || error.message));
+      const errorMsg = error.response?.data?.detail || error.message;
+      // Show user-friendly error in the result area
+      setResult({
+        error: true,
+        message: errorMsg.includes('Budget') 
+          ? 'AI generation limit reached. Please try again later or contact support to increase your quota.' 
+          : `Failed to generate: ${errorMsg}`
+      });
     } finally {
       setLoading(false);
     }
