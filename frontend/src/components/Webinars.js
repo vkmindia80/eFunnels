@@ -1087,6 +1087,351 @@ const PollsPanel = ({ polls, webinarId, onRefresh }) => {
   );
 };
 
+const RecordingsPanel = ({ webinars, recordings, onRefresh, onAddRecording, loading }) => {
+  const [selectedWebinar, setSelectedWebinar] = useState(null);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+
+  const handleAddRecording = (webinarId) => {
+    const webinar = webinars.find(w => w.id === webinarId);
+    setSelectedWebinar(webinar);
+    setShowUploadModal(true);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-xl font-bold text-gray-900">Webinar Recordings</h3>
+          <button
+            onClick={() => setShowUploadModal(true)}
+            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm"
+          >
+            <Upload size={16} />
+            Add Recording
+          </button>
+        </div>
+
+        {recordings.length === 0 ? (
+          <div className="text-center py-12">
+            <Video size={48} className="mx-auto text-gray-400 mb-4" />
+            <h4 className="text-lg font-semibold text-gray-700 mb-2">No recordings yet</h4>
+            <p className="text-gray-600 mb-4">Upload recordings after your webinars end</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {recordings.map((recording) => (
+              <RecordingCard
+                key={recording.id}
+                recording={recording}
+                onRefresh={onRefresh}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {showUploadModal && (
+        <UploadRecordingModal
+          webinars={webinars}
+          webinar={selectedWebinar}
+          onClose={() => {
+            setShowUploadModal(false);
+            setSelectedWebinar(null);
+          }}
+          onSuccess={() => {
+            setShowUploadModal(false);
+            setSelectedWebinar(null);
+            onRefresh();
+          }}
+        />
+      )}
+    </>
+  );
+};
+
+const RecordingCard = ({ recording, onRefresh }) => {
+  const [showPlayer, setShowPlayer] = useState(false);
+
+  const handleDelete = async () => {
+    if (!window.confirm('Are you sure you want to delete this recording?')) return;
+
+    try {
+      await api.delete(`/api/webinars/${recording.webinar_id}/recordings/${recording.id}`);
+      onRefresh();
+    } catch (error) {
+      console.error('Error deleting recording:', error);
+      alert('Failed to delete recording');
+    }
+  };
+
+  const handleTogglePublic = async () => {
+    try {
+      await api.put(`/api/webinars/${recording.webinar_id}/recordings/${recording.id}`, {
+        is_public: !recording.is_public
+      });
+      onRefresh();
+    } catch (error) {
+      console.error('Error updating recording:', error);
+    }
+  };
+
+  if (showPlayer) {
+    return <RecordingPlayer recording={recording} onClose={() => setShowPlayer(false)} />;
+  }
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition">
+      <div className="h-40 bg-gradient-to-br from-purple-500 to-pink-500 relative">
+        {recording.thumbnail_url ? (
+          <img src={recording.thumbnail_url} alt={recording.title} className="w-full h-full object-cover" />
+        ) : (
+          <div className="flex items-center justify-center h-full">
+            <Video className="text-white opacity-50" size={48} />
+          </div>
+        )}
+        <button
+          onClick={() => setShowPlayer(true)}
+          className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 hover:bg-opacity-50 transition"
+        >
+          <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center">
+            <Play className="text-purple-600 ml-1" size={28} />
+          </div>
+        </button>
+      </div>
+
+      <div className="p-4">
+        <h4 className="font-semibold text-gray-900 mb-1 line-clamp-1">{recording.title}</h4>
+        <p className="text-sm text-gray-600 mb-3 line-clamp-1">{recording.webinar_title}</p>
+
+        <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
+          <Clock size={14} />
+          <span>{recording.duration_minutes || 0} minutes</span>
+          <span className="mx-2">·</span>
+          <Eye size={14} />
+          <span>{recording.view_count || 0} views</span>
+        </div>
+
+        <div className="flex gap-2">
+          <button
+            onClick={handleTogglePublic}
+            className={`flex-1 px-3 py-2 rounded text-sm font-medium transition ${
+              recording.is_public
+                ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            {recording.is_public ? 'Public' : 'Private'}
+          </button>
+          <button
+            onClick={handleDelete}
+            className="bg-red-100 text-red-600 px-3 py-2 rounded hover:bg-red-200 transition"
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const UploadRecordingModal = ({ webinars, webinar, onClose, onSuccess }) => {
+  const [formData, setFormData] = useState({
+    webinar_id: webinar?.id || '',
+    title: '',
+    recording_url: '',
+    duration_minutes: '',
+    thumbnail_url: '',
+    is_public: false
+  });
+  const [saving, setSaving] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+
+    try {
+      const payload = {
+        ...formData,
+        duration_minutes: formData.duration_minutes ? parseInt(formData.duration_minutes) : null
+      };
+
+      await api.post(`/api/webinars/${formData.webinar_id}/recordings`, payload);
+      onSuccess();
+    } catch (error) {
+      console.error('Error saving recording:', error);
+      alert('Failed to save recording');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white">
+          <h2 className="text-2xl font-bold text-gray-900">Add Recording</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X size={24} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Select Webinar *
+            </label>
+            <select
+              value={formData.webinar_id}
+              onChange={(e) => setFormData({ ...formData, webinar_id: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              required
+            >
+              <option value="">Choose a webinar...</option>
+              {webinars.filter(w => w.status === 'ended').map(w => (
+                <option key={w.id} value={w.id}>{w.title}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Recording Title *
+            </label>
+            <input
+              type="text"
+              value={formData.title}
+              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="e.g., Master Digital Marketing - Recording"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Recording URL * (YouTube, Vimeo, etc.)
+            </label>
+            <input
+              type="url"
+              value={formData.recording_url}
+              onChange={(e) => setFormData({ ...formData, recording_url: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="https://youtube.com/watch?v=..."
+              required
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Duration (minutes)
+              </label>
+              <input
+                type="number"
+                value={formData.duration_minutes}
+                onChange={(e) => setFormData({ ...formData, duration_minutes: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="60"
+                min="1"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Thumbnail URL
+              </label>
+              <input
+                type="url"
+                value={formData.thumbnail_url}
+                onChange={(e) => setFormData({ ...formData, thumbnail_url: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="https://..."
+              />
+            </div>
+          </div>
+
+          <label className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              checked={formData.is_public}
+              onChange={(e) => setFormData({ ...formData, is_public: e.target.checked })}
+              className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+            />
+            <span className="text-sm text-gray-700">Make recording publicly accessible</span>
+          </label>
+
+          <div className="flex gap-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-medium"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium disabled:opacity-50"
+            >
+              {saving ? 'Saving...' : 'Add Recording'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+const RecordingPlayer = ({ recording, onClose }) => {
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-6">
+      <div className="w-full max-w-5xl">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl font-bold text-white">{recording.title}</h2>
+          <button onClick={onClose} className="text-white hover:text-gray-300">
+            <X size={32} />
+          </button>
+        </div>
+
+        <div className="bg-black rounded-lg overflow-hidden aspect-video">
+          <iframe
+            src={recording.recording_url}
+            className="w-full h-full"
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            title={recording.title}
+          />
+        </div>
+
+        <div className="mt-4 text-white">
+          <p className="text-gray-400">From: {recording.webinar_title}</p>
+          <div className="flex items-center gap-4 mt-2 text-sm text-gray-400">
+            <span className="flex items-center gap-1">
+              <Eye size={14} />
+              {recording.view_count || 0} views
+            </span>
+            {recording.duration_minutes && (
+              <span className="flex items-center gap-1">
+                <Clock size={14} />
+                {recording.duration_minutes} minutes
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const WebinarAnalytics = ({ webinars }) => {
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
