@@ -192,6 +192,13 @@ const EnhancedWebsiteBuilder = () => {
                         }`}>
                           {page.status}
                         </span>
+                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                          (page.visibility || page.custom_fields?.visibility || 'public') === 'public' 
+                            ? 'bg-blue-100 text-blue-700' 
+                            : 'bg-orange-100 text-orange-700'
+                        }`}>
+                          {(page.visibility || page.custom_fields?.visibility || 'public') === 'public' ? '🌐 Public' : '🔒 Private'}
+                        </span>
                       </div>
                       
                       <h3 className="text-lg font-bold text-gray-900 mb-2">{page.title}</h3>
