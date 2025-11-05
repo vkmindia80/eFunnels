@@ -1626,4 +1626,306 @@ const MenuModal = ({ pages, onClose, onSave }) => {
   );
 };
 
+// Page Preview Modal Component
+const PagePreviewModal = ({ page, onClose }) => {
+  const blocks = page.content?.blocks || [];
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-blue-500 to-purple-600 px-6 py-4 flex items-center justify-between text-white">
+          <div className="flex items-center gap-3">
+            <Eye size={24} />
+            <div>
+              <h2 className="text-xl font-bold">Page Preview</h2>
+              <p className="text-sm opacity-90">{page.title} - /{page.slug}</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-white/20 rounded-lg transition"
+            data-testid="close-preview-modal"
+          >
+            <X size={24} />
+          </button>
+        </div>
+
+        {/* Preview Content */}
+        <div className="flex-1 overflow-y-auto bg-gray-50">
+          <div className="max-w-5xl mx-auto bg-white shadow-lg my-6">
+            {blocks.length === 0 ? (
+              <div className="p-12 text-center">
+                <Globe className="mx-auto text-gray-400 mb-4" size={64} />
+                <h3 className="text-xl font-bold text-gray-900 mb-2">No Content Yet</h3>
+                <p className="text-gray-600">This page doesn't have any content blocks yet. Click Edit to add content.</p>
+              </div>
+            ) : (
+              blocks.map((block, index) => (
+                <div key={block.id || index} className="preview-block">
+                  <BlockRenderer block={block} />
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="bg-gray-50 border-t border-gray-200 px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm text-gray-600">
+            <Monitor size={16} />
+            <span>Desktop Preview</span>
+          </div>
+          <button
+            onClick={onClose}
+            className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-2 rounded-lg font-semibold hover:shadow-lg transition"
+          >
+            Close Preview
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Block Renderer Component for Preview
+const BlockRenderer = ({ block }) => {
+  const { type, content, style } = block;
+
+  const containerStyle = {
+    backgroundColor: style?.backgroundColor || 'transparent',
+    color: style?.textColor || '#000',
+    padding: style?.padding || '40px 20px',
+    textAlign: style?.alignment || 'left',
+    ...style?.customStyles
+  };
+
+  switch (type) {
+    case 'hero':
+      return (
+        <div style={containerStyle} className="min-h-[400px] flex flex-col justify-center">
+          <h1 style={{ 
+            fontSize: style?.headingSize || '48px', 
+            fontWeight: 'bold',
+            marginBottom: '16px',
+            fontFamily: style?.headingFont || 'inherit'
+          }}>
+            {content.headline || 'Your Headline Here'}
+          </h1>
+          <p style={{ 
+            fontSize: style?.subheadingSize || '20px',
+            marginBottom: '24px',
+            opacity: 0.9
+          }}>
+            {content.subheadline || 'Your subheadline goes here'}
+          </p>
+          {content.cta_text && (
+            <div>
+              <button 
+                className="px-8 py-3 rounded-lg font-semibold inline-block"
+                style={{
+                  backgroundColor: style?.buttonColor || '#3B82F6',
+                  color: '#FFFFFF'
+                }}
+              >
+                {content.cta_text}
+              </button>
+            </div>
+          )}
+        </div>
+      );
+
+    case 'text':
+    case 'rich_text':
+      return (
+        <div style={containerStyle}>
+          <div 
+            className="prose max-w-none"
+            style={{ fontFamily: style?.bodyFont || 'inherit', fontSize: style?.fontSize || '16px' }}
+            dangerouslySetInnerHTML={{ __html: content.text || 'Your text content here' }} 
+          />
+        </div>
+      );
+
+    case 'image':
+      return (
+        <div style={containerStyle}>
+          {content.image_url ? (
+            <img 
+              src={content.image_url} 
+              alt={content.alt_text || ''} 
+              className="w-full rounded-lg"
+              style={{ maxHeight: style?.imageHeight || 'auto' }}
+            />
+          ) : (
+            <div className="bg-gray-200 h-64 flex items-center justify-center rounded-lg">
+              <ImageIcon className="text-gray-400" size={64} />
+            </div>
+          )}
+        </div>
+      );
+
+    case 'button':
+      return (
+        <div style={containerStyle}>
+          <button 
+            className="px-6 py-3 rounded-lg font-semibold"
+            style={{
+              backgroundColor: style?.buttonColor || '#3B82F6',
+              color: style?.buttonTextColor || '#FFFFFF',
+              fontSize: style?.fontSize || '16px'
+            }}
+          >
+            {content.text || 'Button Text'}
+          </button>
+        </div>
+      );
+
+    case 'features':
+      return (
+        <div style={containerStyle}>
+          <h2 className="text-3xl font-bold mb-8" style={{ textAlign: style?.alignment }}>
+            {content.headline || 'Our Features'}
+          </h2>
+          <div className={`grid gap-6 ${style?.columns === 2 ? 'grid-cols-2' : style?.columns === 4 ? 'grid-cols-4' : 'grid-cols-3'}`}>
+            {(content.features || [{ title: 'Feature 1' }, { title: 'Feature 2' }, { title: 'Feature 3' }]).map((feature, i) => (
+              <div key={i} className="p-6 bg-white border border-gray-200 rounded-lg">
+                {feature.icon && <div className="text-4xl mb-4">{feature.icon}</div>}
+                <h3 className="font-bold text-lg mb-2">{feature.title}</h3>
+                <p className="text-gray-600">{feature.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+
+    case 'pricing':
+      return (
+        <div style={containerStyle}>
+          <h2 className="text-3xl font-bold text-center mb-8">
+            {content.headline || 'Pricing Plans'}
+          </h2>
+          <div className="grid md:grid-cols-3 gap-6">
+            {(content.plans || [{ name: 'Basic', price: '$9' }, { name: 'Pro', price: '$29' }, { name: 'Enterprise', price: '$99' }]).map((plan, i) => (
+              <div key={i} className="bg-white border-2 border-gray-200 rounded-xl p-6 hover:border-blue-500 transition">
+                <h3 className="font-bold text-xl mb-2">{plan.name}</h3>
+                <div className="text-4xl font-bold mb-4">{plan.price}</div>
+                <ul className="space-y-2 mb-6">
+                  {(plan.features || ['Feature 1', 'Feature 2', 'Feature 3']).map((feature, j) => (
+                    <li key={j} className="flex items-center gap-2">
+                      <Check size={16} className="text-green-600" />
+                      <span>{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+                <button className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700">
+                  {plan.cta || 'Get Started'}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+
+    case 'testimonials':
+      return (
+        <div style={containerStyle}>
+          <h2 className="text-3xl font-bold text-center mb-8">
+            {content.headline || 'What Our Customers Say'}
+          </h2>
+          <div className="grid md:grid-cols-3 gap-6">
+            {(content.testimonials || [{ author: 'John Doe', text: 'Great product!' }]).map((testimonial, i) => (
+              <div key={i} className="bg-white p-6 rounded-lg border border-gray-200">
+                <p className="text-gray-700 mb-4 italic">"{testimonial.text}"</p>
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
+                    {testimonial.author.charAt(0)}
+                  </div>
+                  <div>
+                    <p className="font-semibold">{testimonial.author}</p>
+                    {testimonial.role && <p className="text-sm text-gray-600">{testimonial.role}</p>}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+
+    case 'cta':
+      return (
+        <div style={containerStyle} className="text-center">
+          <h2 className="text-3xl font-bold mb-4">
+            {content.headline || 'Ready to Get Started?'}
+          </h2>
+          <p className="text-lg mb-6 opacity-90">
+            {content.subheadline || 'Join thousands of satisfied customers today'}
+          </p>
+          <button 
+            className="px-8 py-3 rounded-lg font-semibold inline-block"
+            style={{
+              backgroundColor: style?.buttonColor || '#3B82F6',
+              color: '#FFFFFF'
+            }}
+          >
+            {content.cta_text || 'Get Started Now'}
+          </button>
+        </div>
+      );
+
+    case 'contact':
+      return (
+        <div style={containerStyle}>
+          <h2 className="text-3xl font-bold mb-6">
+            {content.headline || 'Contact Us'}
+          </h2>
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <input 
+                type="text" 
+                placeholder="Your Name" 
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                disabled
+              />
+              <input 
+                type="email" 
+                placeholder="Your Email" 
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                disabled
+              />
+              <textarea 
+                placeholder="Your Message" 
+                rows={4} 
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                disabled
+              />
+              <button 
+                className="px-6 py-3 rounded-lg font-semibold"
+                style={{
+                  backgroundColor: style?.buttonColor || '#3B82F6',
+                  color: '#FFFFFF'
+                }}
+                disabled
+              >
+                Send Message
+              </button>
+            </div>
+            {content.contact_info && (
+              <div className="space-y-4">
+                <p className="text-gray-700">{content.contact_info}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+
+    default:
+      return (
+        <div style={containerStyle} className="p-6 bg-gray-50 border border-gray-200 rounded-lg">
+          <p className="text-gray-600">{type} block</p>
+        </div>
+      );
+  }
+};
+
 export default EnhancedWebsiteBuilder;
