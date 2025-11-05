@@ -19,6 +19,7 @@ import Courses from './components/Courses';
 import Blog from './components/Blog';
 import WebsiteBuilder from './components/WebsiteBuilder';
 import Webinars from './components/Webinars';
+import PublicWebinarCatalog from './components/PublicWebinarCatalog';
 
 // Demo credentials banner component
 const DemoCredentialsBanner = ({ onFillCredentials }) => {
