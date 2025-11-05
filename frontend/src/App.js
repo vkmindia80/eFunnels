@@ -20,6 +20,7 @@ import Blog from './components/Blog';
 import EnhancedWebsiteBuilder from './components/EnhancedWebsiteBuilder';
 import Webinars from './components/Webinars';
 import PublicWebinarCatalog from './components/PublicWebinarCatalog';
+import PublicWebsitePage from './components/PublicWebsitePage';
 import AffiliateManagement from './components/AffiliateManagement';
 import PaymentEcommerce from './components/PaymentEcommerce';
 import Analytics from './components/Analytics';
