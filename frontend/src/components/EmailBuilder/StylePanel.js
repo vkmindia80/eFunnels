@@ -44,8 +44,11 @@ const StylePanel = ({ block, onUpdateBlock, onClose }) => {
       <div className="p-4 space-y-6">
         {/* Content Editing */}
         {(block.type === 'heading' || block.type === 'paragraph' || block.type === 'button') && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Content</label>
+          <div className="bg-white rounded-lg p-4 border-2 border-blue-100">
+            <label className="block text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+              <Type size={16} className="text-blue-500" />
+              Content
+            </label>
             <textarea
               value={block.content}
               onChange={(e) => updateContent(e.target.value)}
