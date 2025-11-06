@@ -181,66 +181,16 @@ const TemplateBrowser = ({ module, onSelectTemplate, onClose }) => {
         </div>
       </div>
 
-      {/* Preview Modal */}
+      {/* Enhanced Preview Modal */}
       {previewTemplate && (
-        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-              <h3 className="text-xl font-bold text-gray-900">{previewTemplate.name}</h3>
-              <button
-                onClick={() => setPreviewTemplate(null)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X size={24} />
-              </button>
-            </div>
-            
-            <div className="p-6">
-              <div className="mb-6">
-                <h4 className="font-semibold text-gray-900 mb-2">Description</h4>
-                <p className="text-gray-600">{previewTemplate.description}</p>
-              </div>
-
-              {previewTemplate.thumbnail && (
-                <div className="mb-6">
-                  <h4 className="font-semibold text-gray-900 mb-2">Preview</h4>
-                  <img
-                    src={previewTemplate.thumbnail}
-                    alt={previewTemplate.name}
-                    className="w-full rounded-lg border border-gray-200"
-                  />
-                </div>
-              )}
-
-              {previewTemplate.content && (
-                <div className="mb-6">
-                  <h4 className="font-semibold text-gray-900 mb-2">Template Structure</h4>
-                  <pre className="bg-gray-50 p-4 rounded-lg text-sm overflow-x-auto">
-                    {JSON.stringify(previewTemplate.content, null, 2)}
-                  </pre>
-                </div>
-              )}
-
-              <div className="flex gap-3">
-                <button
-                  onClick={() => {
-                    handleSelectTemplate(previewTemplate);
-                    setPreviewTemplate(null);
-                  }}
-                  className="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 rounded-lg font-semibold hover:shadow-lg transition"
-                >
-                  Use This Template
-                </button>
-                <button
-                  onClick={() => setPreviewTemplate(null)}
-                  className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-300 transition"
-                >
-                  Close Preview
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <TemplatePreviewModal
+          template={previewTemplate}
+          onClose={() => setPreviewTemplate(null)}
+          onUseTemplate={() => {
+            handleSelectTemplate(previewTemplate);
+            setPreviewTemplate(null);
+          }}
+        />
       )}
     </div>
   );
