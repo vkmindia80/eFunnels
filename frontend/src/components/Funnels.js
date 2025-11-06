@@ -893,6 +893,28 @@ const TemplateModal = ({ templates, onClose, onSelect }) => {
 };
 
 const TemplatesView = ({ templates, onSelectTemplate, onBack }) => {
+  const [previewTemplate, setPreviewTemplate] = useState(null);
+
+  const handleEditTemplate = async (template) => {
+    alert('Edit functionality: This will create a funnel from this template that you can then edit.');
+    onSelectTemplate(template.id);
+  };
+
+  const handleDeleteTemplate = async (templateId) => {
+    if (!window.confirm('Are you sure you want to delete this funnel template?')) {
+      return;
+    }
+    
+    try {
+      await api.delete(`/api/funnel-templates/${templateId}`);
+      alert('Template deleted successfully');
+      window.location.reload();
+    } catch (error) {
+      console.error('Failed to delete template:', error);
+      alert('Failed to delete template: ' + (error.response?.data?.detail || error.message));
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -912,8 +934,7 @@ const TemplatesView = ({ templates, onSelectTemplate, onBack }) => {
         {templates.map(template => (
           <div
             key={template.id}
-            className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-xl transition-all cursor-pointer"
-            onClick={() => onSelectTemplate(template.id)}
+            className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-xl transition-all"
           >
             <div className="aspect-video bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
               {template.thumbnail ? (
@@ -925,14 +946,119 @@ const TemplatesView = ({ templates, onSelectTemplate, onBack }) => {
             <div className="p-6">
               <h3 className="text-xl font-semibold text-gray-900 mb-2">{template.name}</h3>
               <p className="text-gray-600 mb-4">{template.description}</p>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between mb-4">
                 <span className="text-sm text-gray-500">{template.pages?.length || 0} pages included</span>
-                <span className="text-sm text-gray-500">Used {template.usage_count} times</span>
+                <span className="text-sm text-gray-500">Used {template.usage_count || 0} times</span>
+              </div>
+              
+              {/* Action Buttons - Always Visible */}
+              <div className="flex items-center gap-2 pt-4 border-t border-gray-200">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setPreviewTemplate(template);
+                  }}
+                  className="flex-1 px-3 py-2 text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition flex items-center justify-center gap-2"
+                >
+                  <Eye size={16} />
+                  Preview
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleEditTemplate(template);
+                  }}
+                  className="flex-1 px-3 py-2 text-sm text-white bg-green-500 hover:bg-green-600 rounded-lg transition flex items-center justify-center gap-2"
+                >
+                  <Edit size={16} />
+                  Use & Edit
+                </button>
+                {!template.is_public && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteTemplate(template.id);
+                    }}
+                    className="px-3 py-2 text-sm text-white bg-red-500 hover:bg-red-600 rounded-lg transition flex items-center justify-center gap-1"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                )}
               </div>
             </div>
           </div>
         ))}
       </div>
+
+      {/* Simple Preview Modal */}
+      {previewTemplate && (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] flex flex-col">
+            <div className="px-6 py-4 border-b flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">{previewTemplate.name}</h3>
+                <p className="text-sm text-gray-600 mt-1">{previewTemplate.description}</p>
+              </div>
+              <button
+                onClick={() => setPreviewTemplate(null)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-2">Template Information</h4>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-gray-600">Pages:</span>
+                      <span className="ml-2 font-medium">{previewTemplate.pages?.length || 0}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Type:</span>
+                      <span className="ml-2 font-medium capitalize">{previewTemplate.funnel_type || 'Custom'}</span>
+                    </div>
+                  </div>
+                </div>
+                {previewTemplate.pages && previewTemplate.pages.length > 0 && (
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-3">Pages in This Funnel</h4>
+                    <div className="space-y-2">
+                      {previewTemplate.pages.map((page, index) => (
+                        <div key={index} className="bg-gray-50 p-3 rounded-lg flex items-center justify-between">
+                          <div>
+                            <div className="font-medium text-gray-900">{page.name}</div>
+                            <div className="text-sm text-gray-500">{page.path}</div>
+                          </div>
+                          <div className="text-sm text-gray-500">Step {page.order}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t bg-gray-50 flex items-center justify-end gap-3">
+              <button
+                onClick={() => setPreviewTemplate(null)}
+                className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => {
+                  onSelectTemplate(previewTemplate.id);
+                  setPreviewTemplate(null);
+                }}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition"
+              >
+                Use This Template
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
