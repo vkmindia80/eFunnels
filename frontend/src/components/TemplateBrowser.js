@@ -179,13 +179,49 @@ const TemplateBrowser = ({ module, onSelectTemplate, onClose }) => {
                     </div>
                     <p className="text-sm text-gray-600 line-clamp-2">{template.description}</p>
                     
-                    {template.category && (
-                      <div className="mt-3">
+                    <div className="mt-3 flex items-center justify-between">
+                      {template.category && (
                         <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium capitalize">
                           {template.category}
                         </span>
+                      )}
+                      
+                      {/* Action Buttons - Always Visible */}
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPreviewTemplate(template);
+                          }}
+                          className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                          title="Preview"
+                        >
+                          <Eye size={18} />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditTemplate(template);
+                          }}
+                          className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition"
+                          title="Edit"
+                        >
+                          <Edit size={18} />
+                        </button>
+                        {!template.is_public && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteTemplate(template.id);
+                            }}
+                            className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                            title="Delete"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        )}
                       </div>
-                    )}
+                    </div>
                   </div>
                 </div>
               ))}
