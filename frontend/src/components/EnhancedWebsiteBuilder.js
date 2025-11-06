@@ -114,7 +114,7 @@ const EnhancedWebsiteBuilder = () => {
   };
 
   const handleToggleVisibility = async (page) => {
-    const currentVisibility = page.visibility || 'public';
+    const currentVisibility = page.visibility || page.custom_fields?.visibility || 'public';
     const newVisibility = currentVisibility === 'public' ? 'private' : 'public';
     const actionText = newVisibility === 'private' ? 'make this page private' : 'make this page public';
     
@@ -122,12 +122,13 @@ const EnhancedWebsiteBuilder = () => {
     
     try {
       await api.put(`/api/website/pages/${page.id}`, { 
-        visibility: newVisibility,
-        custom_fields: { ...page.custom_fields, visibility: newVisibility }
+        visibility: newVisibility
       });
       fetchPages();
+      alert(`Page visibility updated to ${newVisibility} successfully!`);
     } catch (error) {
-      alert(`Failed to update page visibility`);
+      console.error('Error updating visibility:', error);
+      alert(`Failed to update page visibility: ${error.response?.data?.detail || error.message}`);
     }
   };
 
