@@ -214,10 +214,28 @@ const PublicWebsitePage = ({ userId, slug }) => {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+        <div className="text-center max-w-2xl">
+          <div className="text-6xl mb-4">🔍</div>
           <h1 className="text-4xl font-bold text-gray-900 mb-4">Page Not Found</h1>
           <p className="text-gray-600 mb-6">{error}</p>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6 text-left">
+            <h2 className="font-semibold text-blue-900 mb-3">Possible reasons:</h2>
+            <ul className="text-sm text-blue-800 space-y-2">
+              <li className="flex items-start gap-2">
+                <span className="text-blue-600 mt-0.5">•</span>
+                <span>The page may not be published yet. Pages must be published to be publicly accessible.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-blue-600 mt-0.5">•</span>
+                <span>The page might be marked as private. Only public pages can be viewed via this URL.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-blue-600 mt-0.5">•</span>
+                <span>The URL might be incorrect or the page may have been deleted.</span>
+              </li>
+            </ul>
+          </div>
           <a 
             href="/"
             className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition"
