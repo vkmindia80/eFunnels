@@ -263,6 +263,12 @@ const EmailMarketingPage = () => {
       {activeView === 'analytics' && <AnalyticsView />}
       {activeView === 'settings' && <EmailSettingsView />}
       {activeView === 'create-campaign' && <CreateCampaignWizard onBack={() => setActiveView('campaigns')} />}
+      {activeView === 'create-campaign-with-ai' && (
+        <CreateCampaignWizard 
+          onBack={() => setActiveView('campaigns')} 
+          initialContent={aiContent}
+        />
+      )}
       {activeView === 'create-template' && <EmailBuilder onBack={() => setActiveView('templates')} isTemplate={true} />}
     </div>
   );
