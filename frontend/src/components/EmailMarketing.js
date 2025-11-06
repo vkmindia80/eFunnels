@@ -106,9 +106,130 @@ const EmailMarketingPage = () => {
           feature: 'email_marketing'
         }}
         onApplyContent={(content) => {
-          console.log('AI generated content:', content);
+          setAiContent(content);
+          setShowApplyModal(true);
         }}
       />
+
+      {/* Apply Content Modal */}
+      {showApplyModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-purple-500 to-pink-600">
+              <div className="flex items-center gap-3">
+                <div className="bg-white bg-opacity-20 p-2 rounded-lg">
+                  <Sparkles className="text-white" size={24} />
+                </div>
+                <h3 className="text-white font-bold text-lg">Apply AI Content</h3>
+              </div>
+              <button
+                onClick={() => setShowApplyModal(false)}
+                className="text-white hover:bg-white hover:bg-opacity-20 p-2 rounded-lg transition"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-4">
+              <p className="text-gray-600 mb-4">
+                Choose what you'd like to do with your AI-generated content:
+              </p>
+
+              {/* Option 1: Copy to Clipboard */}
+              <button
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(aiContent);
+                    setNotification({ type: 'success', message: 'Content copied to clipboard!' });
+                    setShowApplyModal(false);
+                    setTimeout(() => setNotification(null), 3000);
+                  } catch (error) {
+                    setNotification({ type: 'error', message: 'Failed to copy to clipboard' });
+                    setTimeout(() => setNotification(null), 3000);
+                  }
+                }}
+                className="w-full flex items-center gap-4 p-4 border-2 border-gray-200 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition group"
+              >
+                <div className="bg-purple-100 group-hover:bg-purple-200 p-3 rounded-lg">
+                  <Clipboard className="text-purple-600" size={24} />
+                </div>
+                <div className="text-left flex-1">
+                  <h4 className="font-semibold text-gray-900">Copy to Clipboard</h4>
+                  <p className="text-sm text-gray-600">Copy content to paste anywhere</p>
+                </div>
+              </button>
+
+              {/* Option 2: Create Draft Email */}
+              <button
+                onClick={() => {
+                  setShowApplyModal(false);
+                  setActiveView('create-campaign-with-ai');
+                  setNotification({ type: 'success', message: 'Opening email builder with AI content...' });
+                  setTimeout(() => setNotification(null), 3000);
+                }}
+                className="w-full flex items-center gap-4 p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition group"
+              >
+                <div className="bg-blue-100 group-hover:bg-blue-200 p-3 rounded-lg">
+                  <Mail className="text-blue-600" size={24} />
+                </div>
+                <div className="text-left flex-1">
+                  <h4 className="font-semibold text-gray-900">Create Draft Email</h4>
+                  <p className="text-sm text-gray-600">Start a new campaign with this content</p>
+                </div>
+              </button>
+
+              {/* Option 3: Save as Template */}
+              <button
+                onClick={async () => {
+                  try {
+                    await api.post('/api/email/templates', {
+                      name: `AI Generated - ${new Date().toLocaleDateString()}`,
+                      subject: 'AI Generated Email',
+                      content: { text: aiContent },
+                      category: 'ai-generated'
+                    });
+                    setNotification({ type: 'success', message: 'Template saved successfully!' });
+                    setShowApplyModal(false);
+                    setTimeout(() => setNotification(null), 3000);
+                  } catch (error) {
+                    setNotification({ type: 'error', message: 'Failed to save template' });
+                    setTimeout(() => setNotification(null), 3000);
+                  }
+                }}
+                className="w-full flex items-center gap-4 p-4 border-2 border-gray-200 rounded-lg hover:border-green-500 hover:bg-green-50 transition group"
+              >
+                <div className="bg-green-100 group-hover:bg-green-200 p-3 rounded-lg">
+                  <FileText className="text-green-600" size={24} />
+                </div>
+                <div className="text-left flex-1">
+                  <h4 className="font-semibold text-gray-900">Save as Template</h4>
+                  <p className="text-sm text-gray-600">Add to your template library</p>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Notification Toast */}
+      {notification && (
+        <div className="fixed bottom-6 right-6 z-50 animate-slide-up">
+          <div className={`rounded-lg shadow-lg px-6 py-4 flex items-center gap-3 ${
+            notification.type === 'success' 
+              ? 'bg-green-500 text-white' 
+              : 'bg-red-500 text-white'
+          }`}>
+            {notification.type === 'success' ? (
+              <Check size={20} />
+            ) : (
+              <X size={20} />
+            )}
+            <p className="font-medium">{notification.message}</p>
+          </div>
+        </div>
+      )}
 
       {/* Navigation Tabs */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
