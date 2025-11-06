@@ -1054,11 +1054,13 @@ class WebsitePageUpdate(BaseModel):
     content: Optional[dict] = None
     parent_id: Optional[str] = None
     status: Optional[str] = None
+    visibility: Optional[str] = None
     seo_title: Optional[str] = None
     seo_description: Optional[str] = None
     seo_keywords: Optional[str] = None
     custom_css: Optional[str] = None
     custom_js: Optional[str] = None
+    custom_fields: Optional[dict] = None
     order: Optional[int] = None
     
 class WebsitePage(WebsitePageBase):
@@ -1066,11 +1068,13 @@ class WebsitePage(WebsitePageBase):
     user_id: str
     parent_id: Optional[str] = None
     status: str = "draft"  # draft, published, archived
+    visibility: str = "public"  # public, private
     seo_title: Optional[str] = None
     seo_description: Optional[str] = None
     seo_keywords: Optional[str] = None
     custom_css: Optional[str] = None
     custom_js: Optional[str] = None
+    custom_fields: Optional[dict] = None
     order: int = 0
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
