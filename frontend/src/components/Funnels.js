@@ -553,6 +553,8 @@ const FunnelCard = ({ funnel, onEdit, onDelete, onStatusChange, onOpenBuilder })
 };
 
 const CreateFunnelModal = ({ onClose, onCreate, onUseTemplate }) => {
+  const [step, setStep] = useState(1); // 1: Choose method, 2: Fill details
+  const [selectedMethod, setSelectedMethod] = useState(null); // 'template' or 'blank'
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -564,77 +566,161 @@ const CreateFunnelModal = ({ onClose, onCreate, onUseTemplate }) => {
     onCreate(formData);
   };
 
+  const funnelTypeDescriptions = {
+    custom: 'Start from scratch and build your own custom funnel',
+    lead_gen: 'Capture leads with opt-in forms and lead magnets',
+    sales: 'Sell products or services with sales pages',
+    webinar: 'Host webinars with registration and replay pages',
+    product_launch: 'Launch products with pre-launch and sales pages'
+  };
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-        <div className="p-6 border-b">
-          <h2 className="text-2xl font-bold text-gray-900">Create New Funnel</h2>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4">
+        <div className="p-6 border-b bg-gradient-to-r from-blue-500 to-purple-600">
+          <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+            <Zap className="w-7 h-7" />
+            Create New Funnel
+          </h2>
+          <p className="text-white text-opacity-90 text-sm mt-1">
+            {step === 1 ? 'Choose how you want to start' : 'Fill in your funnel details'}
+          </p>
         </div>
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Funnel Name *
-            </label>
-            <input
-              type="text"
-              required
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              placeholder="My Sales Funnel"
-            />
+
+        {step === 1 ? (
+          /* Step 1: Choose Method */
+          <div className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Use Template Option */}
+              <div
+                onClick={() => {
+                  setSelectedMethod('template');
+                  onUseTemplate();
+                }}
+                className="border-2 border-gray-200 rounded-xl p-6 hover:border-blue-500 hover:shadow-lg transition cursor-pointer group"
+              >
+                <div className="flex flex-col items-center text-center">
+                  <div className="w-16 h-16 bg-blue-100 group-hover:bg-blue-500 rounded-full flex items-center justify-center mb-4 transition">
+                    <Layout className="w-8 h-8 text-blue-600 group-hover:text-white transition" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">Use a Template</h3>
+                  <p className="text-gray-600 text-sm">
+                    Start with a professionally designed funnel template and customize it to your needs
+                  </p>
+                  <div className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg group-hover:bg-blue-600 transition font-medium">
+                    Browse Templates
+                  </div>
+                </div>
+              </div>
+
+              {/* Start from Scratch Option */}
+              <div
+                onClick={() => {
+                  setSelectedMethod('blank');
+                  setStep(2);
+                }}
+                className="border-2 border-gray-200 rounded-xl p-6 hover:border-purple-500 hover:shadow-lg transition cursor-pointer group"
+              >
+                <div className="flex flex-col items-center text-center">
+                  <div className="w-16 h-16 bg-purple-100 group-hover:bg-purple-500 rounded-full flex items-center justify-center mb-4 transition">
+                    <Plus className="w-8 h-8 text-purple-600 group-hover:text-white transition" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">Start from Scratch</h3>
+                  <p className="text-gray-600 text-sm">
+                    Create a blank funnel and build it from the ground up with full creative control
+                  </p>
+                  <div className="mt-4 px-4 py-2 bg-purple-500 text-white rounded-lg group-hover:bg-purple-600 transition font-medium">
+                    Create Blank
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 text-center">
+              <button
+                onClick={onClose}
+                className="px-6 py-2 text-gray-600 hover:text-gray-900 font-medium transition"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Description
-            </label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              rows="3"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              placeholder="Brief description of your funnel"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Funnel Type
-            </label>
-            <select
-              value={formData.funnel_type}
-              onChange={(e) => setFormData({ ...formData, funnel_type: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="custom">Custom</option>
-              <option value="lead_gen">Lead Generation</option>
-              <option value="sales">Sales</option>
-              <option value="webinar">Webinar</option>
-              <option value="product_launch">Product Launch</option>
-            </select>
-          </div>
-          <div className="flex gap-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={onUseTemplate}
-              className="flex-1 px-4 py-2 border border-blue-300 text-blue-700 rounded-lg hover:bg-blue-50"
-            >
-              Use Template
-            </button>
-            <button
-              type="submit"
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              Create Blank
-            </button>
-          </div>
-        </form>
+        ) : (
+          /* Step 2: Fill Details */
+          <form onSubmit={handleSubmit} className="p-6 space-y-5">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Funnel Name *
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                placeholder="e.g., Summer Product Launch"
+                autoFocus
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Description (Optional)
+              </label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                rows="3"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                placeholder="Brief description of what this funnel is for..."
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Funnel Type
+              </label>
+              <select
+                value={formData.funnel_type}
+                onChange={(e) => setFormData({ ...formData, funnel_type: e.target.value })}
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+              >
+                <option value="custom">Custom Funnel</option>
+                <option value="lead_gen">Lead Generation</option>
+                <option value="sales">Sales Funnel</option>
+                <option value="webinar">Webinar Funnel</option>
+                <option value="product_launch">Product Launch</option>
+              </select>
+              <p className="mt-2 text-xs text-gray-500">
+                {funnelTypeDescriptions[formData.funnel_type]}
+              </p>
+            </div>
+
+            <div className="flex gap-3 pt-4 border-t border-gray-200">
+              <button
+                type="button"
+                onClick={() => setStep(1)}
+                className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-semibold transition"
+              >
+                Back
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-semibold transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:shadow-lg font-semibold transition flex items-center justify-center gap-2"
+              >
+                <Plus size={20} />
+                Create Funnel
+              </button>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   );
