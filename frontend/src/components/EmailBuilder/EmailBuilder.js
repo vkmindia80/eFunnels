@@ -220,21 +220,25 @@ const EmailBuilder = ({ onBack, initialData = null, isTemplate = false, onSave }
 
   return (
     <div className="flex flex-col h-screen">
-      {/* Toolbar */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+      {/* Enhanced Toolbar */}
+      <div className="bg-gradient-to-r from-blue-50 via-purple-50 to-pink-50 border-b-2 border-gray-200 px-6 py-4 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-4">
           <button
             onClick={onBack}
-            className="p-2 hover:bg-gray-100 rounded-lg transition"
+            className="p-2.5 hover:bg-white/70 rounded-lg transition shadow-sm border border-gray-200 bg-white"
+            title="Go back"
           >
-            <ArrowLeft size={20} />
+            <ArrowLeft size={20} className="text-gray-700" />
           </button>
           <div>
-            <h2 className="text-xl font-bold text-gray-900">
-              {isTemplate ? 'Email Template Builder' : 'Email Designer'}
+            <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+              {isTemplate ? '✨ Email Template Builder' : '📧 Email Designer'}
             </h2>
-            <p className="text-sm text-gray-500">
-              {blocks.length} block{blocks.length !== 1 ? 's' : ''}
+            <p className="text-sm text-gray-600 flex items-center gap-2 mt-1">
+              <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full font-medium text-xs">
+                {blocks.length} block{blocks.length !== 1 ? 's' : ''}
+              </span>
+              {blocks.length === 0 && <span className="text-gray-500">Start by adding blocks from the library</span>}
             </p>
           </div>
         </div>
