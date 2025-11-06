@@ -3,7 +3,8 @@ import {
   Mail, Plus, Send, Eye, Trash2, Copy, Settings, 
   Edit, ArrowLeft, Users, Calendar, BarChart2,
   Check, Search, Layout, TrendingUp, MousePointer,
-  ChevronRight, Clock, Sparkles, Wand2
+  ChevronRight, Clock, Sparkles, Wand2, Clipboard,
+  FileText, X
 } from 'lucide-react';
 import api from '../api';
 import EmailBuilder from './EmailBuilder/EmailBuilder';
@@ -15,6 +16,9 @@ const EmailMarketingPage = () => {
   const [activeView, setActiveView] = useState('campaigns');
   const [showTemplateBrowser, setShowTemplateBrowser] = useState(false);
   const [templateCallback, setTemplateCallback] = useState(null);
+  const [showApplyModal, setShowApplyModal] = useState(false);
+  const [aiContent, setAiContent] = useState(null);
+  const [notification, setNotification] = useState(null);
   
   return (
     <div className="space-y-6">
