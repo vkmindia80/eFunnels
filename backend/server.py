@@ -6083,6 +6083,14 @@ async def public_get_website_page(
             detail="Page not found"
         )
     
+    # Check visibility - only allow public pages
+    page_visibility = page.get('visibility', 'public')
+    if page_visibility == 'private':
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Page not found"
+        )
+    
     # Track view
     view_data = {
         'id': str(uuid.uuid4()),
