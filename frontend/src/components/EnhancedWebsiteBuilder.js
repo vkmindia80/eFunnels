@@ -1803,16 +1803,16 @@ const BlockRenderer = ({ block }) => {
             marginBottom: '16px',
             fontFamily: style?.headingFont || 'inherit'
           }}>
-            {content.headline || 'Your Headline Here'}
+            {content?.headline || 'Your Headline Here'}
           </h1>
           <p style={{ 
             fontSize: style?.subheadingSize || '20px',
             marginBottom: '24px',
             opacity: 0.9
           }}>
-            {content.subheadline || 'Your subheadline goes here'}
+            {content?.subheadline || 'Your subheadline goes here'}
           </p>
-          {content.cta_text && (
+          {content?.cta_text && (
             <div>
               <button 
                 className="px-8 py-3 rounded-lg font-semibold inline-block"
