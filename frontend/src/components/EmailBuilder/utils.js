@@ -84,6 +84,11 @@ export const blocksToHTML = (blocks) => {
 
 // Convert styles object to CSS string
 const stylesToString = (styles) => {
+  // Handle null, undefined, or non-object styles
+  if (!styles || typeof styles !== 'object') {
+    return '';
+  }
+  
   return Object.entries(styles)
     .map(([key, value]) => {
       // Convert camelCase to kebab-case
