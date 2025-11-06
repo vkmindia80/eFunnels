@@ -722,6 +722,29 @@ const EditFunnelModal = ({ funnel, onClose, onUpdate }) => {
 };
 
 const TemplateModal = ({ templates, onClose, onSelect }) => {
+  const [previewTemplate, setPreviewTemplate] = useState(null);
+
+  const handleEditTemplate = async (template) => {
+    // For funnel templates, we can edit by creating a funnel from template and then editing pages
+    alert('Edit functionality: This will create a funnel from this template that you can then edit.');
+    onSelect(template.id);
+  };
+
+  const handleDeleteTemplate = async (templateId) => {
+    if (!window.confirm('Are you sure you want to delete this funnel template?')) {
+      return;
+    }
+    
+    try {
+      await api.delete(`/api/funnel-templates/${templateId}`);
+      alert('Template deleted successfully');
+      window.location.reload(); // Refresh templates
+    } catch (error) {
+      console.error('Failed to delete template:', error);
+      alert('Failed to delete template: ' + (error.response?.data?.detail || error.message));
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
@@ -736,10 +759,9 @@ const TemplateModal = ({ templates, onClose, onSelect }) => {
             {templates.map(template => (
               <div
                 key={template.id}
-                className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
-                onClick={() => onSelect(template.id)}
+                className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
               >
-                <div className="aspect-video bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                <div className="aspect-video bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center relative group">
                   {template.thumbnail ? (
                     <img src={template.thumbnail} alt={template.name} className="w-full h-full object-cover" />
                   ) : (
@@ -749,17 +771,122 @@ const TemplateModal = ({ templates, onClose, onSelect }) => {
                 <div className="p-4">
                   <h3 className="text-lg font-semibold text-gray-900 mb-1">{template.name}</h3>
                   <p className="text-sm text-gray-600 mb-3">{template.description}</p>
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between mb-2">
                     <span className="text-xs text-gray-500">{template.pages?.length || 0} pages</span>
-                    <button className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700">
-                      Use Template
+                  </div>
+                  
+                  {/* Action Buttons - Always Visible */}
+                  <div className="flex items-center gap-2 pt-3 border-t border-gray-200">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPreviewTemplate(template);
+                      }}
+                      className="flex-1 px-3 py-2 text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition flex items-center justify-center gap-2"
+                      title="Preview"
+                    >
+                      <Eye size={16} />
+                      Preview
                     </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEditTemplate(template);
+                      }}
+                      className="flex-1 px-3 py-2 text-sm text-white bg-green-500 hover:bg-green-600 rounded-lg transition flex items-center justify-center gap-2"
+                      title="Edit"
+                    >
+                      <Edit size={16} />
+                      Edit
+                    </button>
+                    {!template.is_public && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteTemplate(template.id);
+                        }}
+                        className="px-3 py-2 text-sm text-white bg-red-500 hover:bg-red-600 rounded-lg transition flex items-center justify-center gap-1"
+                        title="Delete"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
             ))}
           </div>
         </div>
+
+        {/* Simple Preview Modal */}
+        {previewTemplate && (
+          <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] p-4">
+            <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] flex flex-col">
+              <div className="px-6 py-4 border-b flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">{previewTemplate.name}</h3>
+                  <p className="text-sm text-gray-600 mt-1">{previewTemplate.description}</p>
+                </div>
+                <button
+                  onClick={() => setPreviewTemplate(null)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-6">
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-2">Template Information</h4>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-gray-600">Pages:</span>
+                        <span className="ml-2 font-medium">{previewTemplate.pages?.length || 0}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Type:</span>
+                        <span className="ml-2 font-medium capitalize">{previewTemplate.funnel_type || 'Custom'}</span>
+                      </div>
+                    </div>
+                  </div>
+                  {previewTemplate.pages && previewTemplate.pages.length > 0 && (
+                    <div>
+                      <h4 className="font-semibold text-gray-900 mb-3">Pages in This Funnel</h4>
+                      <div className="space-y-2">
+                        {previewTemplate.pages.map((page, index) => (
+                          <div key={index} className="bg-gray-50 p-3 rounded-lg flex items-center justify-between">
+                            <div>
+                              <div className="font-medium text-gray-900">{page.name}</div>
+                              <div className="text-sm text-gray-500">{page.path}</div>
+                            </div>
+                            <div className="text-sm text-gray-500">Step {page.order}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="px-6 py-4 border-t bg-gray-50 flex items-center justify-end gap-3">
+                <button
+                  onClick={() => setPreviewTemplate(null)}
+                  className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={() => {
+                    onSelect(previewTemplate.id);
+                    setPreviewTemplate(null);
+                  }}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition"
+                >
+                  Use This Template
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
