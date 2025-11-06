@@ -1878,10 +1878,10 @@ const BlockRenderer = ({ block }) => {
       return (
         <div style={containerStyle}>
           <h2 className="text-3xl font-bold mb-8" style={{ textAlign: style?.alignment }}>
-            {content.headline || 'Our Features'}
+            {content?.headline || 'Our Features'}
           </h2>
           <div className={`grid gap-6 ${style?.columns === 2 ? 'grid-cols-2' : style?.columns === 4 ? 'grid-cols-4' : 'grid-cols-3'}`}>
-            {(content.features || [{ title: 'Feature 1' }, { title: 'Feature 2' }, { title: 'Feature 3' }]).map((feature, i) => (
+            {(content?.features || [{ title: 'Feature 1' }, { title: 'Feature 2' }, { title: 'Feature 3' }]).map((feature, i) => (
               <div key={i} className="p-6 bg-white border border-gray-200 rounded-lg">
                 {feature?.icon && <div className="text-4xl mb-4">{feature.icon}</div>}
                 <h3 className="font-bold text-lg mb-2">{feature?.title || 'Feature'}</h3>
