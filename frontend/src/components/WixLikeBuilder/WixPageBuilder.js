@@ -93,14 +93,14 @@ const WixPageBuilder = ({ page, onSave, onClose }) => {
 
   const updateBlockContent = (blockId, contentUpdates) => {
     const newBlocks = blocks.map(b => 
-      b.id === blockId ? { ...b, content: { ...b.content, ...contentUpdates } } : b
+      b.id === blockId ? { ...b, content: { ...(b.content || {}), ...contentUpdates } } : b
     );
     setBlocks(newBlocks);
   };
 
   const updateBlockStyle = (blockId, styleUpdates) => {
     const newBlocks = blocks.map(b => 
-      b.id === blockId ? { ...b, style: { ...b.style, ...styleUpdates } } : b
+      b.id === blockId ? { ...b, style: { ...(b.style || {}), ...styleUpdates } } : b
     );
     setBlocks(newBlocks);
     saveToHistory(newBlocks);
