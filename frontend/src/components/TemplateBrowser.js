@@ -261,7 +261,7 @@ const TemplateBrowser = ({ module, onSelectTemplate, onClose }) => {
 };
 
 // Enhanced Template Preview Modal Component
-const TemplatePreviewModal = ({ template, onClose, onUseTemplate }) => {
+const TemplatePreviewModal = ({ template, onClose, onUseTemplate, onEditTemplate, onDeleteTemplate }) => {
   const [viewMode, setViewMode] = useState('desktop'); // desktop, mobile
   const [previewMode, setPreviewMode] = useState('visual'); // visual, html
 
