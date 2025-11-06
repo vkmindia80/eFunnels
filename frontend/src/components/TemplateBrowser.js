@@ -411,6 +411,28 @@ const TemplatePreviewModal = ({ template, onClose, onUseTemplate, onEditTemplate
               Close
             </button>
             <button
+              onClick={() => {
+                onEditTemplate(template);
+                onClose();
+              }}
+              className="px-6 py-2.5 bg-green-500 text-white rounded-lg font-semibold hover:bg-green-600 transition flex items-center gap-2"
+            >
+              <Edit size={18} />
+              Edit Template
+            </button>
+            {!template.is_public && (
+              <button
+                onClick={() => {
+                  onDeleteTemplate(template.id);
+                  onClose();
+                }}
+                className="px-6 py-2.5 bg-red-500 text-white rounded-lg font-semibold hover:bg-red-600 transition flex items-center gap-2"
+              >
+                <Trash2 size={18} />
+                Delete
+              </button>
+            )}
+            <button
               onClick={onUseTemplate}
               className="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg font-semibold hover:shadow-lg transition flex items-center gap-2"
             >
