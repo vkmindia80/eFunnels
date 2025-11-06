@@ -1896,10 +1896,10 @@ const BlockRenderer = ({ block }) => {
       return (
         <div style={containerStyle}>
           <h2 className="text-3xl font-bold text-center mb-8">
-            {content.headline || 'Pricing Plans'}
+            {content?.headline || 'Pricing Plans'}
           </h2>
           <div className="grid md:grid-cols-3 gap-6">
-            {(content.plans || [{ name: 'Basic', price: '$9' }, { name: 'Pro', price: '$29' }, { name: 'Enterprise', price: '$99' }]).map((plan, i) => (
+            {(content?.plans || [{ name: 'Basic', price: '$9' }, { name: 'Pro', price: '$29' }, { name: 'Enterprise', price: '$99' }]).map((plan, i) => (
               <div key={i} className="bg-white border-2 border-gray-200 rounded-xl p-6 hover:border-blue-500 transition">
                 <h3 className="font-bold text-xl mb-2">{plan?.name || 'Plan'}</h3>
                 <div className="text-4xl font-bold mb-4">{plan?.price || '$0'}</div>
