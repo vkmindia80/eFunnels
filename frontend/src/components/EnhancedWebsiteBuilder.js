@@ -2003,7 +2003,7 @@ const BlockRenderer = ({ block }) => {
                 Send Message
               </button>
             </div>
-            {content.contact_info && (
+            {content?.contact_info && (
               <div className="space-y-4">
                 <p className="text-gray-700">{content.contact_info}</p>
               </div>
