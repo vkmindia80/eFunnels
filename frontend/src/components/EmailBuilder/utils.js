@@ -5,49 +5,74 @@ export const blocksToHTML = (blocks) => {
   }
 
   const blockHTML = blocks.map(block => {
+    // Ensure block has required properties
+    if (!block || !block.type) {
+      return '';
+    }
+
+    const styles = block.styles || block.style || {};
+    const content = block.content || '';
+
     switch (block.type) {
       case 'heading':
-        return `<div style="${stylesToString(block.styles)}">${block.content}</div>`;
+      case 'text':
+        return `<div style="${stylesToString(styles)}">${content}</div>`;
 
       case 'paragraph':
-        return `<p style="${stylesToString(block.styles)}">${block.content}</p>`;
+        return `<p style="${stylesToString(styles)}">${content}</p>`;
 
       case 'button':
-        const buttonAlign = block.styles.textAlign || 'center';
+        const buttonAlign = styles.textAlign || 'center';
+        const buttonLink = block.link || block.url || '#';
         return `
           <div style="text-align: ${buttonAlign};">
-            <a href="${block.link}" style="${stylesToString({...block.styles, textDecoration: 'none', display: 'inline-block'})}">
-              ${block.content}
+            <a href="${buttonLink}" style="${stylesToString({...styles, textDecoration: 'none', display: 'inline-block'})}">
+              ${content}
             </a>
           </div>
         `;
 
       case 'image':
-        const imgTag = `<img src="${block.src}" alt="${block.alt}" style="${stylesToString(block.styles)}" />`;
-        return block.link
-          ? `<div style="text-align: center;"><a href="${block.link}">${imgTag}</a></div>`
+        const imgSrc = block.src || block.url || 'https://via.placeholder.com/600x300';
+        const imgAlt = block.alt || 'Image';
+        const imgTag = `<img src="${imgSrc}" alt="${imgAlt}" style="${stylesToString(styles)}" />`;
+        return block.link || block.url
+          ? `<div style="text-align: center;"><a href="${block.link || block.url}">${imgTag}</a></div>`
           : `<div style="text-align: center;">${imgTag}</div>`;
 
       case 'divider':
-        return `<hr style="border: none; border-top: ${block.styles.borderWidth} solid ${block.styles.borderColor}; margin-top: ${block.styles.marginTop}; margin-bottom: ${block.styles.marginBottom};" />`;
+        const borderWidth = styles.borderWidth || '1px';
+        const borderColor = styles.borderColor || '#E5E7EB';
+        const marginTop = styles.marginTop || '20px';
+        const marginBottom = styles.marginBottom || '20px';
+        return `<hr style="border: none; border-top: ${borderWidth} solid ${borderColor}; margin-top: ${marginTop}; margin-bottom: ${marginBottom};" />`;
 
       case 'spacer':
-        return `<div style="height: ${block.styles.height};"></div>`;
+        const height = styles.height || '40px';
+        return `<div style="height: ${height};"></div>`;
 
       case 'columns':
-        const colsHTML = block.columns.map(col => 
-          `<td style="${stylesToString(col.styles)}">${col.content}</td>`
-        ).join('');
+        if (!block.columns || !Array.isArray(block.columns)) {
+          return '';
+        }
+        const colsHTML = block.columns.map(col => {
+          const colStyles = col.styles || col.style || {};
+          const colContent = col.content || '';
+          return `<td style="${stylesToString(colStyles)}">${colContent}</td>`;
+        }).join('');
         return `
-          <table style="width: 100%; margin-top: ${block.styles.marginTop}; margin-bottom: ${block.styles.marginBottom};">
+          <table style="width: 100%; margin-top: ${styles.marginTop || '20px'}; margin-bottom: ${styles.marginBottom || '20px'};">
             <tr>${colsHTML}</tr>
           </table>
         `;
 
       case 'list':
+        if (!block.items || !Array.isArray(block.items)) {
+          return '';
+        }
         const listTag = block.listType === 'bullet' ? 'ul' : 'ol';
         const items = block.items.map(item => `<li>${item}</li>`).join('');
-        return `<${listTag} style="${stylesToString(block.styles)}">${items}</${listTag}>`;
+        return `<${listTag} style="${stylesToString(styles)}">${items}</${listTag}>`;
 
       default:
         return '';
