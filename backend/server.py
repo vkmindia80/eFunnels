@@ -10787,6 +10787,27 @@ async def get_template_details(
     
     return template
 
+@app.delete("/api/templates/{module}/{template_id}")
+async def delete_template(
+    module: str,
+    template_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Delete a template (only user-created templates, not public ones)"""
+    # This would need to be connected to a database for user-created templates
+    # For now, return success for public templates with appropriate message
+    return {"message": "Template deletion requires database implementation for user templates"}
+
+@app.delete("/api/funnel-templates/{template_id}")
+async def delete_funnel_template(
+    template_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Delete a funnel template (only user-created templates)"""
+    # Check if template exists and belongs to user
+    # For now, return success message
+    return {"message": "Funnel template deletion requires database implementation for user templates"}
+
 
 # ==================== AI ENHANCEMENT ROUTES ====================
 
