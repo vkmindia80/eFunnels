@@ -38,29 +38,29 @@ const Canvas = ({ blocks, selectedBlockId, onSelectBlock, onReorderBlocks, onDel
                           <div
                             ref={provided.innerRef}
                             {...provided.draggableProps}
-                            className={`group relative ${
-                              snapshot.isDragging ? 'opacity-50' : ''
+                            className={`group relative transition-all ${
+                              snapshot.isDragging ? 'opacity-50 scale-95' : ''
                             }`}
                           >
                             {/* Block Actions */}
-                            <div className="absolute -left-12 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition flex flex-col gap-1">
+                            <div className="absolute -left-14 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all flex flex-col gap-1.5">
                               <button
                                 {...provided.dragHandleProps}
-                                className="p-1.5 bg-white border border-gray-200 rounded hover:bg-gray-50 cursor-move"
+                                className="p-2 bg-white border-2 border-gray-300 rounded-lg hover:bg-gradient-to-br hover:from-blue-50 hover:to-purple-50 hover:border-blue-500 cursor-move transition-all shadow-sm"
                                 title="Drag to reorder"
                               >
-                                <GripVertical size={16} className="text-gray-400" />
+                                <GripVertical size={16} className="text-gray-500" />
                               </button>
                               <button
                                 onClick={() => onDuplicateBlock(block.id)}
-                                className="p-1.5 bg-white border border-gray-200 rounded hover:bg-gray-50"
+                                className="p-2 bg-white border-2 border-gray-300 rounded-lg hover:bg-blue-50 hover:border-blue-500 transition-all shadow-sm"
                                 title="Duplicate"
                               >
-                                <Copy size={16} className="text-gray-600" />
+                                <Copy size={16} className="text-blue-600" />
                               </button>
                               <button
                                 onClick={() => onDeleteBlock(block.id)}
-                                className="p-1.5 bg-white border border-gray-200 rounded hover:bg-red-50"
+                                className="p-2 bg-white border-2 border-gray-300 rounded-lg hover:bg-red-50 hover:border-red-500 transition-all shadow-sm"
                                 title="Delete"
                               >
                                 <Trash2 size={16} className="text-red-600" />
