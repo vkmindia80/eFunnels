@@ -436,7 +436,9 @@ const WixPageBuilder = ({ page, onSave, onClose }) => {
 
 // Block Renderer Component
 const BlockRenderer = ({ block }) => {
-  const { type, content, style } = block;
+  if (!block) return null;
+  
+  const { type, content = {}, style = {} } = block;
 
   const containerStyle = {
     backgroundColor: style?.backgroundColor || 'transparent',
@@ -456,16 +458,16 @@ const BlockRenderer = ({ block }) => {
             marginBottom: '16px',
             fontFamily: style?.headingFont || 'inherit'
           }}>
-            {content.headline || 'Your Headline Here'}
+            {content?.headline || 'Your Headline Here'}
           </h1>
           <p style={{ 
             fontSize: style?.subheadingSize || '20px',
             marginBottom: '24px',
             opacity: 0.9
           }}>
-            {content.subheadline || 'Your subheadline goes here'}
+            {content?.subheadline || 'Your subheadline goes here'}
           </p>
-          {content.cta_text && (
+          {content?.cta_text && (
             <div>
               <button 
                 className="px-8 py-3 rounded-lg font-semibold inline-block"
@@ -488,7 +490,7 @@ const BlockRenderer = ({ block }) => {
           <div 
             className="prose max-w-none"
             style={{ fontFamily: style?.bodyFont || 'inherit', fontSize: style?.fontSize || '16px' }}
-            dangerouslySetInnerHTML={{ __html: content.text || 'Click edit to add your text' }} 
+            dangerouslySetInnerHTML={{ __html: content?.text || content?.content || 'Click edit to add your text' }} 
           />
         </div>
       );
@@ -496,10 +498,10 @@ const BlockRenderer = ({ block }) => {
     case 'image':
       return (
         <div style={containerStyle}>
-          {content.image_url ? (
+          {content?.image_url ? (
             <img 
               src={content.image_url} 
-              alt={content.alt_text || ''} 
+              alt={content?.alt_text || ''} 
               className="w-full rounded-lg"
               style={{ maxHeight: style?.imageHeight || 'auto' }}
             />
@@ -522,7 +524,7 @@ const BlockRenderer = ({ block }) => {
               fontSize: style?.fontSize || '16px'
             }}
           >
-            {content.text || 'Button Text'}
+            {content?.text || content?.content || 'Button Text'}
           </button>
         </div>
       );
@@ -531,14 +533,14 @@ const BlockRenderer = ({ block }) => {
       return (
         <div style={containerStyle}>
           <h2 className="text-3xl font-bold mb-8" style={{ textAlign: style?.alignment }}>
-            {content.headline || 'Our Features'}
+            {content?.headline || 'Our Features'}
           </h2>
           <div className={`grid gap-6 ${style?.columns === 2 ? 'grid-cols-2' : style?.columns === 4 ? 'grid-cols-4' : 'grid-cols-3'}`}>
-            {(content.features || [{ title: 'Feature 1' }, { title: 'Feature 2' }, { title: 'Feature 3' }]).map((feature, i) => (
+            {(content?.features || [{ title: 'Feature 1' }, { title: 'Feature 2' }, { title: 'Feature 3' }]).map((feature, i) => (
               <div key={i} className="p-6 bg-white border border-gray-200 rounded-lg">
-                {feature.icon && <div className="text-4xl mb-4">{feature.icon}</div>}
-                <h3 className="font-bold text-lg mb-2">{feature.title}</h3>
-                <p className="text-gray-600">{feature.description}</p>
+                {feature?.icon && <div className="text-4xl mb-4">{feature.icon}</div>}
+                <h3 className="font-bold text-lg mb-2">{feature?.title || 'Feature'}</h3>
+                <p className="text-gray-600">{feature?.description || ''}</p>
               </div>
             ))}
           </div>
