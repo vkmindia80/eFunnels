@@ -1924,10 +1924,10 @@ const BlockRenderer = ({ block }) => {
       return (
         <div style={containerStyle}>
           <h2 className="text-3xl font-bold text-center mb-8">
-            {content.headline || 'What Our Customers Say'}
+            {content?.headline || 'What Our Customers Say'}
           </h2>
           <div className="grid md:grid-cols-3 gap-6">
-            {(content.testimonials || [{ author: 'John Doe', text: 'Great product!' }]).map((testimonial, i) => (
+            {(content?.testimonials || [{ author: 'John Doe', text: 'Great product!' }]).map((testimonial, i) => (
               <div key={i} className="bg-white p-6 rounded-lg border border-gray-200">
                 <p className="text-gray-700 mb-4 italic">"{testimonial?.text || 'Great product!'}"</p>
                 <div className="flex items-center gap-3">
