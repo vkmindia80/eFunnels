@@ -345,7 +345,7 @@ const EmailBuilder = ({ onBack, initialData = null, isTemplate = false, onSave }
                 }
               }}
               disabled={aiGenerating}
-              className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:shadow-lg transition disabled:opacity-50 whitespace-nowrap"
+              className="flex items-center gap-2 px-5 py-3.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl hover:shadow-lg transition disabled:opacity-50 whitespace-nowrap font-semibold border-2 border-transparent hover:border-purple-300"
               title="Generate subject line with AI"
             >
               <Sparkles size={18} className={aiGenerating ? 'animate-spin' : ''} />
@@ -353,10 +353,12 @@ const EmailBuilder = ({ onBack, initialData = null, isTemplate = false, onSave }
             </button>
           </div>
           {!emailSubject && (
-            <p className="text-sm text-amber-600 mt-2 flex items-center gap-1">
-              <span>⚠️</span>
-              Subject line is required before saving
-            </p>
+            <div className="mt-3 px-4 py-2.5 bg-amber-50 border-2 border-amber-200 rounded-lg flex items-center gap-2">
+              <span className="text-amber-500 text-lg">⚠️</span>
+              <p className="text-sm text-amber-700 font-medium">
+                Subject line is required before saving
+              </p>
+            </div>
           )}
         </div>
       </div>
