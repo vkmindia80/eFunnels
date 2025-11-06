@@ -547,10 +547,273 @@ const BlockRenderer = ({ block }) => {
         </div>
       );
 
+    case 'pricing':
+      return (
+        <div style={containerStyle}>
+          <h2 className="text-3xl font-bold text-center mb-8">
+            {content?.headline || 'Pricing Plans'}
+          </h2>
+          <div className="grid md:grid-cols-3 gap-6">
+            {(content?.plans || [{ name: 'Basic', price: '$9' }, { name: 'Pro', price: '$29' }, { name: 'Enterprise', price: '$99' }]).map((plan, i) => (
+              <div key={i} className={`bg-white border-2 ${plan?.highlighted ? 'border-blue-500 shadow-xl scale-105' : 'border-gray-200'} rounded-xl p-6 hover:border-blue-500 transition`}>
+                <h3 className="font-bold text-xl mb-2">{plan?.name || 'Plan'}</h3>
+                <div className="text-4xl font-bold mb-1">{plan?.price || '$0'}</div>
+                <div className="text-gray-600 text-sm mb-4">{plan?.period || '/month'}</div>
+                <ul className="space-y-2 mb-6">
+                  {(plan?.features || ['Feature 1', 'Feature 2', 'Feature 3']).map((feature, j) => (
+                    <li key={j} className="flex items-start gap-2">
+                      <span className="text-green-600 mt-1">✓</span>
+                      <span>{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+                <button className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700">
+                  {plan?.cta_text || 'Get Started'}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+
+    case 'testimonials':
+      return (
+        <div style={containerStyle}>
+          <h2 className="text-3xl font-bold text-center mb-8">
+            {content?.headline || 'What Our Customers Say'}
+          </h2>
+          <div className="grid md:grid-cols-3 gap-6">
+            {(content?.testimonials || [{ author: 'John Doe', name: 'John Doe', text: 'Great product!' }]).map((testimonial, i) => (
+              <div key={i} className="bg-white p-6 rounded-lg border border-gray-200">
+                <p className="text-gray-700 mb-4 italic">"{testimonial?.text || 'Great product!'}"</p>
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
+                    {(testimonial?.author || testimonial?.name || 'J').charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="font-semibold">{testimonial?.author || testimonial?.name || 'John Doe'}</p>
+                    {testimonial?.role && <p className="text-sm text-gray-600">{testimonial.role}</p>}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+
+    case 'cta':
+      return (
+        <div style={containerStyle} className="text-center">
+          <h2 className="text-3xl font-bold mb-4">
+            {content?.headline || 'Ready to Get Started?'}
+          </h2>
+          <p className="text-lg mb-6 opacity-90">
+            {content?.subheadline || 'Join thousands of satisfied customers today'}
+          </p>
+          <button 
+            className="px-8 py-3 rounded-lg font-semibold inline-block"
+            style={{
+              backgroundColor: style?.buttonColor || '#3B82F6',
+              color: style?.buttonTextColor || '#FFFFFF'
+            }}
+          >
+            {content?.cta_text || 'Get Started Now'}
+          </button>
+        </div>
+      );
+
+    case 'contact_form':
+    case 'contact':
+      return (
+        <div style={containerStyle}>
+          <h2 className="text-3xl font-bold mb-4">
+            {content?.headline || 'Contact Us'}
+          </h2>
+          {content?.subheadline && (
+            <p className="text-gray-600 mb-6">{content.subheadline}</p>
+          )}
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <input 
+                type="text" 
+                placeholder="Your Name" 
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                disabled
+              />
+              <input 
+                type="email" 
+                placeholder="Your Email" 
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                disabled
+              />
+              <textarea 
+                placeholder="Your Message" 
+                rows={4} 
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                disabled
+              />
+              <button 
+                className="px-6 py-3 rounded-lg font-semibold"
+                style={{
+                  backgroundColor: style?.buttonColor || '#3B82F6',
+                  color: '#FFFFFF'
+                }}
+                disabled
+              >
+                {content?.submit_text || 'Send Message'}
+              </button>
+            </div>
+            {content?.contact_info && (
+              <div className="space-y-4 bg-gray-50 p-6 rounded-lg">
+                <p className="text-gray-700 whitespace-pre-line">{content.contact_info}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+
+    case 'video':
+      return (
+        <div style={containerStyle}>
+          {content?.title && (
+            <h3 className="text-2xl font-bold mb-4 text-center">{content.title}</h3>
+          )}
+          {content?.video_url ? (
+            <div className="aspect-video bg-gray-900 rounded-lg flex items-center justify-center">
+              <iframe
+                src={content.video_url}
+                className="w-full h-full rounded-lg"
+                allowFullScreen
+                title={content?.title || 'Video'}
+              />
+            </div>
+          ) : (
+            <div className="aspect-video bg-gray-200 rounded-lg flex items-center justify-center">
+              <div className="text-center text-gray-500">
+                <div className="text-6xl mb-2">▶</div>
+                <p>Video Preview</p>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+
+    case 'team':
+      return (
+        <div style={containerStyle}>
+          <h2 className="text-3xl font-bold text-center mb-8">
+            {content?.headline || 'Meet Our Team'}
+          </h2>
+          <div className={`grid gap-6 ${style?.columns === 2 ? 'grid-cols-2' : style?.columns === 4 ? 'grid-cols-4' : 'grid-cols-3'}`}>
+            {(content?.members || [{ name: 'Team Member', role: 'Position' }]).map((member, i) => (
+              <div key={i} className="text-center">
+                {member?.image ? (
+                  <img src={member.image} alt={member?.name || ''} className="w-32 h-32 rounded-full mx-auto mb-4 object-cover" />
+                ) : (
+                  <div className="w-32 h-32 rounded-full mx-auto mb-4 bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-3xl font-bold">
+                    {(member?.name || 'T').charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <h3 className="font-bold text-lg">{member?.name || 'Team Member'}</h3>
+                <p className="text-gray-600 text-sm mb-2">{member?.role || 'Position'}</p>
+                {member?.bio && <p className="text-gray-600 text-sm">{member.bio}</p>}
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+
+    case 'faq':
+      return (
+        <div style={containerStyle}>
+          <h2 className="text-3xl font-bold text-center mb-8">
+            {content?.headline || 'Frequently Asked Questions'}
+          </h2>
+          <div className="max-w-3xl mx-auto space-y-4">
+            {(content?.questions || [{ question: 'Question?', answer: 'Answer' }]).map((item, i) => (
+              <div key={i} className="bg-white p-6 rounded-lg border border-gray-200">
+                <h3 className="font-bold text-lg mb-2">{item?.question || 'Question?'}</h3>
+                <p className="text-gray-600">{item?.answer || 'Answer goes here'}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+
+    case 'image_gallery':
+      return (
+        <div style={containerStyle}>
+          <div className={`grid gap-4 ${style?.columns === 2 ? 'grid-cols-2' : style?.columns === 4 ? 'grid-cols-4' : 'grid-cols-3'}`}>
+            {(content?.images || [{ url: '', alt: '' }, { url: '', alt: '' }, { url: '', alt: '' }]).map((image, i) => (
+              <div key={i} className="aspect-square bg-gray-200 rounded-lg overflow-hidden">
+                {image?.url ? (
+                  <img src={image.url} alt={image?.alt || ''} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <ImageIcon className="text-gray-400" size={48} />
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+
+    case 'heading':
+      const HeadingTag = content?.level || 'h2';
+      return (
+        <div style={containerStyle}>
+          {React.createElement(
+            HeadingTag,
+            { 
+              className: "font-bold",
+              style: { 
+                fontSize: style?.fontSize || '32px',
+                textAlign: style?.alignment || 'left',
+                fontFamily: style?.font || 'inherit'
+              }
+            },
+            content?.text || 'Your Heading Here'
+          )}
+        </div>
+      );
+
+    case 'map':
+      return (
+        <div style={containerStyle}>
+          <div className="bg-gray-200 rounded-lg overflow-hidden" style={{ height: style?.height || '400px' }}>
+            <div className="w-full h-full flex items-center justify-center text-gray-500">
+              <div className="text-center">
+                <p className="font-semibold mb-2">📍 Map Location</p>
+                {content?.address && <p className="text-sm">{content.address}</p>}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+
+    case 'divider':
+      return (
+        <div style={containerStyle}>
+          <hr 
+            style={{ 
+              borderColor: style?.borderColor || '#E5E7EB',
+              borderWidth: style?.borderWidth || '1px',
+              borderStyle: style?.borderStyle || 'solid'
+            }} 
+          />
+        </div>
+      );
+
+    case 'spacer':
+      return (
+        <div style={{ height: style?.height || '60px', ...containerStyle }} />
+      );
+
     default:
       return (
-        <div style={containerStyle} className="p-6 bg-gray-50 border border-gray-200">
-          <p className="text-gray-500">{type} block - Click edit to customize</p>
+        <div style={containerStyle} className="p-6 bg-gray-50 border border-gray-200 rounded-lg">
+          <p className="text-gray-500 text-center">{type} block - Click edit to customize</p>
         </div>
       );
   }
