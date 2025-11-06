@@ -276,7 +276,7 @@ const EmailBuilder = ({ onBack, initialData = null, isTemplate = false, onSave }
           <button
             onClick={handleAIGenerate}
             disabled={aiGenerating}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:shadow-lg transition disabled:opacity-50"
+            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:shadow-lg transition disabled:opacity-50 font-semibold border-2 border-transparent hover:border-purple-300"
           >
             <Sparkles size={18} className={aiGenerating ? 'animate-spin' : ''} />
             {aiGenerating ? 'Generating...' : 'AI Generate'}
@@ -285,7 +285,7 @@ const EmailBuilder = ({ onBack, initialData = null, isTemplate = false, onSave }
           {/* Preview */}
           <button
             onClick={() => setShowPreview(true)}
-            className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+            className="flex items-center gap-2 px-5 py-2.5 border-2 border-gray-300 bg-white rounded-lg hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 hover:border-blue-400 transition font-semibold text-gray-700 hover:text-blue-700"
           >
             <Eye size={18} />
             Preview
@@ -295,7 +295,7 @@ const EmailBuilder = ({ onBack, initialData = null, isTemplate = false, onSave }
           <button
             onClick={handleSaveClick}
             disabled={blocks.length === 0}
-            className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition disabled:opacity-50 disabled:cursor-not-allowed font-semibold shadow-md hover:shadow-lg"
           >
             <Save size={18} />
             Save
