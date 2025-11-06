@@ -225,7 +225,7 @@ const InlineEditor = ({ block, onSave, onCancel }) => {
 
       case 'features':
         return (
-          <div className="p-6 bg-white border-2 border-blue-500 rounded-lg space-y-4">
+          <div className="p-6 bg-white border-2 border-blue-500 rounded-lg space-y-4 max-h-[80vh] overflow-y-auto">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Section Headline</label>
               <input
@@ -238,25 +238,666 @@ const InlineEditor = ({ block, onSave, onCancel }) => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Features (one per line)</label>
-              <textarea
-                value={(content.features || []).map(f => `${f.title}: ${f.description || ''}`).join('\n')}
-                onChange={(e) => {
-                  const features = e.target.value.split('\n').filter(line => line.trim()).map(line => {
-                    const [title, ...descParts] = line.split(':');
-                    return {
-                      title: title.trim(),
-                      description: descParts.join(':').trim()
-                    };
-                  });
-                  setContent({ ...content, features });
+              <label className="block text-sm font-medium text-gray-700 mb-2">Features</label>
+              {(content.features || []).map((feature, index) => (
+                <div key={index} className="mb-3 p-3 bg-gray-50 rounded-lg">
+                  <input
+                    type="text"
+                    value={feature.title || ''}
+                    onChange={(e) => {
+                      const newFeatures = [...(content.features || [])];
+                      newFeatures[index] = { ...feature, title: e.target.value };
+                      setContent({ ...content, features: newFeatures });
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded mb-2 font-semibold"
+                    placeholder="Feature Title"
+                  />
+                  <textarea
+                    value={feature.description || ''}
+                    onChange={(e) => {
+                      const newFeatures = [...(content.features || [])];
+                      newFeatures[index] = { ...feature, description: e.target.value };
+                      setContent({ ...content, features: newFeatures });
+                    }}
+                    rows={2}
+                    className="w-full px-3 py-2 border border-gray-300 rounded"
+                    placeholder="Feature Description"
+                  />
+                  <input
+                    type="text"
+                    value={feature.icon || ''}
+                    onChange={(e) => {
+                      const newFeatures = [...(content.features || [])];
+                      newFeatures[index] = { ...feature, icon: e.target.value };
+                      setContent({ ...content, features: newFeatures });
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded mt-2"
+                    placeholder="Icon (emoji or text)"
+                  />
+                  <button
+                    onClick={() => {
+                      const newFeatures = (content.features || []).filter((_, i) => i !== index);
+                      setContent({ ...content, features: newFeatures });
+                    }}
+                    className="mt-2 text-red-600 text-sm hover:underline"
+                  >
+                    Remove Feature
+                  </button>
+                </div>
+              ))}
+              <button
+                onClick={() => {
+                  const newFeatures = [...(content.features || []), { title: '', description: '', icon: '' }];
+                  setContent({ ...content, features: newFeatures });
                 }}
-                rows={6}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
-                placeholder="Feature 1: Description&#10;Feature 2: Description&#10;Feature 3: Description"
-              />
-              <p className="text-xs text-gray-500 mt-1">Format: Title: Description</p>
+                className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-blue-500 hover:text-blue-600"
+              >
+                + Add Feature
+              </button>
             </div>
+            <EditorActions onSave={handleSave} onCancel={onCancel} />
+          </div>
+        );
+
+      case 'pricing':
+        return (
+          <div className="p-6 bg-white border-2 border-blue-500 rounded-lg space-y-4 max-h-[80vh] overflow-y-auto">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Section Headline</label>
+              <input
+                type="text"
+                value={content.headline || ''}
+                onChange={(e) => setContent({ ...content, headline: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Pricing Plans"
+                autoFocus
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Pricing Plans</label>
+              {(content.plans || []).map((plan, index) => (
+                <div key={index} className="mb-4 p-4 bg-gray-50 rounded-lg border-2 border-gray-200">
+                  <input
+                    type="text"
+                    value={plan.name || ''}
+                    onChange={(e) => {
+                      const newPlans = [...(content.plans || [])];
+                      newPlans[index] = { ...plan, name: e.target.value };
+                      setContent({ ...content, plans: newPlans });
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded mb-2 font-bold"
+                    placeholder="Plan Name"
+                  />
+                  <div className="flex gap-2 mb-2">
+                    <input
+                      type="text"
+                      value={plan.price || ''}
+                      onChange={(e) => {
+                        const newPlans = [...(content.plans || [])];
+                        newPlans[index] = { ...plan, price: e.target.value };
+                        setContent({ ...content, plans: newPlans });
+                      }}
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded"
+                      placeholder="$99"
+                    />
+                    <input
+                      type="text"
+                      value={plan.period || ''}
+                      onChange={(e) => {
+                        const newPlans = [...(content.plans || [])];
+                        newPlans[index] = { ...plan, period: e.target.value };
+                        setContent({ ...content, plans: newPlans });
+                      }}
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded"
+                      placeholder="/month"
+                    />
+                  </div>
+                  <textarea
+                    value={(plan.features || []).join('\n')}
+                    onChange={(e) => {
+                      const newPlans = [...(content.plans || [])];
+                      newPlans[index] = { ...plan, features: e.target.value.split('\n').filter(f => f.trim()) };
+                      setContent({ ...content, plans: newPlans });
+                    }}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded mb-2"
+                    placeholder="Feature 1&#10;Feature 2&#10;Feature 3"
+                  />
+                  <input
+                    type="text"
+                    value={plan.cta_text || ''}
+                    onChange={(e) => {
+                      const newPlans = [...(content.plans || [])];
+                      newPlans[index] = { ...plan, cta_text: e.target.value };
+                      setContent({ ...content, plans: newPlans });
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded mb-2"
+                    placeholder="Get Started"
+                  />
+                  <div className="flex items-center gap-2 mb-2">
+                    <input
+                      type="checkbox"
+                      checked={plan.highlighted || false}
+                      onChange={(e) => {
+                        const newPlans = [...(content.plans || [])];
+                        newPlans[index] = { ...plan, highlighted: e.target.checked };
+                        setContent({ ...content, plans: newPlans });
+                      }}
+                      className="rounded"
+                    />
+                    <label className="text-sm text-gray-700">Highlight this plan</label>
+                  </div>
+                  <button
+                    onClick={() => {
+                      const newPlans = (content.plans || []).filter((_, i) => i !== index);
+                      setContent({ ...content, plans: newPlans });
+                    }}
+                    className="text-red-600 text-sm hover:underline"
+                  >
+                    Remove Plan
+                  </button>
+                </div>
+              ))}
+              <button
+                onClick={() => {
+                  const newPlans = [...(content.plans || []), { name: '', price: '', period: '', features: [], cta_text: 'Get Started', highlighted: false }];
+                  setContent({ ...content, plans: newPlans });
+                }}
+                className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-blue-500 hover:text-blue-600"
+              >
+                + Add Plan
+              </button>
+            </div>
+            <EditorActions onSave={handleSave} onCancel={onCancel} />
+          </div>
+        );
+
+      case 'testimonials':
+        return (
+          <div className="p-6 bg-white border-2 border-blue-500 rounded-lg space-y-4 max-h-[80vh] overflow-y-auto">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Section Headline</label>
+              <input
+                type="text"
+                value={content.headline || ''}
+                onChange={(e) => setContent({ ...content, headline: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="What Our Customers Say"
+                autoFocus
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Testimonials</label>
+              {(content.testimonials || []).map((testimonial, index) => (
+                <div key={index} className="mb-3 p-3 bg-gray-50 rounded-lg">
+                  <textarea
+                    value={testimonial.text || ''}
+                    onChange={(e) => {
+                      const newTestimonials = [...(content.testimonials || [])];
+                      newTestimonials[index] = { ...testimonial, text: e.target.value };
+                      setContent({ ...content, testimonials: newTestimonials });
+                    }}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded mb-2"
+                    placeholder="Customer testimonial..."
+                  />
+                  <input
+                    type="text"
+                    value={testimonial.author || testimonial.name || ''}
+                    onChange={(e) => {
+                      const newTestimonials = [...(content.testimonials || [])];
+                      newTestimonials[index] = { ...testimonial, author: e.target.value, name: e.target.value };
+                      setContent({ ...content, testimonials: newTestimonials });
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded mb-2"
+                    placeholder="Customer Name"
+                  />
+                  <input
+                    type="text"
+                    value={testimonial.role || ''}
+                    onChange={(e) => {
+                      const newTestimonials = [...(content.testimonials || [])];
+                      newTestimonials[index] = { ...testimonial, role: e.target.value };
+                      setContent({ ...content, testimonials: newTestimonials });
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded mb-2"
+                    placeholder="Role/Company"
+                  />
+                  <button
+                    onClick={() => {
+                      const newTestimonials = (content.testimonials || []).filter((_, i) => i !== index);
+                      setContent({ ...content, testimonials: newTestimonials });
+                    }}
+                    className="text-red-600 text-sm hover:underline"
+                  >
+                    Remove Testimonial
+                  </button>
+                </div>
+              ))}
+              <button
+                onClick={() => {
+                  const newTestimonials = [...(content.testimonials || []), { text: '', author: '', name: '', role: '' }];
+                  setContent({ ...content, testimonials: newTestimonials });
+                }}
+                className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-blue-500 hover:text-blue-600"
+              >
+                + Add Testimonial
+              </button>
+            </div>
+            <EditorActions onSave={handleSave} onCancel={onCancel} />
+          </div>
+        );
+
+      case 'cta':
+        return (
+          <div className="p-6 bg-white border-2 border-blue-500 rounded-lg space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Headline</label>
+              <input
+                type="text"
+                value={content.headline || ''}
+                onChange={(e) => setContent({ ...content, headline: e.target.value })}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg text-2xl font-bold focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Ready to Get Started?"
+                autoFocus
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Subheadline</label>
+              <textarea
+                value={content.subheadline || ''}
+                onChange={(e) => setContent({ ...content, subheadline: e.target.value })}
+                rows={2}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Join thousands of satisfied customers"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Button Text</label>
+              <input
+                type="text"
+                value={content.cta_text || ''}
+                onChange={(e) => setContent({ ...content, cta_text: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Get Started"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Button Link</label>
+              <input
+                type="text"
+                value={content.cta_url || ''}
+                onChange={(e) => setContent({ ...content, cta_url: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="https://..."
+              />
+            </div>
+            <EditorActions onSave={handleSave} onCancel={onCancel} />
+          </div>
+        );
+
+      case 'contact_form':
+      case 'contact':
+        return (
+          <div className="p-6 bg-white border-2 border-blue-500 rounded-lg space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Form Headline</label>
+              <input
+                type="text"
+                value={content.headline || ''}
+                onChange={(e) => setContent({ ...content, headline: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Get In Touch"
+                autoFocus
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Subheadline</label>
+              <textarea
+                value={content.subheadline || ''}
+                onChange={(e) => setContent({ ...content, subheadline: e.target.value })}
+                rows={2}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="We'll get back to you soon"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Submit Button Text</label>
+              <input
+                type="text"
+                value={content.submit_text || ''}
+                onChange={(e) => setContent({ ...content, submit_text: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Send Message"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Contact Info (Optional)</label>
+              <textarea
+                value={content.contact_info || ''}
+                onChange={(e) => setContent({ ...content, contact_info: e.target.value })}
+                rows={3}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Email: contact@example.com"
+              />
+            </div>
+            <EditorActions onSave={handleSave} onCancel={onCancel} />
+          </div>
+        );
+
+      case 'video':
+        return (
+          <div className="p-6 bg-white border-2 border-blue-500 rounded-lg space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Video URL</label>
+              <input
+                type="text"
+                value={content.video_url || ''}
+                onChange={(e) => setContent({ ...content, video_url: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="https://youtube.com/watch?v=... or video file URL"
+                autoFocus
+              />
+              <p className="text-xs text-gray-500 mt-1">Supports YouTube, Vimeo, or direct video file URLs</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Video Title</label>
+              <input
+                type="text"
+                value={content.title || ''}
+                onChange={(e) => setContent({ ...content, title: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Video Title"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Thumbnail URL (Optional)</label>
+              <input
+                type="text"
+                value={content.thumbnail_url || ''}
+                onChange={(e) => setContent({ ...content, thumbnail_url: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="https://..."
+              />
+            </div>
+            <EditorActions onSave={handleSave} onCancel={onCancel} />
+          </div>
+        );
+
+      case 'team':
+        return (
+          <div className="p-6 bg-white border-2 border-blue-500 rounded-lg space-y-4 max-h-[80vh] overflow-y-auto">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Section Headline</label>
+              <input
+                type="text"
+                value={content.headline || ''}
+                onChange={(e) => setContent({ ...content, headline: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Meet Our Team"
+                autoFocus
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Team Members</label>
+              {(content.members || []).map((member, index) => (
+                <div key={index} className="mb-3 p-3 bg-gray-50 rounded-lg">
+                  <input
+                    type="text"
+                    value={member.name || ''}
+                    onChange={(e) => {
+                      const newMembers = [...(content.members || [])];
+                      newMembers[index] = { ...member, name: e.target.value };
+                      setContent({ ...content, members: newMembers });
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded mb-2 font-semibold"
+                    placeholder="Name"
+                  />
+                  <input
+                    type="text"
+                    value={member.role || ''}
+                    onChange={(e) => {
+                      const newMembers = [...(content.members || [])];
+                      newMembers[index] = { ...member, role: e.target.value };
+                      setContent({ ...content, members: newMembers });
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded mb-2"
+                    placeholder="Role/Position"
+                  />
+                  <textarea
+                    value={member.bio || ''}
+                    onChange={(e) => {
+                      const newMembers = [...(content.members || [])];
+                      newMembers[index] = { ...member, bio: e.target.value };
+                      setContent({ ...content, members: newMembers });
+                    }}
+                    rows={2}
+                    className="w-full px-3 py-2 border border-gray-300 rounded mb-2"
+                    placeholder="Bio"
+                  />
+                  <input
+                    type="text"
+                    value={member.image || ''}
+                    onChange={(e) => {
+                      const newMembers = [...(content.members || [])];
+                      newMembers[index] = { ...member, image: e.target.value };
+                      setContent({ ...content, members: newMembers });
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded mb-2"
+                    placeholder="Image URL"
+                  />
+                  <button
+                    onClick={() => {
+                      const newMembers = (content.members || []).filter((_, i) => i !== index);
+                      setContent({ ...content, members: newMembers });
+                    }}
+                    className="text-red-600 text-sm hover:underline"
+                  >
+                    Remove Member
+                  </button>
+                </div>
+              ))}
+              <button
+                onClick={() => {
+                  const newMembers = [...(content.members || []), { name: '', role: '', bio: '', image: '' }];
+                  setContent({ ...content, members: newMembers });
+                }}
+                className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-blue-500 hover:text-blue-600"
+              >
+                + Add Team Member
+              </button>
+            </div>
+            <EditorActions onSave={handleSave} onCancel={onCancel} />
+          </div>
+        );
+
+      case 'faq':
+        return (
+          <div className="p-6 bg-white border-2 border-blue-500 rounded-lg space-y-4 max-h-[80vh] overflow-y-auto">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Section Headline</label>
+              <input
+                type="text"
+                value={content.headline || ''}
+                onChange={(e) => setContent({ ...content, headline: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Frequently Asked Questions"
+                autoFocus
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Questions & Answers</label>
+              {(content.questions || []).map((item, index) => (
+                <div key={index} className="mb-3 p-3 bg-gray-50 rounded-lg">
+                  <input
+                    type="text"
+                    value={item.question || ''}
+                    onChange={(e) => {
+                      const newQuestions = [...(content.questions || [])];
+                      newQuestions[index] = { ...item, question: e.target.value };
+                      setContent({ ...content, questions: newQuestions });
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded mb-2 font-semibold"
+                    placeholder="Question"
+                  />
+                  <textarea
+                    value={item.answer || ''}
+                    onChange={(e) => {
+                      const newQuestions = [...(content.questions || [])];
+                      newQuestions[index] = { ...item, answer: e.target.value };
+                      setContent({ ...content, questions: newQuestions });
+                    }}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded"
+                    placeholder="Answer"
+                  />
+                  <button
+                    onClick={() => {
+                      const newQuestions = (content.questions || []).filter((_, i) => i !== index);
+                      setContent({ ...content, questions: newQuestions });
+                    }}
+                    className="mt-2 text-red-600 text-sm hover:underline"
+                  >
+                    Remove Question
+                  </button>
+                </div>
+              ))}
+              <button
+                onClick={() => {
+                  const newQuestions = [...(content.questions || []), { question: '', answer: '' }];
+                  setContent({ ...content, questions: newQuestions });
+                }}
+                className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-blue-500 hover:text-blue-600"
+              >
+                + Add Question
+              </button>
+            </div>
+            <EditorActions onSave={handleSave} onCancel={onCancel} />
+          </div>
+        );
+
+      case 'image_gallery':
+        return (
+          <div className="p-6 bg-white border-2 border-blue-500 rounded-lg space-y-4 max-h-[80vh] overflow-y-auto">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Gallery Images</label>
+              {(content.images || []).map((image, index) => (
+                <div key={index} className="mb-3 p-3 bg-gray-50 rounded-lg">
+                  <input
+                    type="text"
+                    value={image.url || ''}
+                    onChange={(e) => {
+                      const newImages = [...(content.images || [])];
+                      newImages[index] = { ...image, url: e.target.value };
+                      setContent({ ...content, images: newImages });
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded mb-2"
+                    placeholder="Image URL"
+                  />
+                  <input
+                    type="text"
+                    value={image.alt || ''}
+                    onChange={(e) => {
+                      const newImages = [...(content.images || [])];
+                      newImages[index] = { ...image, alt: e.target.value };
+                      setContent({ ...content, images: newImages });
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded"
+                    placeholder="Alt text"
+                  />
+                  {image.url && (
+                    <img src={image.url} alt={image.alt || ''} className="mt-2 h-20 object-cover rounded" />
+                  )}
+                  <button
+                    onClick={() => {
+                      const newImages = (content.images || []).filter((_, i) => i !== index);
+                      setContent({ ...content, images: newImages });
+                    }}
+                    className="mt-2 text-red-600 text-sm hover:underline"
+                  >
+                    Remove Image
+                  </button>
+                </div>
+              ))}
+              <button
+                onClick={() => {
+                  const newImages = [...(content.images || []), { url: '', alt: '' }];
+                  setContent({ ...content, images: newImages });
+                }}
+                className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-blue-500 hover:text-blue-600"
+              >
+                + Add Image
+              </button>
+            </div>
+            <EditorActions onSave={handleSave} onCancel={onCancel} />
+          </div>
+        );
+
+      case 'map':
+        return (
+          <div className="p-6 bg-white border-2 border-blue-500 rounded-lg space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Address</label>
+              <input
+                type="text"
+                value={content.address || ''}
+                onChange={(e) => setContent({ ...content, address: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="123 Main St, City, Country"
+                autoFocus
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Latitude</label>
+                <input
+                  type="number"
+                  step="any"
+                  value={content.lat || ''}
+                  onChange={(e) => setContent({ ...content, lat: parseFloat(e.target.value) })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="40.7128"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Longitude</label>
+                <input
+                  type="number"
+                  step="any"
+                  value={content.lng || ''}
+                  onChange={(e) => setContent({ ...content, lng: parseFloat(e.target.value) })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="-74.0060"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Zoom Level (1-20)</label>
+              <input
+                type="number"
+                min="1"
+                max="20"
+                value={content.zoom || 15}
+                onChange={(e) => setContent({ ...content, zoom: parseInt(e.target.value) })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <EditorActions onSave={handleSave} onCancel={onCancel} />
+          </div>
+        );
+
+      case 'divider':
+        return (
+          <div className="p-6 bg-white border-2 border-blue-500 rounded-lg space-y-4">
+            <p className="text-gray-600">This is a divider block. Use the style panel to customize its appearance.</p>
+            <EditorActions onSave={handleSave} onCancel={onCancel} />
+          </div>
+        );
+
+      case 'spacer':
+        return (
+          <div className="p-6 bg-white border-2 border-blue-500 rounded-lg space-y-4">
+            <p className="text-gray-600">This is a spacer block. Use the style panel to adjust the height.</p>
             <EditorActions onSave={handleSave} onCancel={onCancel} />
           </div>
         );
@@ -264,7 +905,8 @@ const InlineEditor = ({ block, onSave, onCancel }) => {
       default:
         return (
           <div className="p-6 bg-white border-2 border-blue-500 rounded-lg">
-            <p className="text-gray-600 mb-4">Edit {block.type} block</p>
+            <p className="text-gray-600 mb-4">Edit {block.type} block content</p>
+            <p className="text-sm text-gray-500 mb-4">This block type doesn't have a custom editor yet. You can edit the raw content below or use the style panel for visual customization.</p>
             <textarea
               value={JSON.stringify(content, null, 2)}
               onChange={(e) => {
