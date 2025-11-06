@@ -29,11 +29,14 @@ const StylePanel = ({ block, onUpdateBlock, onClose }) => {
   };
 
   return (
-    <div className="w-80 bg-white border-l border-gray-200 overflow-y-auto" style={{ height: 'calc(100vh - 200px)' }}>
+    <div className="w-80 bg-gradient-to-b from-white to-gray-50 border-l-2 border-gray-200 overflow-y-auto shadow-lg" style={{ height: 'calc(100vh - 200px)' }}>
       {/* Header */}
-      <div className="p-4 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white z-10">
-        <h3 className="font-semibold text-gray-900">Edit Block</h3>
-        <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded">
+      <div className="p-4 border-b-2 border-gray-200 flex items-center justify-between sticky top-0 bg-gradient-to-r from-blue-50 to-purple-50 z-10">
+        <h3 className="font-bold text-gray-900 flex items-center gap-2">
+          <Palette size={20} className="text-blue-500" />
+          Edit Block
+        </h3>
+        <button onClick={onClose} className="p-1.5 hover:bg-white/70 rounded-lg transition">
           <X size={18} />
         </button>
       </div>
