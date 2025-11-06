@@ -1949,10 +1949,10 @@ const BlockRenderer = ({ block }) => {
       return (
         <div style={containerStyle} className="text-center">
           <h2 className="text-3xl font-bold mb-4">
-            {content.headline || 'Ready to Get Started?'}
+            {content?.headline || 'Ready to Get Started?'}
           </h2>
           <p className="text-lg mb-6 opacity-90">
-            {content.subheadline || 'Join thousands of satisfied customers today'}
+            {content?.subheadline || 'Join thousands of satisfied customers today'}
           </p>
           <button 
             className="px-8 py-3 rounded-lg font-semibold inline-block"
@@ -1961,7 +1961,7 @@ const BlockRenderer = ({ block }) => {
               color: '#FFFFFF'
             }}
           >
-            {content.cta_text || 'Get Started Now'}
+            {content?.cta_text || 'Get Started Now'}
           </button>
         </div>
       );
@@ -1970,7 +1970,7 @@ const BlockRenderer = ({ block }) => {
       return (
         <div style={containerStyle}>
           <h2 className="text-3xl font-bold mb-6">
-            {content.headline || 'Contact Us'}
+            {content?.headline || 'Contact Us'}
           </h2>
           <div className="grid md:grid-cols-2 gap-6">
             <div className="space-y-4">
