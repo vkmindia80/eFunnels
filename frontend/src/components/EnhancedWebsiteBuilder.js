@@ -246,6 +246,22 @@ const EnhancedWebsiteBuilder = () => {
                             <Copy size={14} />
                           </button>
                         </div>
+                        {page.status !== 'published' && (
+                          <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 px-3 py-2 rounded-lg">
+                            <span className="text-amber-600 text-xs mt-0.5">⚠</span>
+                            <p className="text-xs text-amber-700">
+                              <strong>Not publicly accessible:</strong> Click "Publish" to make this page viewable at the URL above.
+                            </p>
+                          </div>
+                        )}
+                        {page.status === 'published' && (page.visibility || 'public') === 'private' && (
+                          <div className="flex items-start gap-2 bg-orange-50 border border-orange-200 px-3 py-2 rounded-lg">
+                            <span className="text-orange-600 text-xs mt-0.5">🔒</span>
+                            <p className="text-xs text-orange-700">
+                              <strong>Private page:</strong> This page is published but marked private. Click "Make Public" to allow public access.
+                            </p>
+                          </div>
+                        )}
                       </div>
                       
                       <div className="space-y-2">
