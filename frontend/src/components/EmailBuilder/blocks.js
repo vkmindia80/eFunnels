@@ -145,10 +145,12 @@ export const BlockRenderer = ({ block, isSelected, onClick }) => {
   const containerStyle = {
     cursor: 'pointer',
     position: 'relative',
-    border: isSelected ? '2px solid #3B82F6' : '2px solid transparent',
-    borderRadius: '4px',
-    padding: '8px',
+    border: isSelected ? '3px solid #3B82F6' : '2px solid transparent',
+    borderRadius: '8px',
+    padding: '12px',
     transition: 'all 0.2s',
+    backgroundColor: isSelected ? '#EFF6FF' : 'transparent',
+    boxShadow: isSelected ? '0 0 0 3px rgba(59, 130, 246, 0.1)' : 'none',
   };
 
   const renderBlockContent = () => {
