@@ -254,6 +254,8 @@ const TemplateBrowser = ({ module, onSelectTemplate, onClose }) => {
             handleSelectTemplate(previewTemplate);
             setPreviewTemplate(null);
           }}
+          onEditTemplate={handleEditTemplate}
+          onDeleteTemplate={handleDeleteTemplate}
         />
       )}
     </div>
