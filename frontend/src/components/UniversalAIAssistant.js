@@ -101,7 +101,8 @@ const UniversalAIAssistant = ({ module, context = {}, onApplyContent, inline = f
     );
   }
 
-  const AssistantContent = () => (
+  // Render modal content directly to avoid remounting issues
+  const modalContent = (
     <div className={inline ? '' : 'bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col'}>
       {/* Header */}
       <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-purple-500 to-pink-600">
@@ -366,12 +367,12 @@ const UniversalAIAssistant = ({ module, context = {}, onApplyContent, inline = f
   );
 
   if (inline) {
-    return <AssistantContent />;
+    return modalContent;
   }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <AssistantContent />
+      {modalContent}
     </div>
   );
 };
