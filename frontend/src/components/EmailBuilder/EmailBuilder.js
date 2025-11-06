@@ -303,12 +303,15 @@ const EmailBuilder = ({ onBack, initialData = null, isTemplate = false, onSave }
         </div>
       </div>
 
-      {/* Subject Line Section */}
-      <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-b border-gray-200 px-6 py-4">
+      {/* Enhanced Subject Line Section */}
+      <div className="bg-gradient-to-r from-blue-50 via-purple-50 to-pink-50 border-b-2 border-gray-200 px-6 py-5 shadow-sm">
         <div className="max-w-4xl mx-auto">
-          <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-            <span>📧</span>
-            Email Subject Line
+          <label className="block text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
+            <span className="text-2xl">📧</span>
+            <span>Email Subject Line</span>
+            <span className="ml-auto text-xs font-normal text-gray-600 bg-white px-3 py-1 rounded-full border border-gray-200">
+              {emailSubject.length} characters
+            </span>
           </label>
           <div className="flex gap-3">
             <input
@@ -316,7 +319,7 @@ const EmailBuilder = ({ onBack, initialData = null, isTemplate = false, onSave }
               value={emailSubject}
               onChange={(e) => setEmailSubject(e.target.value)}
               placeholder="Enter your email subject line here..."
-              className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
+              className="flex-1 px-5 py-3.5 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg bg-white shadow-sm transition"
             />
             <button
               onClick={async () => {
