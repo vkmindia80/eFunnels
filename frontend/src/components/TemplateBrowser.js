@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, Search, Eye, Download, Star, Sparkles } from 'lucide-react';
+import { X, Search, Eye, Download, Star, Sparkles, Monitor, Smartphone, Code } from 'lucide-react';
 import api from '../api';
+import { blocksToHTML } from './EmailBuilder/utils';
 
 const TemplateBrowser = ({ module, onSelectTemplate, onClose }) => {
   const [templates, setTemplates] = useState([]);
