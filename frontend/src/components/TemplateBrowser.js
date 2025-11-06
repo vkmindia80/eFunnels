@@ -40,6 +40,34 @@ const TemplateBrowser = ({ module, onSelectTemplate, onClose }) => {
     onClose();
   };
 
+  const handleEditTemplate = async (template) => {
+    // Create a copy of the template for editing
+    const editedTemplate = {
+      ...template,
+      name: `${template.name} (Copy)`,
+      is_public: false,
+      id: undefined // Remove ID so a new one will be created
+    };
+    onSelectTemplate(editedTemplate);
+    onClose();
+  };
+
+  const handleDeleteTemplate = async (templateId) => {
+    if (!window.confirm('Are you sure you want to delete this template?')) {
+      return;
+    }
+    
+    try {
+      await api.delete(`/api/templates/${module}/${templateId}`);
+      // Refresh templates list
+      fetchTemplates();
+      alert('Template deleted successfully');
+    } catch (error) {
+      console.error('Failed to delete template:', error);
+      alert('Failed to delete template: ' + (error.response?.data?.detail || error.message));
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl max-w-6xl w-full max-h-[90vh] flex flex-col">
